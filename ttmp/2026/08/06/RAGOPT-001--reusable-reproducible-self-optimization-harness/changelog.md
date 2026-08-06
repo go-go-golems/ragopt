@@ -88,3 +88,13 @@ Selected and strictly validated the human-authored I5 combined-comparison search
 
 - abs:///home/manuel/workspaces/2026-06-30/benchmark-cpu-inference/rag-ttc/configs/ragopt/i5-combined-comparison-v1/candidate.yaml — Validated one-mutation product candidate
 - abs:///home/manuel/workspaces/2026-06-30/benchmark-cpu-inference/rag-ttc/internal/ragoptassets/assets_test.go — Product asset and suite drift tests
+
+## 2026-08-06 - Product-owned RAG-TTC adapter
+
+Published ragopt main, pinned the portable module revision in RAG-TTC, and implemented the bounded native I5 proof-cycle command. The adapter executes the existing chat runtime and judge, preserves complete per-cell sessions, locks runtime/source/index/profile identities, supports exact active-run resume, and introduces no generic plugin or subprocess protocol. RAG-TTC commit: `56432fd`.
+
+### Related Files
+
+- abs:///home/manuel/workspaces/2026-06-30/benchmark-cpu-inference/rag-ttc/cmd/rag-ttc/cmds/chat/tooleval/ragopt.go — Product-owned execution and native artifact adapter
+- abs:///home/manuel/workspaces/2026-06-30/benchmark-cpu-inference/rag-ttc/cmd/rag-ttc/cmds/chat/tooleval/ragopt_test.go — Locked environment and arm-binding tests
+- ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Publication, implementation, failure, and validation trail
