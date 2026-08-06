@@ -111,7 +111,7 @@ correctly rejected; candidate promotion is not a phase-exit requirement.
 - [x] Enforce the feedback-before-validation spending gate; I5 failed, so validation was correctly left unrun.
 - [x] Verify native RAG-TTC artifacts remain authoritative and are digest-linked from common outcomes.
 - [x] Review every feedback case outcome and record the reject decision.
-- [ ] Repeat the same candidate from a fresh run root and verify semantic identities and canonical deltas.
+- [x] Repeat the same candidate from a fresh run root and verify semantic identities and canonical deltas.
 - [ ] Integrate GEC-RAG only after the RAG-TTC integration proof reproduces; the I5 candidate does not need to pass promotion gates.
 - [ ] In GEC-RAG, fix authorization and judge-accounting P0 findings before using results for promotion.
 - [ ] Run one GEC-RAG human-authored candidate twice with a frozen suite and policy.

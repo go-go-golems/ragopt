@@ -1,0 +1,34 @@
+almanach_studio_version: 1
+theme: brutalist
+paperWidth: 384
+bodyScale: 1
+feedLines: 8
+blocks:
+  - id: head
+    type: banner
+    data: { text: "RAGOPT-001 / STEP 23", right: "LEDGER", pad: "m" }
+  - id: gap1
+    type: space
+    data: { size: "s" }
+  - id: title
+    type: text
+    data: { text: "PROOF ENTERED. TASK 67 CLOSED.", preset: h1, lines: 3 }
+  - id: rule1
+    type: rule
+    data: { weight: heavy }
+  - id: facts
+    type: checks
+    data:
+      items:
+        - "reference 08 added"
+        - "index status corrected"
+        - "task ledger advanced"
+        - "changelog updated"
+        - "10 docs / not stale"
+      columns: 1
+  - id: result
+    type: banner
+    data: { text: "NEXT / GEC P0 REPAIRS", pad: "m" }
+  - id: note
+    type: text
+    data: { text: "I5 stays rejected. Validation stays closed. Evidence is ready for review and commit.", preset: body }

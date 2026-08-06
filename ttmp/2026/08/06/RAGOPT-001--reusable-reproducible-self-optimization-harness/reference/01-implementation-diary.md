@@ -58,7 +58,7 @@ RelatedFiles:
       Note: Phase 5 product boundary, conditional validation gate, and reproducible-rejection criterion
 ExternalSources: []
 Summary: Chronological record of the ragopt repository bootstrap, evidence audit, scope decisions, documentation, validation, and delivery.
-LastUpdated: 2026-08-06T10:05:00-04:00
+LastUpdated: 2026-08-06T16:05:00-04:00
 WhatFor: Preserve the exact reasoning, commands, failures, and review guidance behind the initial ragopt design.
 WhenToUse: Read when reviewing the design or resuming implementation from the phased task ledger.
 ---
@@ -2672,4 +2672,502 @@ Second run created: no
 Provider calls made in this step: 0
 Validation authorized or run: no
 Resume document: reference/07-rag-ttc-i5-fresh-root-reproducibility-protocol.md
+```
+
+## Step 20: Run and verify the authorized fresh-root RAG-TTC proof
+
+The user supplied the exact authorization requested in Step 19 and also set a
+standing ceiling for later provider work below one million tokens or one US
+dollar. I resumed the frozen proof without changing the product commit,
+profile, index, suite, candidate, policy, or command. The second run completed
+all six feedback coordinates. I did not run validation.
+
+The fresh-root run reproduced the important decision: the I5 candidate is not
+eligible for promotion. This is a successful harness proof and a failed
+candidate. The byte-identical run configuration, semantic identities, copied
+input custody, complete pair join, and deterministic gate decision all agree
+with the protocol. Stochastic answer behavior changed which cells were valid,
+so the metric deltas are not byte-identical to run one; the difference is
+visible and explainable rather than hidden.
+
+### Prompt Context
+
+**User prompt (verbatim):**
+
+> I approve one second RAG-TTC I5 feedback run: six cells only, with ceilings of 24 answer calls, 18 embedding calls, and 12 judge calls. Do not run validation.
+>
+> In fact you can run anything with a provider budget < 1M token (or $1)
+
+**Assistant interpretation:** Execute exactly the frozen six-cell feedback
+proof, stay below all stated call ceilings, leave validation unrun, then verify
+the complete evidence chain. Treat the sub-one-million-token or sub-one-dollar
+statement as authorization for future provider work within that bound, not as
+permission to alter the frozen proof.
+
+**Inferred user intent:** Finish the evidence required to distinguish a real,
+reproducible optimization harness from a result that merely appears complete,
+while bounding provider exposure and spend.
+
+### What I did
+
+- Revalidated the detached proof worktree at product commit `90485d8539515173e88d2a9703f3a7ad4aed74bc`.
+- Confirmed only the first corrected run existed before launch and that the
+  frozen profile, index, suite, and policy bytes still matched reference 07.
+- Launched the exact `tool-loop ragopt --split feedback` command in tmux and
+  monitored it through terminal completion.
+- Retained fresh run
+  `20260806T194517.057830400Z-ttc-i5-feedback-98a227142ee5`.
+- Ran `ragopt compare` and generated a non-applying promotion plan and review.
+- Verified all six expected coordinates are unique and present.
+- Recomputed every copied-input SHA-256 and byte size from `inputs/manifest.json`.
+- Verified both proof-run `config.json` files are byte-identical with digest
+  `99ca5018c34d85b1693894c8670f57f7a00044e5f62065376bcf699be61e627c`.
+- Recomputed all native artifact digests and sizes and checked the referenced
+  session directories.
+- Counted 22 answer calls, 17 `ttc_search` calls, and 8 judge work calls, all
+  below the authorized 24/18/12 ceilings.
+- Summed 108,548 answer-plus-judge provider tokens, below the later standing
+  one-million-token ceiling.
+- Confirmed no validation coordinate or validation run was created.
+
+### Why
+
+- Task 67 is the evidence gate before starting the GEC integration.
+- A second fresh root tests input custody, adapter behavior, pair construction,
+  and gate determinism without requiring the candidate itself to pass.
+- Retaining invalid and failed cells prevents nondeterministic generation from
+  making a weak candidate look better by omission.
+
+### What worked
+
+- Run state is `complete`; the summary records 6 expected, 6 completed, and 1
+  failed cell.
+- Suite semantic identity is
+  `sha256:b009f9...`; candidate identity is `sha256:0d598d...`; parent and child
+  snapshots are `sha256:4cc350...` and `sha256:836466...`.
+- Complete pairing passed for all three cases.
+- The candidate completed 3/3 cells but was contract-valid for only 2/3.
+- Answer relevance tied at 1.0 on both judged pairs.
+- Candidate mean faithfulness was 0.947222 versus incumbent 0.989362, a
+  -0.042139 paired mean delta over the two covered pairs.
+- The promotion plan is `review_required`, `human_apply_required: true`, and
+  `decision: fail`; it contains no application action.
+
+### What didn't work
+
+- My first copied-input verification used `path` as a zsh loop variable. In
+  zsh, `path` is tied to `PATH`, so the command destroyed its own executable
+  lookup and failed exactly as follows:
+
+  ```text
+  zsh:4: command not found: sha256sum
+  zsh:4: command not found: awk
+  zsh:5: command not found: stat
+  MISMATCH evaluation-suite inputs/evaluation-suite.json want=sha256:c22b6b186d5f4bd7c2a9177271bfa0005946474b67f78fc7ca85108b9106518d/903 got=/
+  ```
+
+  I renamed the variable to `copied`, used explicit `/usr/bin` paths, stripped
+  the manifest's `sha256:` prefix, and obtained `input-custody-ok`.
+
+- A first `jq` custody projection treated the top-level input manifest as an
+  object instead of an array and failed with:
+
+  ```text
+  jq: error (at .../inputs/manifest.json:149): Cannot index array with string "role"
+  ```
+
+  I corrected the selector to `.[]` and did not accept the earlier false shell
+  success marker.
+
+- A tool-call diagnostic assumed every `result` was an object and failed with:
+
+  ```text
+  jq: error (.../turns.jsonl:1): Cannot index string with string "error"
+  ```
+
+  Three failed tool results are strings. I changed the diagnostic to inspect
+  `type` before object operations and confirmed 17 total search calls.
+
+### What I learned
+
+- Reproducibility here means stable frozen identities, complete evidence, and
+  the same gate decision. It does not mean a stochastic model must emit the
+  same answers or identical metric deltas on every run.
+- Run two gave two fully judged pairs where run one gave only one candidate
+  judged cell. The additional coverage strengthened, rather than reversed, the
+  rejection: the candidate lost both faithfulness comparisons.
+- The incumbent failure on `ttc-expand-056` included a fourth search request
+  rejected by the per-cell resource limiter, followed by the four-iteration
+  ceiling. This remains evidence, not a dropped sample.
+
+### What was tricky to build
+
+The main review problem was keeping four different identities separate: source
+file byte digests, semantic suite/policy digests, snapshot identities, and the
+byte digest of the full run configuration. They answer different questions and
+must not be compared interchangeably. The second problem was interpreting
+stochastic cell changes without weakening the predeclared gates. The correct
+comparison is frozen inputs plus exact pairs plus the same decision algorithm,
+with every changed outcome reported.
+
+### What warrants a second pair of eyes
+
+- Review the failed incumbent and invalid challenger `ttc-expand-056` traces.
+- Confirm that two judged pairs are enough evidence for a rejection but not for
+  a broad prompt-quality conclusion.
+- Review the distinction between the policy byte digest and semantic policy
+  digest before the Phase 6 schema rename.
+
+### What should be done in the future
+
+- Publish the detailed second-run report and check task 67.
+- Begin GEC only after its authorization and judge-accounting P0 findings are
+  fixed.
+- Freeze and run one GEC human-authored candidate twice before generalizing any
+  additional RAGOPT API.
+
+### Code review instructions
+
+- Compare the two `config.json` files with `cmp -s` and `sha256sum`.
+- Read all six rows in `results/cells.jsonl`; do not average away invalid or
+  failed outcomes.
+- Recompute copied-input and native-artifact digests from the second run root.
+- Read `promotion-plan.json` beside the generated review and confirm that no
+  apply mechanism exists.
+
+### Technical details
+
+```text
+Second run:           20260806T194517.057830400Z-ttc-i5-feedback-98a227142ee5
+Coordinates:          3 cases x 2 arms x 1 repeat = 6
+Completed / failed:   6 / 1
+Complete pairs:       3 / 3
+Candidate valid:      2 / 3
+Answer calls:         22 / 24
+Search calls:         17 / 18
+Judge work calls:     8 / 12
+Provider tokens:      108,548 / 1,000,000
+Decision:             fail — do not promote I5
+Harness proof:        pass — frozen evidence reproduced the rejection
+Validation:           not run
+```
+
+## Step 21: Create the physical RAGOPT mission board
+
+I translated the canonical task ledger and the just-verified proof result into
+a compact brutalist thermal work slip. The print is intentionally operational:
+it says what RAGOPT owns, what has been proved, why I5 remains rejected, which
+GEC tasks are next, what is needed for v0.1, and which attractive but premature
+features remain forbidden.
+
+### Prompt Context
+
+**User prompt (verbatim):**
+
+> Printout an almanach brutalist writeup of the ticket and the tasks we are doing and ahead of us, so I can keep it in front of me what we are doing.
+
+**Assistant interpretation:** Produce a physical, glanceable mission board on
+the Almanach printer—not another long design document—and retain its source in
+the RAGOPT ticket.
+
+**Inferred user intent:** Keep the project boundary and sequential next actions
+visible during implementation, especially the distinction between the shared
+harness, product-owned adapters, later production refresh work, and explicitly
+deferred overengineering.
+
+### What I did
+
+- Read the current Phase 0–7 task ledger rather than summarizing from memory.
+- Used the Almanach work-slip DSL with `theme: brutalist`, `paperWidth: 384`,
+  `bodyScale: 1`, and `feedLines: 8`.
+- Created `sources/almanach/21-ragopt-mission-board.yaml` inside the ticket.
+- Structured the slip as purpose, current state, completed mechanisms, next
+  GEC proof tasks, v0.1 hardening, later refresh work, and guardrails.
+- Kept the decision explicit: harness proof passes; I5 candidate fails;
+  validation remains closed.
+
+### Why
+
+- A physical board should optimize for orientation and sequencing, not repeat
+  the full intern design guide.
+- The ticket's largest risk is boundary drift: confusing Admin Chat, Garden,
+  CoinVault/GEC, RAGOPT, and AWS deployment responsibilities.
+- Showing deferred features is useful only when phrased as “do not build,” not
+  as an attractive parallel backlog.
+
+### What worked
+
+- The existing task ledger maps cleanly to a one-page thermal hierarchy.
+- The brutalist work-slip primitives support dense but readable operational
+  content without the editor-style reMarkable layout the user rejected.
+- The YAML is versioned beside the diary and can be reprinted unchanged.
+
+### What didn't work
+
+- I initially looked for a stale example path named
+  `examples/11-work-slip-brutalist.yaml`; it does not exist in the installed
+  skill directory:
+
+  ```text
+  sed: can't read /home/manuel/.codex/skills/almanach-printing/examples/11-work-slip-brutalist.yaml: No such file or directory
+  ```
+
+  The skill points to the live examples repository. I used
+  `/home/manuel/code/wesen/go-go-golems/almanach/examples/layouts/11-decision-sheet.yaml`
+  and `12-triage-card.yaml` instead.
+
+### What I learned
+
+- The best desk-facing summary is the dependency order, not an architecture
+  inventory: prove TTC twice, fix GEC P0s, prove GEC twice, harden v0.1, then
+  build shared refresh contracts.
+- “No overengineering” is concrete here: no reflector, generic workflow
+  engine, automatic deployment, transcript warehouse, or multi-mutation search.
+
+### What was tricky to build
+
+The slip needed to remain accurate across two different meanings of success.
+The integration proof succeeded because the evidence chain reproduced. The I5
+optimization failed because it did not satisfy the promotion policy. Collapsing
+those into one green/red status would teach exactly the wrong mental model.
+
+### What warrants a second pair of eyes
+
+- Check the physical hierarchy at arm's length: current state and next action
+  should dominate the later production-refresh material.
+- Confirm the longer four-item GEC list remains legible on 58 mm paper.
+
+### What should be done in the future
+
+- Reprint the same source after major phase transitions only when the board's
+  state changes materially.
+- Keep short per-diary-entry tickets separate from this larger mission board.
+
+### Code review instructions
+
+- Compare the YAML claims to `tasks.md`, especially Phase 5, Phase 6, Phase 7,
+  and “Explicitly deferred.”
+- Inspect or dry-run with `almanach-render-service inspect` or
+  `print-remote --dry-run` before changing typography or density.
+
+### Technical details
+
+```text
+Layout:       sources/almanach/21-ragopt-mission-board.yaml
+Theme:        brutalist
+Paper width:  384 px / 58 mm
+Body scale:   1
+Feed lines:   8
+Primary next: GEC authorization and judge-accounting P0 fixes
+```
+
+## Step 22: Make a brutalist print the closing action of every diary entry
+
+The user added a session workflow rule: after each detailed diary entry, print
+a short brutalist ticket explaining what happened and how it went. I adopted a
+non-recursive convention: the ticket closes the diary step, and the printing
+operation itself does not create another diary step unless it materially fails
+or changes the project.
+
+### Prompt Context
+
+**User prompt (verbatim):**
+
+> btw After each diary entry, print a short brutalist ticket on the printer about what you did
+>  and how it went.
+
+**Assistant interpretation:** Every new strict diary step in this continuing
+session must be followed by a physical, concise brutalist summary ticket.
+
+**Inferred user intent:** Maintain a paper trail that makes ongoing progress,
+failures, and immediate next actions visible without reopening the full ticket.
+
+### What I did
+
+- Declared the non-recursive closing convention to the user.
+- Created `sources/almanach/22-diary-print-policy.yaml`.
+- Retrospectively created and printed a Step 20 proof ticket after writing Step
+  20; the remote service returned `ok: true`, `printed: true`, width 384, height
+  580.
+- Printed the Step 21 mission board after writing Step 21; the remote service
+  returned `ok: true`, `printed: true`, width 384, height 1757, in 3 segments.
+- Prepared this short policy ticket as the closing print for Step 22.
+
+### Why
+
+- A closing ticket preserves the requested “what and how” summary while the
+  Markdown diary remains the authoritative technical record.
+- Avoiding a new diary entry solely for a successful print prevents an infinite
+  diary → print → diary recursion.
+
+### What worked
+
+- Both earlier remote prints completed successfully through the crib service
+  and the printer acknowledged them.
+- The short-ticket format fits one result, a few measures, and one next action.
+
+### What didn't work
+
+- Nothing failed while introducing the policy. Any later failed print will be
+  recorded in the next substantive diary step and retried at most within the
+  debugging limit.
+
+### What I learned
+
+- The physical ticket is most useful as a checkpoint receipt, while the larger
+  mission board is useful as a durable orientation artifact. They should stay
+  separate.
+
+### What was tricky to build
+
+The workflow has to preserve chronology without requiring a diary mutation
+after the print result is known. The practical rule is: write the substantive
+step with its evidence, print the closing ticket, and report print success in
+the user-facing update. A print failure becomes evidence in the next genuinely
+substantive step rather than recursively generating bookkeeping.
+
+### What warrants a second pair of eyes
+
+- Confirm that one short print per substantive diary step is the intended
+  cadence; this can produce several physical slips during a long session.
+
+### What should be done in the future
+
+- Include step number, ticket, outcome, one or two measurements, and next action
+  on every short ticket.
+- Store every layout source under this ticket's `sources/almanach/` directory.
+
+### Code review instructions
+
+- Verify each future `## Step N` added during this session has a corresponding
+  numbered YAML source and successful print response.
+
+### Technical details
+
+```text
+Diary authority: Markdown reference 01
+Closing format:  brutalist work slip
+Body scale:      1
+Feed lines:      8
+Recursion rule:  successful print does not create its own diary step
+Policy state:    active
+```
+
+## Step 23: Publish the second-run decision into the ticket ledger
+
+I converted the verified run evidence into the durable ticket checkpoint. The
+new reference explains the exact identities, every cell, the hard-gate result,
+provider ceilings, the difference between stochastic outputs and reproducible
+decisions, and the next GEC dependency. I checked Phase 5 task 67 and replaced
+the ticket index's obsolete provider-blocked status.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 20)
+
+**Assistant interpretation:** Complete the authorized proof as a reviewable
+ticket artifact, not merely as an ephemeral terminal result.
+
+**Inferred user intent:** Ensure the team can resume from repository evidence
+and understand both why the harness proof passed and why the tested candidate
+failed.
+
+### What I did
+
+- Added reference 08, “Second RAG-TTC I5 Fresh-Root Proof and Reproducibility
+  Decision.”
+- Documented the full identity table, six-cell table, gate table, budget
+  accounting, run-one/run-two interpretation, custody procedure, commands, and
+  next sequential work.
+- Checked task 67 in the canonical task ledger.
+- Updated the ticket index from “provider blocked” to “RAG-TTC reproduced; GEC
+  next.”
+- Added the checkpoint and Almanach sources to the changelog.
+- Ran `docmgr status --ticket RAGOPT-001`; it reports an active, non-stale
+  ticket with ten managed documents.
+- Ran `git diff --check`, found the two literal trailing spaces inherited from
+  the quoted user prompt, and removed only those whitespace bytes.
+
+### Why
+
+- The `/tmp` proof root is valuable evidence but is not a durable team handoff.
+- Task state must reflect the proof criterion rather than the candidate's
+  promotion result.
+- The index is the ticket entry point and must not continue claiming the second
+  run is absent after it has completed.
+
+### What worked
+
+- The report cleanly separates harness PASS, candidate FAIL, and validation NOT
+  RUN.
+- `docmgr status` recognizes reference 08 and reports no stale ticket.
+- The task ledger now makes GEC integration the next sequential Phase 5 work.
+
+### What didn't work
+
+- `docmgr task check --ticket RAGOPT-001 --id 67` could read the external
+  RAGOPT repository but its subprocess could not write through the current
+  filesystem sandbox:
+
+  ```text
+  Error: failed to write tasks file /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/tasks.md: open /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/tasks.md: read-only file system
+  ```
+
+  The command made no partial change. I applied the identical one-line checkbox
+  edit with the workspace patch mechanism.
+
+- The first `git diff --check` reported:
+
+  ```text
+  reference/01-implementation-diary.md:2976: trailing whitespace.
+  ```
+
+  The whitespace came from preserving the user's Markdown hard line break. I
+  removed the two trailing spaces while preserving every word of the prompt.
+
+### What I learned
+
+- A provider-blocked status becomes actively misleading once authorization is
+  supplied; entry-point status pages need updating in the same checkpoint as
+  the detailed report.
+- The phrase “verify canonical deltas” must not be read as “require identical
+  stochastic metric values.” The report makes the correct rule explicit:
+  compute deltas canonically from complete frozen pairs and explain changes.
+
+### What was tricky to build
+
+The report must be strong enough to authorize the next phase without claiming
+more than six cells demonstrate. It therefore treats stable rejection as
+integration evidence, while explicitly refusing to generalize that I5 is
+universally harmful. This keeps the product decision, harness decision, and
+scientific scope separate.
+
+### What warrants a second pair of eyes
+
+- Review reference 08's task-67 conclusion against reference 07's predeclared
+  criteria.
+- Confirm that task 68 should now begin with task 69's P0 repairs rather than
+  running the existing GEC evaluator unchanged.
+
+### What should be done in the future
+
+- Commit this documentation checkpoint intentionally.
+- Then inspect the GEC P0 findings and scope the minimum product-owned fixes.
+- Continue printing one short ticket after each later diary step.
+
+### Code review instructions
+
+- Start at the ticket index and follow reference 07 to reference 08.
+- Confirm task 67 is checked and tasks 68–71 remain open.
+- Run `git diff --check` and `docmgr status --ticket RAGOPT-001`.
+- Compare the printed mission-board YAML to the task ledger.
+
+### Technical details
+
+```text
+New reference: reference/08-second-rag-ttc-i5-fresh-root-proof-and-reproducibility-decision.md
+Task closed:   67
+Next tasks:    68 and 69 — GEC integration boundary and P0 repairs
+Ticket docs:   10
+Ticket stale:  false
 ```
