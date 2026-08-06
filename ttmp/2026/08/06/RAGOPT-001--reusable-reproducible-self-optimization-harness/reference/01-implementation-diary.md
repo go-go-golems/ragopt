@@ -22,6 +22,22 @@ RelatedFiles:
         Proven lifecycle ported narrowly in Phase 1
     - Path: abs:///home/manuel/workspaces/2026-06-30/benchmark-cpu-inference/rag-ttc/pkg/rag/tooleval/runner.go
       Note: Implemented small Arm and Outcome comparison boundary audited in Step 2
+    - Path: abs:///tmp/gec-ragopt-phase5/cmd/coinvault/cmds/knowledge.go
+      Note: GEC failure-visible judge accounting and denominators in Step 24
+    - Path: abs:///tmp/gec-ragopt-phase5/cmd/coinvault/cmds/knowledge_ragopt.go
+      Note: Provider-free preflight, frozen runtime validation, budgets, and product adapter in Step 32
+    - Path: abs:///tmp/gec-ragopt-phase5/cmd/coinvault/cmds/knowledge_ragopt_trace.go
+      Note: Authoritative native answer/tool/evidence/provider trace matched by the locked contract
+    - Path: abs:///tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/candidate/snapshot.yaml
+      Note: Recomputed challenger snapshot identity for the one-mutation proof
+    - Path: abs:///tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/parent/snapshot.yaml
+      Note: Recomputed incumbent snapshot identity for the executable proof
+    - Path: abs:///tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/shared/source-lock.yaml
+      Note: Committed semantic source identities proven by the GEC preflight
+    - Path: abs:///tmp/gec-ragopt-phase5/internal/knowledge/judge.go
+      Note: GEC idempotent timeline projection and strict judge semantics in Step 24
+    - Path: abs:///tmp/gec-ragopt-phase5/internal/knowledge/service.go
+      Note: GEC product-owned pre-fusion and pre-reranker authorization repair in Step 24
     - Path: repo://cmd/ragopt/commands/candidate/validate.go
       Note: Glazed candidate validation row command
     - Path: repo://cmd/ragopt/main.go
@@ -56,18 +72,13 @@ RelatedFiles:
       Note: Authoritative first corrected proof and rejected-candidate evidence
     - Path: repo://ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/tasks.md
       Note: Phase 5 product boundary, conditional validation gate, and reproducible-rejection criterion
-    - Path: abs:///tmp/gec-ragopt-phase5/internal/knowledge/service.go
-      Note: GEC product-owned pre-fusion and pre-reranker authorization repair in Step 24
-    - Path: abs:///tmp/gec-ragopt-phase5/internal/knowledge/judge.go
-      Note: GEC idempotent timeline projection and strict judge semantics in Step 24
-    - Path: abs:///tmp/gec-ragopt-phase5/cmd/coinvault/cmds/knowledge.go
-      Note: GEC failure-visible judge accounting and denominators in Step 24
 ExternalSources: []
 Summary: Chronological record of the ragopt repository bootstrap, evidence audit, scope decisions, documentation, validation, and delivery.
 LastUpdated: 2026-08-06T16:24:00-04:00
 WhatFor: Preserve the exact reasoning, commands, failures, and review guidance behind the initial ragopt design.
 WhenToUse: Read when reviewing the design or resuming implementation from the phased task ledger.
 ---
+
 
 
 
@@ -4834,4 +4845,310 @@ Full tests:              pass
 Full hook:               pass
 Provider calls:          0
 Next gate:               freeze sources and recompute semantic identities
+```
+
+## Step 32: Freeze the Executable GEC Candidate and Prove a Zero-Call Preflight
+
+This step turned the provisional GEC bundle into an executable experiment
+identity. The product adapter now has a provider-free preflight mode, every
+material contract describes the implementation that actually runs, the
+committed GEC sources are digest-locked, and both snapshots were re-identified
+by RAGOPT after repairing malformed YAML in the parent and challenger assets.
+
+The final preflight opened a byte-identical copy of the real 16,032-document
+hybrid bundle, resolved the production answer and judge profiles, checked the
+shared Geppetto tool-loop policy, verified source and physical index digests,
+and reported exactly six feedback cells with zero provider calls. The live
+CoinVault server and its Admin Chat work remained untouched, and validation
+remains closed.
+
+### Prompt Context
+
+**User prompt (verbatim):** "3876 +- The current product loop boundary is less explicit than TTC's tool-QA runner.
+    3877 +  The adapter must observe and account for production calls rather than claim a
+    3878 +  configurable per-cell maximum that GEC does not expose.
+
+---
+
+Aren't we unifying things? Why are the tool loops different? Doesn't ragkit provide them?"
+
+**Assistant interpretation:** Continue RAGOPT-001 while correcting the
+architecture language: TTC and GEC share Geppetto's agentic tool loop, ragkit
+owns retrieval components rather than chat orchestration, and the GEC proof
+must freeze and observe the real product composition without inventing a
+second loop or fictitious limits.
+
+**Inferred user intent:** Make the shared framework boundary unmistakable and
+prove that the GEC optimization run evaluates the same production mechanisms
+we intend to reuse across products, with explicit product policy and truthful
+provider accounting.
+
+**Commit (code):** `82c1659` — "Add provider-free RAGOPT preflight"
+
+**Commit (candidate):** `e2d1997` — "Freeze executable GEC RAGOPT candidate"
+
+### What I did
+
+- Added `--preflight-only` to `coinvault knowledge ragopt` as a Glazed domain
+  flag with a safe default of `false`.
+- Placed the preflight return after all candidate, suite, profile, runtime,
+  bundle, corpus, physical-index, source-lock, and budget checks but before the
+  RAGOPT runner, session construction, or provider execution.
+- Made the preflight emit a structured row containing:
+  - parent, child, and candidate identities;
+  - split and expected cell count;
+  - bundle, answer profile/engine, and judge profile/engine;
+  - the four frozen ceilings;
+  - an explicit observed provider-call count of zero.
+- Added a focused command test proving the flag is registered and defaults to
+  false.
+- Ran focused tests, the complete `./cmd/... ./internal/...` suite, and the
+  repository pre-commit hook before committing the preflight.
+- Corrected `shared/adapter-contract.yaml` so common `provider_calls` means
+  observed answer-provider calls only; judge attempts/cache use and query
+  embeddings remain separately visible native evaluation accounting.
+- Replaced the stale answer schema with the exact `gecRagoptTrace` field
+  contract, including tool inputs/results, admitted evidence, provider call
+  metadata, tokens, and terminal state.
+- Corrected the proof ceilings from the provisional `6/0/12` values to the
+  enforced `24 answer / 18 embedding / 12 judge / 500,000 answer tokens`.
+- Declared explicitly that TTC and GEC share
+  `github.com/go-go-golems/geppetto/pkg/inference/toolloop`; ragkit remains the
+  retrieval/indexing/evaluation component library.
+- Replaced the provisional source lock with GEC commit `82c1659`, RAGOPT
+  commit `4d410c57e242`, and SHA-256 hashes for the actual profile, prompts,
+  knowledge service, description seam, judge, catalog, Geppetto composition,
+  sessionstream resolver, local runner/events, adapter/trace, evaluation data,
+  and Go dependency locks.
+- Recomputed every changed locked-asset reference and both snapshot IDs using
+  `ragopt candidate validate`; no identity was hand-guessed.
+- Diagnosed and repaired one malformed YAML note in both mutable assets. The
+  unquoted `documents: product ...` scalar was parsed as a mapping, so both
+  assets now use a folded scalar that preserves the rendered text.
+- Preserved the running CoinVault server on port 18933. Because it owns
+  Bleve's exclusive handle, copied the immutable bundle and its exact source
+  corpus into `/tmp/ragopt-gec-knowledge/{corpus,bundles/<id>}` for isolated
+  proof execution.
+- Ran the final provider-free GEC preflight successfully.
+
+### Why
+
+- A frozen candidate is not executable evidence until the product can resolve
+  every locked identity and parse both replacement assets without crossing a
+  provider boundary.
+- Preflight must share the same product validation path as execution. A
+  separate manifest checker would prove only configuration syntax and could
+  drift from the adapter that spends money.
+- Product answer cost and judge overhead answer different questions. Combining
+  them would bias RAGOPT tie-breakers and repeat the accounting defect already
+  found in TTC.
+- `ragkit` deliberately excludes Geppetto and Pinocchio. Keeping the agentic
+  loop in Geppetto preserves a clean reusable retrieval library while still
+  giving TTC and GEC one loop implementation.
+- Opening a byte-identical temporary bundle avoids terminating the colleague's
+  live Admin Chat process. Corpus and physical index digests make the temporary
+  path irrelevant to experiment identity.
+
+### What worked
+
+- Focused preflight registration and frozen-budget tests passed:
+
+  ```text
+  GOCACHE=/tmp/ragopt-gec-gocache go test ./cmd/coinvault/cmds \
+    -run 'TestKnowledgeRagoptCommandIsRegistered|TestGECRagoptSplitAndBudgetsAreFrozen' \
+    -count=1
+  ok github.com/go-go-golems/gec-rag/cmd/coinvault/cmds 0.024s
+  ```
+
+- The complete command/internal suite passed with local-socket access.
+- The preflight commit hook passed:
+
+  ```text
+  golangci-lint: 0 issues
+  lint: 47.53 seconds
+  tests: 3.07 seconds
+  total: 50.61 seconds
+  ```
+
+- RAGOPT validated exactly one changed mutable asset:
+
+  ```text
+  candidate_digest: sha256:20e0c3f65da9d3a5c8bdcebb0d9a727645acd269db8fbd50186a620205a6ace8
+  parent_snapshot:  sha256:83ac2d1bfaba3e770732772f80bda969670146b8034a6dfb3031d1ebb0958402
+  child_snapshot:   sha256:6579ee1c05c5fcf46fabd3433b4de8be17de291f3f647d2b9b67bcd56c178ee9
+  changed_asset:    knowledge_search_description
+  valid:            true
+  ```
+
+- The product preflight passed with the real resolved identities:
+
+  ```text
+  status:                    preflight-passed
+  split:                     feedback
+  expected_cells:            6
+  answer_profile/engine:     default/gpt-5.6-luna-low / gpt-5.6-luna
+  judge_profile/engine:      default/gpt-5.6-luna / gpt-5.6-luna
+  answer/embedding/judge:    24 / 18 / 12
+  maximum_provider_tokens:   500000
+  provider_calls:            0
+  ```
+
+- The live CoinVault process remained running and validation was not invoked.
+
+### What didn't work
+
+- The first focused test used the default Go build cache, which is read-only
+  in the sandbox:
+
+  ```text
+  open /home/manuel/.cache/go-build/7b/7b7d5d7ad15b0bc3bced124f18d7b8cc7e57c630bac8c95d52ec490853714326-a: read-only file system
+  ```
+
+  I reran with the task-specific `GOCACHE=/tmp/ragopt-gec-gocache`.
+- The first preflight-row compile referenced `suite.Cases`, but RAGOPT exposes
+  cases through `suite.Suite.Cases`:
+
+  ```text
+  cmd/coinvault/cmds/knowledge_ragopt.go:177:42: suite.Cases undefined
+  ```
+
+  Correcting that field made the focused and complete suites pass.
+- The first real preflight could not open the production Bleve directory:
+
+  ```text
+  another rag-ttc process holds the lock on .../bleve; close the other chat or corpus command using this bundle and retry
+  ```
+
+  Host inspection showed PID 1265382 was the live CoinVault server on port
+  18933. I did not kill it.
+- A flat temporary bundle copy failed because GEC deliberately resolves the
+  source corpus two directories above `bundles/<id>`:
+
+  ```text
+  load verified corpus documents: evaluate source corpus path:
+  lstat /corpus-coinvault-gec-hybrid-v1.json: no such file or directory
+  ```
+
+  Mirroring the production `var/knowledge` topology fixed corpus custody.
+- The next preflight exposed malformed YAML in both description assets:
+
+  ```text
+  decode knowledge tool description: yaml: unmarshal errors:
+    line 6: cannot unmarshal !!map into string
+  ```
+
+  I stopped after the required debugging limit, then resumed by comparing the
+  asset schema to the strict loader. The colon-space inside the plain list
+  scalar was the cause; folded scalars fixed it without changing rendered
+  semantics.
+
+### What I learned
+
+- The unification boundary is now concrete: Geppetto owns the iterative model
+  and tool protocol; ragkit owns retrieval/indexing components; Pinocchio and
+  sessionstream own chat lifecycle; RAGOPT owns experiment custody. Product
+  profiles select tools and policies without creating different loop engines.
+- Candidate validation intentionally treats mutable assets as opaque bytes.
+  Product schema validation therefore belongs in product preflight and must
+  happen before any provider execution.
+- An immutable bundle can still be operationally single-reader when its Bleve
+  backend uses an exclusive Bolt handle. A byte-identical working copy is a
+  valid experiment input only because semantic and physical digests are
+  checked independently of path.
+- A source lock must include the composition and event-projection seams, not
+  just retrieval code. Otherwise the evaluated provider identity or accounting
+  could change without changing the candidate snapshot.
+
+### What was tricky to build
+
+The difficult part was choosing the preflight boundary. Returning before
+`validateGECRagoptEnvironment` would be cheap but meaningless; returning after
+`ragopteval.Run` would already create custody artifacts and possibly provider
+calls. The implemented return occurs after candidate/suite loading, judge and
+answer profile resolution, bundle opening, corpus verification, physical
+index hashing, source-lock validation, and production-default equivalence, but
+before budget construction and either arm executes.
+
+The second sharp edge was separating semantic identity from filesystem
+availability. The production bundle was correct but busy. The temporary copy
+had to preserve both bundle bytes and the external corpus relationship. The
+preflight's bundle ID, corpus digest, lexical manifest hash, and vector SQLite
+hash prove equivalence; the temporary pathname is intentionally not a semantic
+dimension.
+
+The YAML failure was subtle because the files looked human-readable and
+RAGOPT correctly accepted them as opaque candidate assets. Only the product's
+strict typed loader could determine that a colon-space changed a list item
+from scalar to map. Repairing both arms and re-identifying everything was the
+correct response; weakening the loader would have created a compatibility
+layer and hidden invalid experiment input.
+
+### What warrants a second pair of eyes
+
+- Confirm that `--preflight-only` returns at the intended last zero-cost point
+  and cannot accidentally construct a cell runner.
+- Review whether the locked semantic-source list is complete enough for this
+  first proof, especially the runtime prompt and sessionstream resolver files.
+- Confirm that 24 answer calls, 18 embedding requests, 12 judge attempts, and
+  500,000 answer tokens remain comfortably inside the authorized envelope.
+- Review the answer-trace JSON Schema against
+  `cmd/coinvault/cmds/knowledge_ragopt_trace.go`; the Go validator and strict
+  resume decoder remain the executing enforcement mechanisms.
+- Confirm that using a byte-identical bundle copy is acceptable for the first
+  proof and that no deployment conclusion is inferred from its path.
+
+### What should be done in the future
+
+- Execute the six feedback cells only, using the preflight-proven candidate
+  and isolated bundle copy.
+- Inspect all six native artifacts, generate the RAGOPT comparison and report,
+  and keep validation closed unless the feedback gate passes.
+- Repeat the identical feedback candidate from a fresh run root and compare
+  semantic identities, paired deltas, and decisions.
+- Record the Bleve single-reader requirement as measured product-integration
+  friction before considering any generic ragkit API change.
+
+### Code review instructions
+
+- Start with `KnowledgeRagoptSettings` and the preflight return in
+  `/tmp/gec-ragopt-phase5/cmd/coinvault/cmds/knowledge_ragopt.go`.
+- Review the exact native fields in
+  `/tmp/gec-ragopt-phase5/cmd/coinvault/cmds/knowledge_ragopt_trace.go`, then
+  compare them to `shared/answer-contract.json` and
+  `shared/adapter-contract.yaml`.
+- Review `shared/source-lock.yaml`, then independently hash every listed file.
+- Validate without providers:
+
+  ```bash
+  cd /home/manuel/code/wesen/go-go-golems/ragopt
+  go run ./cmd/ragopt candidate validate \
+    --bundle /tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1 \
+    --format json
+
+  cd /tmp/gec-ragopt-phase5
+  go run ./cmd/coinvault knowledge ragopt \
+    --preflight-only --skip-db-check \
+    --bundle-root configs/ragopt/source-role-routing-v1 \
+    --index-bundle /tmp/ragopt-gec-knowledge/bundles/rk-55be57b45fc6d624d0341c8ec6965f49 \
+    --application-profile analyst-rag \
+    --registry default --profile gpt-5.6-luna-low \
+    --judge-registry default --judge-profile gpt-5.6-luna \
+    --with-glaze-output --format json
+  ```
+
+### Technical details
+
+```text
+GEC preflight commit:       82c165921d7d42f06941f6edc1b4cd6673c1f58a
+GEC candidate commit:       e2d1997
+RAGOPT library commit:      4d410c57e2429e1109ba232ee04a610a3697eed0
+Candidate digest:           sha256:20e0c3f65da9d3a5c8bdcebb0d9a727645acd269db8fbd50186a620205a6ace8
+Parent snapshot:            sha256:83ac2d1bfaba3e770732772f80bda969670146b8034a6dfb3031d1ebb0958402
+Candidate snapshot:         sha256:6579ee1c05c5fcf46fabd3433b4de8be17de291f3f647d2b9b67bcd56c178ee9
+Shared tool-loop engine:     Geppetto v0.13.7
+Retrieval components:       ragkit + GEC product adapters
+Feedback cells:             3 cases x 2 arms = 6
+Provider calls in preflight: 0
+Validation cells:           not run
+Next gate:                  first six-cell feedback execution
 ```
