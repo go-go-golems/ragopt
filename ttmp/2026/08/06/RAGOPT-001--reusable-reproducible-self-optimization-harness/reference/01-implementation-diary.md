@@ -4567,3 +4567,271 @@ Full hook:              pass
 Provider calls:         0
 Next gate:              GEC RAGOPT arm and native artifact
 ```
+
+## Step 31: Land the production-owned GEC RAGOPT proof adapter
+
+GEC now has a real product adapter for RAGOPT Phase 5. Commit `314b82b` adds
+`coinvault knowledge ragopt`, which loads the immutable one-mutation candidate,
+runs incumbent and challenger cells through the existing local CoinVault
+composition, judges completed answers with the existing decomposed cached
+judge, writes atomic native evidence, and delegates paired custody and resume to
+the pinned RAGOPT library.
+
+This is still pre-execution. The candidate source lock deliberately remains
+provisional, so the command cannot pass preflight or make a provider call until
+the exact committed adapter sources are hashed and both snapshots are
+re-identified.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 30)
+
+**Assistant interpretation:** Continue RAGOPT-001 after establishing the shared
+Geppetto loop boundary; implement the smallest real GEC product adapter that
+exercises that runtime and preserves RAGOPT custody.
+
+**Inferred user intent:** Produce an optimization proof that cannot be faked by
+a canned conversation, evaluator-only runner, or claimed call ceiling, while
+remaining pragmatic and isolated from the colleague's Admin Chat transport/UI
+work.
+
+**Commit (code):** `314b82b` — "Add resumable GEC ragopt proof adapter"
+
+### What I did
+
+- Added the Glazed `coinvault knowledge ragopt` command with explicit fields
+  for candidate bundle, split, run root, resume directory, index bundle, judge
+  cache/profile, answer timeout, and frozen operation ceilings.
+- Reused the existing CoinVault command sections for:
+  - Clay SQL connection settings;
+  - application-profile selection;
+  - Geppetto engine-profile registries and inference settings;
+  - inference observability;
+  - Glazed structured output.
+- Registered the command under the existing `knowledge` command group.
+- Added a product-owned `ragopteval.Arm` implementation around
+  `localwebchat.NewLocalRunner` and `RunPrompt`.
+- Created one fresh session, timeline SQLite file, and turn SQLite file per
+  cell inside RAGOPT's native directory.
+- Injected the copied incumbent or challenger
+  `knowledge_search_description` asset into the existing tool catalog.
+- Added a typed native trace collector for:
+  - final answer and terminal state;
+  - observed provider completions and token usage;
+  - exact `knowledge_search` inputs including `source_roles`;
+  - bounded tool results;
+  - admitted evidence IDs, document/chunk IDs, roles, titles, and text.
+- Explicitly ignored reasoning events so native artifacts cannot retain hidden
+  chain-of-thought or encrypted reasoning.
+- Reused `knowledge.JudgeAnswer` and added observable durable-cache hits and
+  misses without changing cache keys or prompts.
+- Refactored the judge builder into a closable runtime that counts every actual
+  provider attempt, including retries, and enforces the total judge ceiling
+  before each call.
+- Corrected the existing judge command's inference-profile lifecycle leak by
+  closing the resolved profile dependencies.
+- Kept judge work out of common RAGOPT `provider_calls`; native artifacts retain
+  per-cell judge calls, hits, and misses separately.
+- Added frozen total ceilings for one proof run:
+  - 24 answer-provider completions;
+  - 18 hybrid query-embedding requests;
+  - 12 judge-provider attempts;
+  - 500,000 answer-provider input plus output tokens.
+- Added resume seeding: completed native artifacts are strictly reopened and
+  their answer, embedding, token, and judge usage is charged before missing
+  cells can execute.
+- Refused resume when a prior native artifact cannot prove GEC provider
+  custody.
+- Added strict product preflight for:
+  - application, answer, and judge profiles;
+  - corpus and physical lexical/vector artifact digests;
+  - bundle ID and source roles;
+  - tool-loop semantic identity;
+  - parent-description equivalence to the current production default;
+  - every source file in the strict YAML source lock.
+- Added atomic, synced native JSON writes before returning common outcomes.
+- Added focused tests for command registration, split/budget locks, runtime
+  ceilings, resume seeds, judge ceiling, source-lock strictness, trace
+  projection, reasoning omission, role matching, and atomic writes.
+- Normalized `go.mod`/`go.sum`; RAGOPT is now a direct pinned dependency at
+  commit `4d410c57e242`.
+- Ran the complete command/internal test suite and the complete repository
+  pre-commit hook.
+
+### Why
+
+- RAGOPT should own experiment identity, pairing, durability, resume, and
+  comparison; GEC must own how a real answer is produced and interpreted.
+- The adapter must use the same application profile, Geppetto loop, SQL tools,
+  retrieval tool, projections, and session lifecycle as CoinVault. Creating a
+  generic subprocess protocol or duplicate loop would weaken the proof.
+- Evaluation overhead and product behavior have different meanings. Mixing
+  judge calls into product cost previously biased TTC results and would do the
+  same here.
+- A resumable run is only budget-safe if already completed cells remain charged
+  after restart. RAGOPT preserves cells; the product adapter knows how to read
+  its native usage evidence.
+- The source lock must remain red until implementation bytes are committed.
+  This prevents a provider run against a candidate identity computed before
+  the adapter existed.
+
+### What worked
+
+- The command help rendered successfully and exposed the expected profile,
+  candidate, budget, SQL, and structured-output sections.
+- Focused adapter tests passed.
+- The complete test suite passed:
+
+  ```text
+  go test ./cmd/... ./internal/... -count=1
+  all command/internal packages: pass
+  ```
+
+- The full pre-commit hook passed:
+
+  ```text
+  embedded web build: pass
+  golangci-lint: 0 issues
+  geppetto-lint/go vet: pass
+  go test ./cmd/... ./internal/...: pass
+  summary: lint 92.25s, test 5.38s
+  ```
+
+- `go mod tidy` changed only the intended direct RAGOPT requirement and its two
+  checksum records.
+- The commit contains nine scoped files and no candidate identity changes.
+- No answer, embedding, or judge provider call occurred.
+
+### What didn't work
+
+- The first combined compile/test run found two ordinary import errors:
+
+  ```text
+  undefined: geppettosections
+  "fmt" imported and not used
+  ```
+
+  I added the missing help-section import, removed `fmt`, and reran; the command
+  and focused tests passed.
+- That same sandboxed run triggered the already-known `httptest` IPv6 listener
+  panic in an unrelated full knowledge test. The later complete suite ran with
+  approved local-socket access and passed.
+- The first commit attempt failed before staging because the isolated worktree
+  index lives in the main repository's read-only `.git/worktrees` directory:
+
+  ```text
+  fatal: Unable to create .../index.lock: Read-only file system
+  ```
+
+  I reran the exact scoped Git operation with permission for the worktree
+  metadata. No stale lock or partial commit existed.
+- The pre-commit hook exceeded the initial observation window. I polled the
+  original session; it completed with commit `314b82b`. I did not launch a
+  duplicate commit.
+
+### What I learned
+
+- Product call accounting is already available at the projected event layer,
+  while query-embedding accounting is naturally tied to requested hybrid
+  knowledge calls and judge accounting belongs around the cached generator.
+  One universal counter would erase these distinctions.
+- Resume custody crosses two layers: RAGOPT proves which common cells exist;
+  GEC must prove what provider work each native cell consumed. Refusing an
+  unrecognized native artifact is safer than resetting a ceiling to zero.
+- The local product runner provides a clean adapter seam without touching HTTP,
+  websocket, sessionstream schema, or the Admin Chat UI work owned by the
+  colleague.
+- A failed judge should not erase a successful product trace. The native schema
+  records an optional judge score and explicit judge error, while the common
+  outcome becomes failed/contract-invalid.
+- The command supports validation as an explicit operation but never starts it
+  automatically. The feedback gate remains an operator decision backed by
+  RAGOPT comparison artifacts.
+
+### What was tricky to build
+
+The main difficulty was preserving semantic separation while keeping one
+execution path. Answer calls come from `ChatProviderCallFinished`; hybrid query
+embeddings happen inside `knowledge_search`; judge requests can be cache hits,
+cache misses, or retried provider attempts. The adapter records all three, but
+only answer calls and answer tokens enter the common product-cost outcome.
+
+The second difficulty was failure custody. RAGOPT can safely turn an arm error
+into a generic durable failure, but provider budget resume requires the native
+artifact to retain actual usage. Successful and judge-failed cells therefore
+write GEC-native evidence before returning. A resume rejects generic or unknown
+native artifacts rather than pretending their provider cost was zero.
+
+The third difficulty was preventing the evaluation harness from becoming a
+new application. The adapter has no server, scheduler, plugin protocol,
+candidate proposer, or deployment behavior. It composes existing GEC pieces
+and projects their results into the small RAGOPT API.
+
+### What warrants a second pair of eyes
+
+- Review whether 24/18/12/500,000 is the right first GEC proof envelope under
+  the user's under-1M-token/$1 authorization.
+- Confirm that one requested knowledge call is the conservative and useful
+  accounting unit for one local Ollama query embedding.
+- Review the behavior at an answer ceiling: a final provider response is
+  accepted, but a ceiling-reaching response with more tool calls aborts before
+  another iteration can be consumed.
+- Review whether the 12,000-rune native tool-result and 6,000-rune judge-evidence
+  bounds are appropriate for SQL results.
+- Confirm the strict refusal to resume an arm-error artifact is preferable to
+  an explicit partial-usage sidecar in this first proof.
+- Review the command's 696-line implementation for extraction opportunities
+  only after the first real run exposes actual friction; do not generalize
+  speculatively.
+
+### What should be done in the future
+
+- Hash commit `314b82b` sources into `source-lock.yaml` and remove its
+  provisional implementation note.
+- Correct the stale adapter contract so common provider cost means answer calls
+  only and judge usage remains native evaluation overhead.
+- Correct the runtime contract's provisional answer/embedding budgets.
+- Recompute locked-asset refs, parent/child snapshot IDs, and candidate digest.
+- Validate the candidate with the pinned RAGOPT CLI.
+- Run a no-provider preflight and confirm it reaches the execution boundary.
+- Execute only the six feedback cells in tmux, inspect every native artifact,
+  compare, and keep validation closed unless the gate passes.
+- Repeat from a fresh run root and compare identities and canonical deltas.
+
+### Code review instructions
+
+- Start at
+  `/tmp/gec-ragopt-phase5/cmd/coinvault/cmds/knowledge_ragopt.go`.
+- Follow one cell through `gecRagoptCellExecutor.Run`, then inspect
+  `knowledge_ragopt_trace.go`.
+- Review provider projection in
+  `internal/webchat/localwebchat/local_events.go` from commit `e0f8f2d`.
+- Review cache and retry accounting in `buildJudgeGeneratorRuntime` in
+  `cmd/coinvault/cmds/knowledge.go`.
+- Review RAGOPT custody in the pinned module's `pkg/eval/runner.go` and
+  `pkg/eval/bind.go`.
+- Run:
+
+  ```bash
+  go test ./cmd/... ./internal/... -count=1
+  go run ./cmd/coinvault knowledge ragopt --help
+  git show --check 314b82b
+  ```
+
+### Technical details
+
+```text
+GEC commit:              314b82b
+RAGOPT dependency:       4d410c57e242
+Command:                 coinvault knowledge ragopt
+Candidate mutation:      knowledge_search_description only
+Common provider calls:   observed answer calls only
+Native judge accounting: provider attempts + cache hits/misses
+Resume accounting:       seeded from validated native artifacts
+Proof ceilings:          answer 24 / embedding 18 / judge 12 / tokens 500000
+Focused tests:           pass
+Full tests:              pass
+Full hook:               pass
+Provider calls:          0
+Next gate:               freeze sources and recompute semantic identities
+```
