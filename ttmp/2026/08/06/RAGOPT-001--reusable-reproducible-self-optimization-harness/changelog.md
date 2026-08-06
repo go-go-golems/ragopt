@@ -260,3 +260,17 @@ domains. External provider consent must cover that broader possibility.
 - /tmp/gec-ragopt-phase5/internal/sqltool/validate.go — Enforces statement-shape and schema restrictions but no business-table allowlist.
 - /tmp/gec-ragopt-phase5/internal/sqltool/types.go — Defines row, byte, timeout, and disallowed-system-schema defaults.
 - /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Detailed data-flow audit and revised consent scope.
+
+## 2026-08-06
+
+Step 35: formally closed the three-turn blocked audit for missing approval to
+send the current Admin Chat SQL tool's possible customer/order/payment and
+operational outputs to external answer and judge providers. All frozen inputs
+remain ready; no run, application-row read, provider call, or validation cell
+exists. Resume requires approval of the current surface or an explicit
+sanitized/allowlisted replacement followed by refreezing.
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Three-turn blocked audit, preserved state, and exact resume choices.
+- /tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/candidate.yaml — Frozen candidate that remains ready but unexecuted.

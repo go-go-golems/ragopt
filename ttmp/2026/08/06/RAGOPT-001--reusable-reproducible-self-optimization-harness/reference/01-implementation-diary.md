@@ -30,6 +30,8 @@ RelatedFiles:
       Note: Provider-free preflight, frozen runtime validation, budgets, and product adapter in Step 32
     - Path: abs:///tmp/gec-ragopt-phase5/cmd/coinvault/cmds/knowledge_ragopt_trace.go
       Note: Authoritative native answer/tool/evidence/provider trace matched by the locked contract
+    - Path: abs:///tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/candidate.yaml
+      Note: Frozen unexecuted candidate preserved across the Step 35 blocked audit
     - Path: abs:///tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/candidate/snapshot.yaml
       Note: Recomputed challenger snapshot identity for the one-mutation proof
     - Path: abs:///tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/parent/snapshot.yaml
@@ -90,6 +92,7 @@ LastUpdated: 2026-08-06T16:24:00-04:00
 WhatFor: Preserve the exact reasoning, commands, failures, and review guidance behind the initial ragopt design.
 WhenToUse: Read when reviewing the design or resuming implementation from the phased task ledger.
 ---
+
 
 
 
@@ -5460,4 +5463,121 @@ Application rows read:     0
 Provider calls:            0
 Feedback run created:      no
 Validation cells:          0
+```
+
+## Step 35: Close the Three-Turn Provider-Consent Blocked Audit
+
+This step confirms that the same external data-flow blocker has now persisted
+for three consecutive goal continuations. The frozen GEC proof cannot run
+without explicit approval for possible customer, address, order, payment,
+cart, employee, and operational data to enter the configured external answer
+and judge requests.
+
+The candidate, bundle copy, cache copy, command, budgets, and zero-provider
+preflight are ready. No safe local task can replace the missing decision
+without changing the evaluated product or creating a fake proof. The goal is
+therefore formally blocked pending user authorization or a user-selected
+sanitized database/table policy.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 32)
+
+**Assistant interpretation:** Continue RAGOPT-001, but do not cross an
+unapproved external data boundary or weaken the production-shaped experiment.
+
+**Inferred user intent:** Finish the real GEC proof with durable evidence while
+preserving data safety, explicit authority, and honest experiment identity.
+
+### What I did
+
+- Counted the original rejected launch plus two automatic goal continuations
+  with no explicit data-flow approval.
+- Rechecked the blocker against the prepared run:
+  - production `analyst-rag` tools remain enabled;
+  - no business-table allowlist exists;
+  - the answer and judge providers remain external;
+  - changing tools or database scope would change the frozen experiment.
+- Preserved all prepared inputs and made no additional database, embedding,
+  answer, judge, or validation call.
+- Prepared the exact two valid resume paths: approve the current surface, or
+  select a sanitized/allowlisted surface and refreeze explicitly.
+
+### Why
+
+- The blocked threshold requires the same condition to recur for three
+  consecutive goal turns and an actual impasse without user input.
+- Continuing to generate readiness work would create documentation churn, not
+  move the experiment toward a valid result.
+- Running a fixture or disabling SQL would contradict the requested
+  production-faithful proof.
+
+### What worked
+
+- The safety boundary remained intact through all three continuations.
+- No provider call, application-row read, run directory, or validation cell
+  was created.
+- The exact consent scope and narrower alternative are now documented.
+
+### What didn't work
+
+- No explicit response authorized the current external provider data flow.
+- The bounded provider-budget approval alone cannot authorize disclosure of
+  backend-derived GEC data.
+
+### What I learned
+
+- RAGOPT provider envelopes need a first-class operational runbook section for
+  data classifications and destinations in addition to calls, tokens, and
+  cost.
+- A production-faithful administrative agent evaluation cannot be treated as
+  an ordinary public-corpus benchmark when unrestricted business-table SELECTs
+  are in the tool surface.
+
+### What was tricky to build
+
+The impasse is not technical. Every artifact and command is ready, but either
+possible autonomous choice would exceed authority: running the current loop
+could disclose sensitive backend data, while silently narrowing it would
+change the evaluated system. Preserving both safety and experiment fidelity
+requires an explicit human decision.
+
+### What warrants a second pair of eyes
+
+- Confirm the current SQL surface is approved for external processing, or
+  identify the exact sanitized database/table/column boundary.
+- If narrowing is chosen, review all snapshot and source-lock changes before
+  declaring the replacement candidate comparable.
+
+### What should be done in the future
+
+- Resume only after one of these user decisions:
+  1. explicit approval of the current `gec_dev` and readable production-snapshot
+     data classes for the configured answer and judge providers; or
+  2. an explicit sanitized database or table/column allowlist, followed by a
+     new source lock, snapshots, candidate identity, and preflight.
+- Run feedback only after resume; keep validation gated.
+
+### Code review instructions
+
+- Read Steps 33–35 together for the launch envelope, SQL-surface evidence, and
+  blocked threshold.
+- Confirm no run exists at `/tmp/gec-ragopt-feedback-proof-1` and no tmux
+  session exists at `ragopt-gec-feedback-1`.
+- Do not restart from candidate design; resume from the explicit authorization
+  decision.
+
+### Technical details
+
+```text
+Blocked condition:          external provider data-flow approval missing
+Consecutive goal turns:     3
+Candidate ready:            yes
+Zero-provider preflight:    pass
+Feedback run created:       no
+Application rows read:      0
+Provider calls:             0
+Validation cells:           0
+Resume path A:              approve current data surface
+Resume path B:              choose sanitized/allowlisted data and refreeze
 ```
