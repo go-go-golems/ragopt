@@ -36,12 +36,20 @@ RelatedFiles:
       Note: Recomputed incumbent snapshot identity for the executable proof
     - Path: abs:///tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/shared/source-lock.yaml
       Note: Committed semantic source identities proven by the GEC preflight
+    - Path: abs:///tmp/gec-ragopt-phase5/internal/coinvaulttools/catalog/catalog.go
+      Note: Production SQL tool binding reviewed in the Step 34 disclosure audit
     - Path: abs:///tmp/gec-ragopt-phase5/internal/coinvaulttools/catalog/registry.go
       Note: SQL and knowledge tool registration whose outputs can enter provider context
     - Path: abs:///tmp/gec-ragopt-phase5/internal/knowledge/judge.go
       Note: GEC idempotent timeline projection and strict judge semantics in Step 24
     - Path: abs:///tmp/gec-ragopt-phase5/internal/knowledge/service.go
       Note: GEC product-owned pre-fusion and pre-reranker authorization repair in Step 24
+    - Path: abs:///tmp/gec-ragopt-phase5/internal/sqltool/normalize.go
+      Note: Deterministic row-limit normalization reviewed for the provider consent scope
+    - Path: abs:///tmp/gec-ragopt-phase5/internal/sqltool/types.go
+      Note: Default row, byte, timeout, and blocked-system-schema policy
+    - Path: abs:///tmp/gec-ragopt-phase5/internal/sqltool/validate.go
+      Note: SELECT-only and schema restrictions with no business-table allowlist
     - Path: repo://cmd/ragopt/commands/candidate/validate.go
       Note: Glazed candidate validation row command
     - Path: repo://cmd/ragopt/main.go
@@ -82,6 +90,7 @@ LastUpdated: 2026-08-06T16:24:00-04:00
 WhatFor: Preserve the exact reasoning, commands, failures, and review guidance behind the initial ragopt design.
 WhenToUse: Read when reviewing the design or resuming implementation from the phased task ledger.
 ---
+
 
 
 
@@ -5299,4 +5308,156 @@ Tmux session created:      no
 Provider calls:            0
 Validation cells:          0
 Resume condition:          explicit approval of the described provider data flow
+```
+
+## Step 34: Audit the Real SQL Disclosure Surface Before Consent
+
+This step converted the generic provider-data warning into an evidence-backed
+consent boundary. The `analyst-rag` profile exposes all three production tools,
+and the SQL implementation safely limits statement shape, rows, bytes, and
+time, but it does not restrict queries to catalog or schema tables.
+
+A metadata-only inspection of the local database account confirmed that the
+current development schema contains customer, order, payment, cart, employee,
+OAuth, and operational-log domains. No table rows were read and no provider
+was contacted. A valid execution approval must therefore cover the possibility
+that the production model selects such data through `sql_query`; approval for
+schema descriptions or public product knowledge alone is not sufficient.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 32)
+
+**Assistant interpretation:** Continue safe RAGOPT-001 work while the provider
+data-flow authorization is unanswered, and determine the exact scope the real
+Admin Chat tools could disclose instead of asking for vague consent.
+
+**Inferred user intent:** Preserve a production-faithful optimization proof
+without accidentally exporting sensitive GEC backend data or masking the risk
+behind read-only SQL terminology.
+
+### What I did
+
+- Read the `analyst-rag` application profile and confirmed it registers:
+  - `knowledge_search`;
+  - `sql_doc`;
+  - `sql_query`.
+- Traced `sql_query` through the tool catalog into `internal/sqltool`.
+- Confirmed the application-level query policy:
+  - accepts read-only `SELECT` statements only;
+  - rejects `SELECT INTO`, locking SELECTs, SHOW, LOAD DATA, and set operations;
+  - allows CTEs and subqueries;
+  - applies 100 rows by default and 250 rows absolutely;
+  - caps responses at 128 KiB and execution at five seconds;
+  - blocks the `mysql`, `performance_schema`, and `sys` schemas.
+- Confirmed there is no business-table or business-column allowlist.
+- Queried only MySQL grants and `information_schema.tables` names for the local
+  `gec_dev` connection. I did not select application row contents.
+- Confirmed the database account has:
+  - `ALL PRIVILEGES` on `gec_dev` at the database layer;
+  - `SELECT, SHOW VIEW` on `gec_prod_20260805`;
+  - application-level SELECT-only enforcement in front of the tool.
+- Classified potentially sensitive accessible domains from table names:
+  addresses, members, employees, contacts, carts, orders, payments, returns,
+  shipment/order notes, OAuth grants, transaction logs, and other operational
+  logs.
+
+### Why
+
+- “Read-only” prevents mutation; it does not prevent disclosure.
+- Provider consent must be based on what the configured tool can return, not
+  what the frozen feedback questions are expected to retrieve.
+- The model controls tool selection and SQL text within the parser's policy.
+  RAGOPT cannot claim production fidelity while assuming the model will avoid
+  sensitive tables.
+
+### What worked
+
+- The complete tool boundary was discoverable from committed code and local
+  metadata.
+- The query guardrails materially reduce mutation, denial-of-service, and
+  unbounded-output risk.
+- The audit read no customer/order/payment rows and made zero provider calls.
+- The earlier six-cell launch remains absent; no tmux session or run directory
+  exists.
+
+### What didn't work
+
+- The initial consent description named “database-derived GEC context” but did
+  not enumerate how broad the current schema is. That description was too easy
+  to interpret as schema/catalog data only.
+- Database privileges are broader than the application tool's intended use:
+
+  ```text
+  GRANT ALL PRIVILEGES ON `gec\\_dev`.* TO `gec`@`%`
+  GRANT SELECT, SHOW VIEW ON `gec_prod_20260805`.* TO `gec`@`%`
+  ```
+
+  The Go validator currently supplies the read-only enforcement; MySQL grants
+  do not provide defense in depth for `gec_dev`.
+
+### What I learned
+
+- The current Admin Chat SQL safety boundary is syntactic and resource-bounded,
+  not data-class-aware.
+- The same profile that powers inventory/logistics answers can technically
+  query customer and payment-related tables.
+- An evaluation runner that preserves production tool choice inherits the full
+  production disclosure surface even when the suite itself is retrieval-focused.
+
+### What was tricky to build
+
+The distinction between database privileges and tool permissions matters.
+MySQL reports broad `ALL PRIVILEGES`, but the model cannot directly issue
+arbitrary statements: the Go parser accepts only a constrained SELECT AST and
+normalizes limits. Conversely, those strong statement controls do not inspect
+table or column sensitivity. Describing only one layer would either exaggerate
+mutation risk or understate disclosure risk.
+
+### What warrants a second pair of eyes
+
+- Decide whether `gec_dev` is approved for external model processing despite
+  containing customer/order/payment-shaped tables.
+- Confirm whether a sanitized database should be used for optimization proofs
+  even if production Admin Chat itself is permitted to access richer data.
+- Review whether production eventually needs database grants or application
+  allowlists aligned with role-based data classes. That is a product security
+  decision, not a RAGOPT generic feature.
+
+### What should be done in the future
+
+- Obtain explicit approval that names possible customer, address, order,
+  payment, cart, employee, and operational data in answer and judge requests;
+  or receive a narrower approved database/tool contract.
+- Do not launch the frozen proof until that decision is explicit.
+- Track data-class-aware SQL authorization as separate GEC product work if the
+  existing production profile is considered too broad.
+
+### Code review instructions
+
+- Start at `/tmp/gec-ragopt-phase5/application-profiles.yaml`.
+- Follow `sql_query` through:
+  - `internal/coinvaulttools/catalog/catalog.go`;
+  - `internal/sqltool/validate.go`;
+  - `internal/sqltool/normalize.go`;
+  - `internal/sqltool/types.go`.
+- Verify the metadata-only audit with `SHOW GRANTS` and
+  `information_schema.tables`; do not query application rows merely to repeat
+  this review.
+
+### Technical details
+
+```text
+Admin profile tools:       knowledge_search, sql_doc, sql_query
+SQL statement class:       SELECT only
+Default / absolute rows:   100 / 250
+Maximum response:          128 KiB
+Query timeout:             5 seconds
+Business-table allowlist:  none
+System schemas blocked:    mysql, performance_schema, sys
+Potential data classes:    customer, address, order, payment, cart, employee, logs
+Application rows read:     0
+Provider calls:            0
+Feedback run created:      no
+Validation cells:          0
 ```
