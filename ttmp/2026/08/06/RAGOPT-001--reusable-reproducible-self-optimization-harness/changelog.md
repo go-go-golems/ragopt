@@ -127,3 +127,12 @@ Step 15: clarified the product-proof boundary, recorded reproducible rejection a
 ### Related Files
 
 - /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/tasks.md — Phase 5 scope and task semantics
+
+## 2026-08-06
+
+Step 16: designed the shared production-refresh control plane for CoinVault/GEC, TTC Garden, and RAG-TTC Admin; added post-v0.1 implementation tasks and uploaded the standalone default-layout design to reMarkable (commit 8eaa35f).
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/design-doc/02-production-index-build-scheduling-resumability-and-ragopt-integration.md — Shared lifecycle, APIs, AWS/River decisions, product adapters, and implementation phases
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/tasks.md — Post-v0.1 shared refresh and product deployment ledger
