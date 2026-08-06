@@ -92,6 +92,29 @@ func TestConfigDigestIsStableAcrossMapOrder(t *testing.T) {
 	}
 }
 
+func TestResumeRequiresActiveRunAndExactConfig(t *testing.T) {
+	config := map[string]any{"suite": "suite-v1", "repeats": 2}
+	run := mustCreateRun(t, config)
+	mustNoError(t, run.AppendJSONL(t.Context(), "results/cells.jsonl", map[string]any{"cell": 1}))
+
+	resumed, err := Resume(t.Context(), run.Dir(), map[string]any{"repeats": 2, "suite": "suite-v1"})
+	mustNoError(t, err)
+	mustNoError(t, resumed.AppendJSONL(t.Context(), "results/cells.jsonl", map[string]any{"cell": 2}))
+	if countJSONLLines(t, filepath.Join(run.Dir(), "results", "cells.jsonl")) != 2 {
+		t.Fatal("resumed writer did not preserve and append result cells")
+	}
+
+	_, err = Resume(t.Context(), run.Dir(), map[string]any{"suite": "different", "repeats": 2})
+	if err == nil || !strings.Contains(err.Error(), "resume config digest mismatch") {
+		t.Fatalf("expected resume identity error, got %v", err)
+	}
+	mustNoError(t, resumed.Complete(t.Context(), Summary{}))
+	_, err = Resume(t.Context(), run.Dir(), config)
+	if err == nil || !strings.Contains(err.Error(), "cannot resume run in state \"complete\"") {
+		t.Fatalf("expected terminal resume error, got %v", err)
+	}
+}
+
 func TestPathsRejectEscapesAndSymlinks(t *testing.T) {
 	run := mustCreateRun(t, map[string]any{})
 	for _, invalid := range []string{"", ".", "..", "../outside", filepath.Join(string(filepath.Separator), "absolute")} {

@@ -47,12 +47,13 @@ func LoadCandidate(ctx context.Context, bundleRoot, manifestPath string) (*Candi
 		return nil, err
 	}
 	return &Candidate{
-		Manifest: manifest,
-		Parent:   *parent,
-		Child:    *child,
-		Mutation: mutation,
-		Digest:   digest,
-		Root:     root,
+		Manifest:     manifest,
+		Parent:       *parent,
+		Child:        *child,
+		Mutation:     mutation,
+		Digest:       digest,
+		Root:         root,
+		ManifestPath: manifestPath,
 	}, nil
 }
 

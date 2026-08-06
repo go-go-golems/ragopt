@@ -28,6 +28,36 @@ type Run struct {
 	terminal bool
 }
 
+// Resume explicitly reopens a validated active run for a single writer. The
+// caller must supply the exact semantic config used by Create. Resume does not
+// acquire an inter-process lock; callers are responsible for ensuring that the
+// original writer has stopped and that only one resumed writer exists.
+func Resume(ctx context.Context, dir string, expectedConfig any) (*Run, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	reader, err := Open(dir)
+	if err != nil {
+		return nil, errors.Wrap(err, "validate run before resume")
+	}
+	if reader.status.State != StateActive {
+		return nil, errors.Errorf("cannot resume run in state %q", reader.status.State)
+	}
+	canonicalConfig, err := canonicalJSON(expectedConfig)
+	if err != nil {
+		return nil, errors.Wrap(err, "canonicalize expected resume config")
+	}
+	if actual := digestBytes(canonicalConfig); actual != reader.manifest.ConfigDigest {
+		return nil, errors.Errorf("resume config digest mismatch: run=%s requested=%s", reader.manifest.ConfigDigest, actual)
+	}
+	return &Run{
+		dir:      reader.dir,
+		manifest: reader.manifest,
+		status:   reader.status,
+		inputs:   append([]InputRef(nil), reader.inputs...),
+	}, nil
+}
+
 // Create initializes an active run and durably writes its configuration,
 // manifest, and status.
 func Create(ctx context.Context, options Options, config any) (*Run, error) {
@@ -126,6 +156,17 @@ func (run *Run) Manifest() Manifest {
 	manifest := run.manifest
 	manifest.Dimensions = cloneStrings(run.manifest.Dimensions)
 	return manifest
+}
+
+// Inputs returns defensive copies of all copied-input records currently bound
+// to the run.
+func (run *Run) Inputs() []InputRef {
+	if run == nil {
+		return nil
+	}
+	run.mu.Lock()
+	defer run.mu.Unlock()
+	return append([]InputRef(nil), run.inputs...)
 }
 
 // Path returns a validated path within the run without creating it.
