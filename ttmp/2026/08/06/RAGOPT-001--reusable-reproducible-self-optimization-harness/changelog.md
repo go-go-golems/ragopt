@@ -245,3 +245,18 @@ The frozen candidate remains unchanged and validation remains unrun.
 - /tmp/gec-ragopt-phase5/application-profiles.yaml — Shows the production Admin Chat profile and its SQL plus knowledge tools.
 - /tmp/gec-ragopt-phase5/internal/coinvaulttools/catalog/registry.go — Registers the product tools whose outputs can enter provider context.
 - /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Exact launch envelope, rejection, zero-call evidence, and resume condition.
+
+## 2026-08-06
+
+Step 34: audited the production Admin Chat SQL disclosure surface without
+reading application rows or contacting providers. The tool is SELECT-only and
+resource-bounded, but has no business-table allowlist; `gec_dev` includes
+customer, address, order, payment, cart, employee, OAuth, and operational-log
+domains. External provider consent must cover that broader possibility.
+
+### Related Files
+
+- /tmp/gec-ragopt-phase5/internal/coinvaulttools/catalog/catalog.go — Connects the production SQL tool to the database and application policy.
+- /tmp/gec-ragopt-phase5/internal/sqltool/validate.go — Enforces statement-shape and schema restrictions but no business-table allowlist.
+- /tmp/gec-ragopt-phase5/internal/sqltool/types.go — Defines row, byte, timeout, and disallowed-system-schema defaults.
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Detailed data-flow audit and revised consent scope.
