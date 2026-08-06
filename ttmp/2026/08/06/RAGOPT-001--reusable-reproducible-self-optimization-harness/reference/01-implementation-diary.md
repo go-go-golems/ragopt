@@ -1929,3 +1929,214 @@ Next ledger task: 67 — fresh-root reproduction
 External work needed: 6 cells (3 feedback cases x 2 arms)
 Validation cells intentionally not authorized: 28
 ```
+
+## Step 16: Design one shared production-refresh control plane for three products
+
+This step turned the preliminary GEC scheduling note into an intern-facing
+cross-product design for CoinVault/GEC, the TTC Garden Assistant, and the
+RAG-TTC Admin Chat. The central correction is that `ragopt` should provide the
+reusable refresh protocol and evidence lifecycle, while stopping short of
+becoming a scheduler, queue, generic workflow engine, product indexer, chat
+runtime, or deployment controller.
+
+The design now distinguishes content refresh from one-mutation optimization,
+defines proposed Go interfaces and event schemas, maps the existing code, and
+provides a phased task plan. It also records the important TTC topology: one
+approved WordPress/WooCommerce-derived bundle may feed both Garden and Admin,
+but each serving runtime requires separate native evaluation and gates.
+
+### Prompt Context
+
+**User prompt (verbatim):** "how would ragopt allow us to run a production indexer that would run on changes / overnight nd have things like resumability and tracking what is oging on and all that? We'll be running in AWS if that matters, but we could also either build / use our own thing (i don't know if flow can be used for that), or using something like riverqueue or so"
+
+**Additional user prompt (verbatim):** "use a separate design doc to write this all up and upload it to remarkable so i can review and understand the design and the implementations you suggest.
+
+Create  a detailed analysis / design / implementation guide that is for a new intern, explaining all the parts of the system needed to understand what it is, with prose paragraphs and bullet point sand pseudocode and diagrams and api references and file references. It should be very clear and technical. Store in the ticket and the nupload to remarkable."
+
+**Additional user prompt (verbatim):** "we will reuse ragopt for both rag-ttc (admin and garden assistant) and coinvault, as a base package, and the needs are very similar, if not overlapping, btw"
+
+**Additional user prompt (verbatim):** "ok, yes, that's the document we want to continue working on."
+
+**Assistant interpretation:** Continue the existing production-index design as
+a detailed, pragmatic, shared `ragopt` architecture; explain how local replay,
+durable orchestration, product adapters, evaluation, activation, and rollback
+fit together for all three consumers; record precise implementation phases and
+deliver the standalone document to reMarkable without editor layout.
+
+**Inferred user intent:** Prevent another product from assembling a
+self-optimization or refresh loop that looks complete but lacks durable
+identity, progress, replay, evaluation custody, and safe promotion, while
+reusing the mechanisms already proven in RAG-TTC and GEC instead of building a
+large new platform.
+
+**Commit (documentation):** `8eaa35f` — "docs(design): define shared production refresh control plane"
+
+### What I did
+
+- Read the diary, docmgr, and reMarkable upload skills and the full diary
+  reference before modifying the ticket.
+- Re-read the production-refresh draft and canonical task ledger.
+- Audited the current package/file locations in `ragopt`, GEC,
+  `rag-ttc/pkg/flow`, `pkg/rag/indexbundle`, `pkg/rag/tooleval`, the Garden
+  `backend/internal/ragsearch`, and Admin `pkg/app/chatserver` runtime boundary.
+- Rewrote the executive boundary so `ragopt` owns a fixed shared refresh
+  coordinator, semantic identities, events/progress, artifact links, resume,
+  evaluation handoff, gates, and a non-applying activation plan.
+- Added three-consumer diagrams and a matrix separating shared TTC corpus work
+  from Garden/Admin serving-runtime evidence and from the separate GEC corpus.
+- Added proposed `SourceSnapshot`, `ArtifactRef`, `BuildRequest`,
+  `ProductBuilder`, `ProductEvaluator`, `ProgressSink`, and coordinator APIs.
+- Added failure classifications, security/IAM boundaries, observability
+  signals, AWS Batch/EventBridge/S3/DynamoDB deployment guidance, and a River
+  decision rule.
+- Added six precise implementation phases with exit criteria and mirrored the
+  shared-library/product-deployment split into Phase 7 of `tasks.md`.
+- Linked the design from the ticket index and retained the previously prepared
+  fresh-root RAG-TTC reproducibility protocol for commit.
+
+### Why
+
+- All three products need the same lifecycle vocabulary even though their
+  extraction, serving, and deployment semantics differ.
+- A reusable library should make correct custody and replay the default without
+  attempting to own AWS scheduling or product meaning.
+- Content refresh changes data identity, whereas optimization changes one
+  mutable asset; pretending these are the same would make experiment evidence
+  misleading.
+- The Admin scripted runtime proves chat transport and session behavior, not
+  real retrieval, so the design must name the later live adapter explicitly.
+
+### What worked
+
+- The existing `runstore`, candidate, evaluation, comparison, gate, and report
+  packages provide a concrete base for the proposed coordinator.
+- GEC's cached deterministic rebuild and RAG-TTC's “resume = replay” flow model
+  fit one common outer-retry/inner-replay architecture.
+- One coarse AWS Batch or River job preserves global bundle identity and keeps
+  per-item concurrency inside the product builder.
+- The design stays pragmatic: full scans first, no CDC, no Step Functions, no
+  hot reload, no per-document queue jobs, and no new database solely for River.
+- The standalone default-layout upload completed successfully:
+
+  ```text
+  OK: uploaded RAGOPT Shared Production Refresh Design.pdf -> /ai/2026/08/06/RAGOPT-001
+  ```
+
+  The command did not request the editor layout.
+
+### What didn't work
+
+- One read-only search command accidentally placed backticks inside a zsh
+  double-quoted command. The shell attempted command substitution and printed:
+
+  ```text
+  zsh:1: command not found: ragkit
+  ```
+
+  The search still returned the other requested results. Subsequent commands
+  avoided shell-interpreted backticks. No file or runtime state was affected.
+
+- The first sandboxed metadata update failed exactly as follows:
+
+  ```text
+  Error: failed to write document: open /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/design-doc/.docmgr-3007103750: read-only file system
+  ```
+
+  Re-running the same repository-scoped `docmgr doc relate` operation with
+  write approval succeeded and added seven focused source relationships.
+
+- The first combined validation/stage/commit command validated the reference
+  frontmatter, then failed before staging because the repository Git metadata
+  is outside the writable sandbox:
+
+  ```text
+  fatal: Unable to create '/home/manuel/code/wesen/go-go-golems/ragopt/.git/index.lock': Read-only file system
+  ```
+
+  No partial staging occurred. The exact file-scoped Git operation was rerun
+  with repository write approval.
+
+- After `docmgr changelog update`, `git diff --check` reported:
+
+  ```text
+  ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/changelog.md:139: new blank line at EOF.
+  ```
+
+  I removed only the extra terminal blank line and reran validation.
+
+### What I learned
+
+- “Batteries included” should mean a complete control-plane contract and local
+  reference implementation, not ownership of every product and cloud concern.
+- A shared TTC bundle is an artifact-sharing decision, not permission to merge
+  Garden and Admin authorization, prompts, tools, answer contracts, or gates.
+- Quality rejection must be a successful operational terminal result; otherwise
+  infrastructure retries can waste model/provider budget on a correctly
+  rejected challenger.
+- The exact location of a shared inner executor should follow demonstrated
+  dependency pressure. The current `flow` package is useful evidence but is not
+  an AWS/River replacement.
+
+### What was tricky to build
+
+The sharpest boundary was reconciling two true requirements: the user wants
+`ragopt` to be the reusable base package, while the v1 guardrails correctly say
+it must not grow into a scheduler or workflow platform. The resolution is a
+fixed coordinator and schema library with adapter interfaces. It owns one
+closed lifecycle but delegates durable job admission to Batch/River, product
+semantics to adapters, and mutation to deployers.
+
+The second subtlety was the shared TTC bundle. Sharing extraction and index
+artifacts is economical, but a single “TTC passed” result would hide distinct
+Garden widget/customer risks and Admin authorization/tool-loop risks. The
+design therefore makes the activation policy name every mandatory runtime gate.
+
+### What warrants a second pair of eyes
+
+- Confirm the proposed Phase 7 boundary is the desired post-v0.1 scope and does
+  not pull cloud scheduling or activation mutation into the library.
+- Review whether direct incumbent/challenger `ArtifactRef`s are sufficient for
+  content refresh or whether a small immutable `BundleChallenger` schema is
+  clearer.
+- Confirm that one TTC corpus can satisfy both products' visibility policies;
+  otherwise define separate derived bundles from one source snapshot.
+- Validate the proposed AWS embedding-cache topology and where
+  `nomic-embed-text` will run before committing infrastructure.
+
+### What should be done in the future
+
+- Complete the existing RAGOPT v0.1 two-product proof before implementing the
+  post-v0.1 refresh coordinator.
+- Freeze TTC/GEC fixture snapshots and schemas first, then implement the local
+  deterministic fixture before any AWS resources.
+- Fix GEC authorization and judge-accounting P0 findings before its evaluation
+  adapter can produce promotion evidence.
+- Stabilize the canonical Admin Chat cutover before wiring its live
+  retrieval/tool resolver and evaluation arm.
+
+### Code review instructions
+
+- Start with `design-doc/02-production-index-build-scheduling-resumability-and-ragopt-integration.md`:
+  read the executive summary, three-consumer matrix, API surface, failure
+  semantics, and phased implementation plan.
+- Compare Phase 7 in `tasks.md` with the explicit v1 deferrals; verify that no
+  scheduler, daemon, generic workflow engine, or deployment mutator moved into
+  `ragopt`.
+- Inspect the source references under “Current Code Map for an Intern.”
+- Run `git diff --check`, `docmgr validate frontmatter --doc <design>`, and
+  `docmgr doctor --ticket RAGOPT-001 --stale-after 30`.
+
+### Technical details
+
+```text
+Shared control plane: semantic identity -> build events -> replay -> verified artifact
+                      -> native paired evaluation -> gates -> activation plan
+
+External execution:   EventBridge Scheduler -> AWS Batch -> product refresh command
+Alternative:           River coarse job -> same product refresh command
+
+TTC evidence:          shared bundle -> Garden native gate + Admin native gate
+GEC evidence:          GEC bundle -> CoinVault native gate
+Mutation authority:    product deployer only; ragopt plan is non-applying
+reMarkable document:   /ai/2026/08/06/RAGOPT-001/RAGOPT Shared Production Refresh Design
+```
