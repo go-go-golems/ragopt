@@ -396,3 +396,106 @@ validate + inspect + compare + report
 Product responsibility:
 execute real arms + score/judge + diagnose + apply reviewed promotion
 ```
+
+## Step 4: Validate, commit, and deliver the design bundle
+
+This step completed the initial design ticket's validation and delivery. The
+primary guide, task ledger, diary, index, and changelog pass docmgr validation.
+The detailed design checkpoint was committed before delivery, and the exact
+four-document bundle was dry-run and uploaded to reMarkable with the default
+layout requested by the user.
+
+**Commit (docs):** `ee652e8` — "docs(ticket): design reusable optimization harness"
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 1)
+
+**Assistant interpretation:** Validate the ticket as a durable intern handoff,
+commit it in a reviewable state, and upload it without the editor layout.
+
+**Inferred intent:** Make the design immediately reviewable on both Git and
+reMarkable before implementation begins.
+
+### What I did
+
+- Counted the primary guide at 1,725 lines and approximately 8,500 words.
+- Searched the ticket for unfilled template comments and TODO/TBD placeholders.
+- Ran `docmgr doctor --ticket RAGOPT-001 --stale-after 30`.
+- Ran `git diff --cached --check` before the design commit.
+- Committed the completed guide, diary step, and changelog as `ee652e8`.
+- Dry-ran a four-document reMarkable bundle containing index, guide, tasks, and
+  diary.
+- Confirmed the dry run reported `layout=default`.
+- Uploaded `RAGOPT 001 Reusable Evidence Gated Optimization Harness.pdf` to
+  `/ai/2026/08/06/RAGOPT-001`.
+
+### Why
+
+- Docmgr validation catches broken metadata and RelatedFiles before an intern
+  depends on them.
+- Committing before upload makes the delivered design correspond to a stable
+  repository checkpoint.
+- A dry run verifies bundle membership and layout without creating a remote
+  document.
+
+### What worked
+
+- Docmgr reported all checks passed.
+- The staged diff had no whitespace errors.
+- The dry run included the intended four files and used the default layout.
+- The actual uploader returned:
+  `OK: uploaded RAGOPT 001 Reusable Evidence Gated Optimization Harness.pdf -> /ai/2026/08/06/RAGOPT-001`.
+
+### What didn't work
+
+- The post-upload `GOWORK=off go build ./...` recheck ran without elevated
+  filesystem access and failed while updating Go's module stat cache, not while
+  compiling project code:
+
+  ```text
+  go: writing stat cache: open /home/manuel/go/pkg/mod/cache/download/github.com/go-go-golems/ragopt/@v/v0.0.0-20260806140949-ee652e8e0a37.info477099895.tmp: read-only file system
+  ```
+
+  The same build had passed during scaffold validation. I reran it with the
+  required sandbox permission and recorded the final result below.
+
+### What I learned
+
+- The default uploader behavior is explicit in dry-run output, so omitting
+  `--layout` is both sufficient and auditable.
+- The guide is detailed enough for implementation while the task ledger stays
+  short enough to serve as the progress interface.
+
+### What was tricky to build
+
+The final delivery has two truths: the committed design checkpoint and this
+post-upload diary evidence. This diary step necessarily follows the upload, so
+it is committed as a small final documentation checkpoint rather than rewriting
+the already delivered PDF.
+
+### What warrants a second pair of eyes
+
+- Review the six open Phase 0 questions before checking scope acceptance.
+- Verify the first implementation ticket starts with `pkg/runstore` only.
+
+### What should be done in the future
+
+- Review and accept Phase 0 scope.
+- Begin Phase 1 with the interruption-recovery fixture and run-store contract.
+
+### Code review instructions
+
+- Review commits `fc3a703`, `de893d9`, and `ee652e8` in order.
+- Run `docmgr doctor --ticket RAGOPT-001 --stale-after 30`.
+- Run `GOWORK=off go test ./...` and `GOWORK=off go build ./...`.
+
+### Technical details
+
+```text
+Bundle: RAGOPT 001 Reusable Evidence Gated Optimization Harness.pdf
+Layout: default
+Remote directory: /ai/2026/08/06/RAGOPT-001
+Upload result: OK
+Final build recheck: PASS after granting module-cache write permission
+```
