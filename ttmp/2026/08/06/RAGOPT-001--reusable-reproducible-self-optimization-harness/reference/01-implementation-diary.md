@@ -1692,3 +1692,12 @@ request did not count as explicit approval for this specific external payload
 and spend. No tmux session, run directory, provider call, or partial artifact
 was created. The next action is to obtain explicit approval, then run the exact
 command above and capture/resume its immutable run rather than changing scope.
+
+I then re-rendered the eight-document ticket bundle. The dry run explicitly
+reported `layout=default`, satisfying the user's instruction not to use the
+editor layout. The forced replacement completed successfully:
+
+```text
+OK: uploaded RAGOPT 001 Reusable Evidence Gated Optimization Harness.pdf
+    -> /ai/2026/08/06/RAGOPT-001
+```
