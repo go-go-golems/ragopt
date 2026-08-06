@@ -79,3 +79,12 @@ Replaced the earlier reMarkable design PDF with the expanded eight-document defa
 ### Related Files
 
 - ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Upload evidence and RAG-TTC dependency boundary
+
+## 2026-08-06 - Phase 5 RAG-TTC proof-cycle inputs
+
+Selected and strictly validated the human-authored I5 combined-comparison search-description candidate, 3-case feedback suite, disjoint 7-case validation suite, RAG-TTC gate policy, and locked model/corpus/index/judge/prompt/safety/evaluator identities. Committed the product-owned assets and drift tests in RAG-TTC as a6cfd93.
+
+### Related Files
+
+- abs:///home/manuel/workspaces/2026-06-30/benchmark-cpu-inference/rag-ttc/configs/ragopt/i5-combined-comparison-v1/candidate.yaml — Validated one-mutation product candidate
+- abs:///home/manuel/workspaces/2026-06-30/benchmark-cpu-inference/rag-ttc/internal/ragoptassets/assets_test.go — Product asset and suite drift tests

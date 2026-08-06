@@ -1412,3 +1412,137 @@ Push ragopt `main`, add the resulting real module revision to RAG-TTC, and
 implement the product-owned adapter by composing the existing chat runtime and
 judge. Do not introduce a generic subprocess protocol. Start with deterministic
 adapter tests and a cached/replayable fixture before spending provider budget.
+
+## Step 10: Freeze the first RAG-TTC candidate, suites, and policy
+
+Publication authority was still pending, but Phase 5 had an independent unit
+of work: product-owned immutable inputs. I created those inputs in the RAG-TTC
+worktree without importing ragopt or touching its existing application edits.
+
+The selected candidate is the already human-authored I5 experiment:
+
+```text
+incumbent: tool-descriptions/tool-qa/search-v1.yaml
+candidate: tool-descriptions/tool-qa/search-combined-comparison-i5-v1.yaml
+```
+
+Its hypothesis is that one precise first query containing all comparison
+subjects and requested attributes can preserve faithfulness/relevance while
+reducing redundant provider and search-tool calls. The candidate changes only
+`search_description`; runtime ceilings and safety controls remain locked.
+
+### Product asset layout
+
+RAG-TTC commit `a6cfd93` adds:
+
+```text
+configs/ragopt/i5-combined-comparison-v1/
+├── candidate.yaml
+├── parent/snapshot.yaml
+├── parent/assets/search-description.yaml
+├── candidate/snapshot.yaml
+├── candidate/assets/search-description.yaml
+└── shared/
+    ├── answer-schema.json
+    ├── feedback-suite.json
+    ├── gate-policy.yaml
+    ├── judge-contract.yaml
+    ├── orchestration-prompt.txt
+    ├── runtime-contract.yaml
+    └── validation-suite.json
+```
+
+The snapshots lock:
+
+- answer model and embedding model;
+- corpus and index-manifest digests;
+- original evaluation dataset digest;
+- exact 3-case feedback and 7-case validation suites;
+- answer schema and orchestration prompt bytes;
+- judge contract and judge source digest;
+- native tool-loop runner and application adapter source digests;
+- provider-profile digest;
+- provider/tool ceilings, transcript custody settings, and gate policy.
+
+Feedback and validation questions are disjoint and copied verbatim from
+`datasets/ttc/evaluation.json`. Every case is grouped as `comparison`,
+`product_comparison`, and its split name. The candidate configuration and
+incumbent configuration were compared structurally after replacing only their
+description path and non-behavioral configuration name; no other configuration
+field differs.
+
+### Validated identities
+
+```text
+candidate  sha256:75b70d2aa28e49d9c0d21bf6d2f10c2a15f32385c3e3c65513026d95cc2f9049
+parent     sha256:982d160bc51d8bfdc0db956f845135555c42c424ee2d73f0c88dc2715b7753f6
+child      sha256:f433c4d44a0b8acacf4b03ffcdf2d8b155040b7bf506e4ca5e43a589778c67d1
+feedback   sha256:b009f9e913179007bf2da04cadb2e75200e22e1ab38689513015721ee76781b6
+validation sha256:d0ae5384bb23d7da9ea54b34841f167892314b23359e9da599f85d9dca8e960a
+policy semantic sha256:75c56ff46aab7bb2b281942514faf8a7de94fa1bb4c06e2e0df9548fb7ddb83f
+policy bytes sha256:7d3fba806e3824b26ff817b103fd6415cfe66117edc66ad3050c6ab6476b4d8e
+```
+
+The product policy requires complete, completed, contract-valid cells, zero
+failures, and candidate faithfulness at least 0.80. It targets non-regression
+in answer relevance, limits per-case and mean relevance/faithfulness
+regressions, then reports provider calls, tool calls, tokens, and duration as
+ordered tie-breakers. These are explicit RAG-TTC thresholds, not ragopt
+defaults.
+
+### Tests and commands
+
+```bash
+go run ./cmd/ragopt candidate validate --bundle <RAG-TTC bundle> --format json
+go run /tmp/ragopt-validate-ttc-assets.go
+go test ./internal/ragoptassets -count=1
+go test ./internal/ragoptassets ./pkg/rag/tooleval \
+  ./cmd/rag-ttc/cmds/chat/tooleval -count=1
+git diff --check
+```
+
+All final validation passed. `internal/ragoptassets/assets_test.go` makes
+production-asset drift, config drift, suite overlap, edited questions, and
+missing split groups fail locally even before the future adapter imports
+ragopt.
+
+### What didn't work
+
+- The first multi-file patch created `configs/ragopt/README.md` but could not
+  create `internal/ragoptassets/assets_test.go` because its parent directory
+  did not exist:
+
+  ```text
+  Failed to create parent directories for .../internal/ragoptassets/assets_test.go
+  ```
+
+  I verified the partial result, created only the intended directory, and
+  applied the test file separately.
+
+- The first focused test correctly found two authoring assumptions:
+
+  ```text
+  incumbent and candidate runtime configs differ outside the search-description path
+  json: unknown field "id"
+  ```
+
+  The runtime configs also have distinct descriptive `name` fields, which the
+  adapter will replace with arm-local identity; the test now normalizes that
+  explicitly. The strict source projection was missing declared top-level
+  dataset fields; they were added rather than disabling unknown-field checks.
+
+- Snapshot manifests intentionally began with all-zero IDs. Two strict
+  validation passes reported the computed parent and child identities, after
+  which the final third pass validated the complete candidate.
+
+- The pre-commit whitespace check found one extra blank line at the end of
+  `candidate.yaml`. It was removed and the staged check then passed.
+
+### Repository hygiene
+
+The RAG-TTC worktree was already dirty. Commit `a6cfd93` contains exactly the
+14 new `configs/ragopt` and `internal/ragoptassets` files. Existing modified
+chatserver/profile/ticket files and untracked ticket sources/scripts remained
+unstaged after the commit. The current RAG-TTC branch is
+`task/rag-ttc-tui-polish`, an important coordination fact for later adapter
+work and publication.

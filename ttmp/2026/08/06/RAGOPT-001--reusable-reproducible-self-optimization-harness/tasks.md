@@ -96,9 +96,9 @@ the decision.
 
 ## Phase 5: First real integration and proof cycle
 
-- [ ] Select one existing RAG-TTC human-authored text candidate with no safety-policy mutation.
+- [x] Select one existing RAG-TTC human-authored text candidate with no safety-policy mutation.
 - [ ] Implement the RAG-TTC consumer arm in the RAG-TTC repository, not in `ragopt`.
-- [ ] Declare RAG-TTC's required locked dimensions: corpus, index, suite, answer model, judge, prompts, tool safety, and evaluator.
+- [x] Declare RAG-TTC's required locked dimensions: corpus, index, suite, answer model, judge, prompts, tool safety, and evaluator.
 - [ ] Run incumbent and candidate once on feedback and twice on validation.
 - [ ] Verify native RAG-TTC artifacts remain authoritative and are digest-linked from common outcomes.
 - [ ] Review every per-case regression and record the accept/reject decision.
