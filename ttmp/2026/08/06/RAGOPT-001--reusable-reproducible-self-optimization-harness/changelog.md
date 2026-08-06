@@ -193,3 +193,14 @@ Step 27: froze and validated the one-mutation GEC source-role-routing candidate 
 - /tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/shared/runtime-contract.yaml — Locks the live runtime, model roles, cache policy, feedback gate, and provider ceilings.
 - /tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/shared/source-lock.yaml — Pins current source semantics and explicitly requires future adapter digests before provider execution.
 
+
+## 2026-08-06
+
+Step 28: traced TTC and GEC to the shared Geppetto toolloop and replaced GEC default ambiguity with an explicit production-faithful loop contract (GEC commit 401f4e5).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-30/benchmark-cpu-inference/rag-ttc/pkg/rag/toolanswer/service.go — Shows TTC using the same Geppetto loop with explicit product policy and provider budget wrapper.
+- /tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/shared/runtime-contract.yaml — Locks the exact Geppetto v0.13.7 loop and tool defaults used by GEC production composition.
+- /tmp/gec-ragopt-phase5/internal/webchat/runtime.go — Shows GEC building the shared Geppetto enginebuilder runner with inherited defaults.
+
