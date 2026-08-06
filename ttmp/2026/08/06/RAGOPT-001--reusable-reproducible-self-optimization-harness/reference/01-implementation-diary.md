@@ -4380,3 +4380,190 @@ Worktree:            clean
 Provider calls:      0
 Next gate:           native event projection and GEC RAGOPT arm
 ```
+
+## Step 30: Project real Geppetto provider accounting from the local CoinVault runtime
+
+The GEC proof runner can now observe answer-generation calls at the actual
+shared Geppetto/sessionstream boundary. Commit `e0f8f2d` extends the existing
+no-HTTP local chat event projection with provider-call identity, terminal
+metadata, token usage, duration, and tool-call disposition. This is observation
+of the production loop, not a replacement loop or an evaluator-only counter.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Aren't we unifying things? Why are the tool loops
+different? Doesn't ragkit provide them?"
+
+**Assistant interpretation:** Preserve the corrected architecture—one shared
+Geppetto loop with product-owned policy—then continue RAGOPT-001 by making GEC's
+real loop observable to the product adapter.
+
+**Inferred user intent:** Prevent another fake optimization implementation by
+measuring the same calls the production chat actually performs, while keeping
+retrieval, loop orchestration, chat lifecycle, and evaluation custody in their
+proper packages.
+
+**Commit (code):** `e0f8f2d` — "Expose local provider call accounting"
+
+### What I did
+
+- Reconciled both worktrees and the canonical Phase 5 task ledger before
+  editing.
+- Verified that `ragkit` owns retrieval primitives and that both TTC and GEC
+  execute their model/tool cycle through Geppetto's `toolloop`.
+- Traced Pinocchio's `runtimeEventSink` and confirmed that it projects
+  `EventProviderCallFinished` into `ChatProviderCallFinished` with:
+  - provider-call correlation ID;
+  - stop reason and finish class;
+  - input, output, cached, cache-creation, and cache-read tokens;
+  - duration;
+  - whether the provider response contained tool calls.
+- Extended `localwebchat.LocalChatEvent` to retain that data.
+- Added stable kinds for provider-started, metadata-updated, and
+  provider-finished events.
+- Exposed the new fields in the structured `coinvault chat send` Glazed rows.
+- Added a focused test proving exact projection of a provider-finished event.
+- Ran the focused local-runner and command tests.
+- Let the repository's complete pre-commit lint and test hook finish before
+  accepting the commit.
+- Kept the pinned `ragopt` module dependency unstaged for the forthcoming
+  adapter commit.
+
+### Why
+
+- GEC does not need a second tool loop. It needs evidence from the same loop
+  production uses.
+- Counting configured maxima would conflate policy with observed work and
+  could make a candidate look cheaper or more expensive than it was.
+- Provider-finished events are the narrowest authoritative answer-call surface:
+  they are emitted by Geppetto, projected by Pinocchio, and delivered through
+  the same sessionstream Hub used by the local product runner.
+- Common RAGOPT `provider_calls` must represent product execution cost. Judge
+  calls are separate evaluation overhead and will remain separately recorded
+  in the GEC native artifact and consent ledger.
+
+### What worked
+
+- Focused tests passed:
+
+  ```text
+  ok github.com/go-go-golems/gec-rag/internal/webchat/localwebchat 0.137s
+  ok github.com/go-go-golems/gec-rag/cmd/coinvault/cmds             0.110s
+  ```
+
+- The complete pre-commit hook passed:
+
+  ```text
+  golangci-lint: 0 issues
+  go vet with geppetto-lint: pass
+  go test ./cmd/... ./internal/...: pass
+  commit: e0f8f2d
+  ```
+
+- The hook tested the new projection in both focused and repository-wide
+  contexts.
+- Only three intended files entered the commit.
+- No provider, embedding, or judge call occurred.
+
+### What didn't work
+
+- The first focused test attempt could not read Go's default build cache under
+  the managed filesystem:
+
+  ```text
+  open /home/manuel/.cache/go-build/...: read-only file system
+  ```
+
+  I created `/tmp/ragopt-gec-gocache` and reran with an explicit task-specific
+  `GOCACHE`; the tests passed.
+- A fresh-cache test produced no output for several polling intervals. Process
+  inspection showed no failure, and the warm-cache rerun eventually returned
+  the exact passing result. I did not treat silence as success.
+- The commit hook again outlived the initial execution window. I polled the
+  existing session rather than starting another commit. It completed normally
+  after Dagger web generation, full lint, vet, and tests.
+
+### What I learned
+
+- Pinocchio already carries the provider lifecycle and usage data the adapter
+  needs; an engine wrapper would duplicate instrumentation and risk observing a
+  different execution path.
+- GEC and TTC share loop machinery but intentionally retain distinct product
+  policy. RAGOPT compares candidates within one frozen product policy; it does
+  not normalize policy by mutating the product.
+- The provisional GEC adapter contract contains one stale phrase:
+  `provider_calls: answer_plus_uncached_judge_calls`. The proven TTC convention
+  and Phase 5 diary require product answer calls only. That contract must be
+  corrected before source-lock digests and snapshot identities are finalized.
+- Provider cache-token metadata is not the same thing as the local judge cache.
+  Both must be named and recorded separately.
+
+### What was tricky to build
+
+The useful accounting event is not generated by `ragkit` because retrieval is
+not the model/tool-loop owner. It originates in Geppetto, passes through
+Pinocchio's runtime sink, and becomes a sessionstream UI event. The local runner
+already consumed that stream but normalized provider events as generic rows.
+The change had to preserve the full event payload for existing consumers while
+adding typed accounting fields for the adapter.
+
+The second subtlety is cost vocabulary. The answer model's observed calls and
+tokens are comparable product behavior. Judge generations are required to
+measure quality but are not behavior caused by one production answer. Mixing
+them into the common outcome would reward cells whose judging is skipped and
+would contradict the corrected TTC proof.
+
+### What warrants a second pair of eyes
+
+- Confirm that summed `ChatProviderCallFinished` usage is the desired product
+  token measure when providers report cache-read tokens in addition to input
+  tokens.
+- Review whether structured `chat send` consumers need an explicit schema note
+  for the new optional provider fields.
+- Confirm that metadata-updated events should remain observable but only
+  finished events should increment answer-call counters.
+- Review the adapter-contract correction separating answer cost from judge
+  overhead before the candidate is re-identified.
+
+### What should be done in the future
+
+- Implement the GEC RAGOPT arm around `LocalRunner.RunPrompt`.
+- Capture final answer, knowledge inputs, tool results, admitted evidence IDs
+  and roles, and terminal state without retaining reasoning text.
+- Track judge cache hits/misses and bounded judge generations in the native
+  artifact, but exclude them from common product cost.
+- Add the adapter and projection sources to `source-lock.yaml`, recompute both
+  snapshots and the candidate digest, and validate before any external call.
+- Run only the frozen six feedback cells; validation remains closed unless the
+  feedback gate passes.
+
+### Code review instructions
+
+- Start at
+  `/tmp/gec-ragopt-phase5/internal/webchat/localwebchat/local_events.go`.
+- Follow provider event creation in
+  `pinocchio/pkg/chatapp/runtime_sink.go` at v0.11.7.
+- Review the Glazed row projection in
+  `/tmp/gec-ragopt-phase5/cmd/coinvault/cmds/chat_send.go`.
+- Run:
+
+  ```bash
+  GOCACHE=/tmp/ragopt-gec-gocache \
+    go test ./internal/webchat/localwebchat ./cmd/coinvault/cmds -count=1
+  git show --check e0f8f2d
+  ```
+
+### Technical details
+
+```text
+GEC commit:             e0f8f2d
+Observed boundary:      Geppetto -> Pinocchio -> sessionstream
+Answer call counter:    ChatProviderCallFinished events
+Token fields:           input/output/cached/cache-create/cache-read
+Loop policy changed:    no
+ragkit changed:         no
+Focused tests:          pass
+Full hook:              pass
+Provider calls:         0
+Next gate:              GEC RAGOPT arm and native artifact
+```
