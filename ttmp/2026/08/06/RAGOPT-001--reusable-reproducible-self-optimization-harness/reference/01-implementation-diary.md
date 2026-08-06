@@ -2530,3 +2530,146 @@ Scoped SQL:                     disabled
 Validation authorization:      none
 New proof run created:          no
 ```
+
+## Step 19: Stop at the explicit provider authorization boundary
+
+This step performed the terminal blocker audit for the current continuation.
+Task 67 remains the next sequential requirement, every deterministic input and
+call ceiling is frozen, and no safe local preparation remains that would make
+the proof more valid. Three consecutive goal continuations supplied no explicit
+authorization for the external six-cell answer/embedding/judge execution.
+
+I therefore did not launch, simulate, weaken, or replace the proof. I recorded
+the exact resume condition in the ticket index and prepared to mark the active
+goal blocked. This preserves the user's authority over external data export and
+unpriced provider spend while leaving the repository in a clean, immediately
+resumable state.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 15)
+
+**Assistant interpretation:** Continue RAGOPT-001 persistently, but follow the
+strict blocked audit when the same external-authorization condition has
+recurred for three consecutive goal turns and no meaningful in-scope work
+remains.
+
+**Inferred user intent:** Maintain genuine progress and evidence without
+silently spending money, exporting benchmark payloads, skipping sequential
+proof requirements, or manufacturing a weaker substitute for task 67.
+
+**Commit (documentation):** `ed2f4a9` — "docs(ticket): record provider proof blocker"
+
+### What I did
+
+- Read the diary skill and its full reference again.
+- Re-inspected the `ragopt` status and task ledger, detached proof worktree
+  commit, dirty-file scope, and proof run directories.
+- Confirmed task 67 is still unchecked and tasks 68–80 are sequentially gated
+  behind the two-product proof.
+- Confirmed the proof root still contains only the first corrected run
+  `20260806T180004.824520651Z-ttc-i5-feedback-a1781d11159f`.
+- Added the exact external blocker and resume condition to the ticket index.
+- Did not contact providers, start tmux, modify RAG-TTC, run validation, begin
+  GEC integration, or implement later-phase RAGOPT features out of order.
+
+### Why
+
+- The six-cell command exports questions and public corpus evidence and permits
+  up to 54 heterogeneous provider operations without a USD ceiling.
+- The consent envelope was explicitly presented twice after an earlier denied
+  launch; an automatic continuation is not approval.
+- Skipping to GEC or Phase 6 would contradict the ledger's sequential exit
+  criteria and weaken the evidence this project exists to enforce.
+- The strict goal policy requires a blocked terminal state after the same
+  condition recurs across at least three consecutive turns and no meaningful
+  progress remains.
+
+### What worked
+
+- The `ragopt` repository was clean before this documentation checkpoint.
+- The proof worktree remains at the corrected product commit
+  `90485d8539515173e88d2a9703f3a7ad4aed74bc` with only the intentional locked
+  `profiles.yaml` copy modified.
+- Exactly one corrected proof run exists; no second or partial run was created.
+- References 06 and 07 contain all identities, commands, custody checks,
+  provider payloads, cache semantics, operation ceilings, and decision rules
+  needed to resume without rediscovery.
+
+### What didn't work
+
+- The required authorization was not supplied after three consecutive
+  continuation opportunities. The minimum sufficient approval remains:
+
+  ```text
+  I approve one second RAG-TTC I5 feedback run: six cells only, with ceilings of 24 answer calls, 18 embedding calls, and 12 judge calls. Do not run validation.
+  ```
+
+- No technical workaround is valid. A cached-only simulation would not prove
+  fresh answer behavior; a smaller run would not satisfy all six coordinates;
+  a larger run would exceed scope; and later-phase implementation would violate
+  the canonical ordering.
+
+- `docmgr changelog update` appended its known extra blank line and
+  `git diff --check` reported:
+
+  ```text
+  ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/changelog.md:165: new blank line at EOF.
+  ```
+
+  I removed only that line before the final checkpoint commit.
+
+### What I learned
+
+- Persistence includes stopping cleanly when the remaining action needs new
+  authority; it does not broaden authorization.
+- The precommitted consent envelope makes this blocker precise: the missing
+  input is a yes/no authorization, not architectural clarification.
+- A blocked goal and an active ticket are compatible. The ticket remains active
+  and resumable; only this autonomous execution chain must stop.
+
+### What was tricky to build
+
+The challenge was distinguishing “more work is possible” from “more work is
+aligned.” Phase 6 and GEC tasks are available on paper, but the ticket declares
+phases sequential and uses the second RAG-TTC run as the evidence gate. Working
+around that gate would recreate the fake-completion problem RAGOPT is designed
+to prevent. After completing the identity, readiness, cache, payload, and spend
+audits, only the externally authorized command remains aligned.
+
+### What warrants a second pair of eyes
+
+- Confirm that the six-cell consent wording is acceptable as written.
+- On resume, verify again that no second run appeared and that product HEAD,
+  profile digest, index manifest digest, and task 67 inputs remain unchanged.
+- Ensure the goal is resumed as a fresh blocked audit rather than assuming an
+  old authorization still applies to later provider runs.
+
+### What should be done in the future
+
+- Resume only after explicit authorization of the exact six-cell envelope.
+- Launch one tmux run, monitor it, retain all cells, compare identities and
+  canonical deltas, write the second-run report, and check task 67 only if the
+  protocol passes.
+- Continue to GEC integration only after that reproduction evidence exists.
+
+### Code review instructions
+
+- Start with the ticket index status paragraph, then read reference 07's
+  “External Execution Consent Envelope.”
+- Confirm `docmgr task list --ticket RAGOPT-001` leaves task 67 unchecked.
+- Confirm `/tmp/rag-ttc-ragopt-proof/experiments/ragopt-runs` contains only the
+  first corrected run.
+- Confirm `git status --short` is clean in `ragopt` after the checkpoint commit.
+
+### Technical details
+
+```text
+Blocking condition: explicit authorization for one six-cell provider run absent
+Consecutive occurrences: 3
+Task blocked: RAGOPT-001 task 67
+Second run created: no
+Provider calls made in this step: 0
+Validation authorized or run: no
+Resume document: reference/07-rag-ttc-i5-fresh-root-reproducibility-protocol.md
+```
