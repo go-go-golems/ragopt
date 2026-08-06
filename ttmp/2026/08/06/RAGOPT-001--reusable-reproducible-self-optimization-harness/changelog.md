@@ -171,3 +171,14 @@ Steps 20–23: ran the authorized six-cell RAG-TTC I5 feedback proof from a fres
 
 - /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/08-second-rag-ttc-i5-fresh-root-proof-and-reproducibility-decision.md — Fresh-root identities, cells, custody, budgets, stochastic interpretation, and phase decision
 - /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/sources/almanach/21-ragopt-mission-board.yaml — Reprintable physical project mission board
+
+## 2026-08-06
+
+Steps 24–25: implemented and committed the first GEC Phase 5 prerequisite on isolated branch `codex/ragopt-phase5-gec` (`69c1391`). Retrieval now authorizes channel candidates before fusion and external reranking; answer timeline projection is idempotent; strict judge failures remain visible; summaries expose complete denominators. Product-wide tests and CoinVault build pass, and all 120 historical verdict cache entries satisfy the strict response schema. Task 69 is complete; candidate freezing is next.
+
+### Related Files
+
+- /tmp/gec-ragopt-phase5/internal/knowledge/service.go — Pre-fusion and pre-reranker authorization boundary
+- /tmp/gec-ragopt-phase5/internal/knowledge/judge.go — Idempotent answer projection and strict judge response semantics
+- /tmp/gec-ragopt-phase5/cmd/coinvault/cmds/knowledge.go — Failure-visible judge populations and metric denominators
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Full failures, commands, tests, cache audit, and review guidance
