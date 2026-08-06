@@ -96,22 +96,32 @@ the decision.
 
 ## Phase 5: First real integration and proof cycle
 
+Phase 5 validates product-owned adapters around retrieval and evaluation
+runtimes. It does not own either chat product: the RAG-TTC proof targets the
+existing `tool-loop ragopt` evaluation command, not the canonical Admin Chat
+cutover, `sessionstream`, or the customer-facing Garden Assistant. A product
+proof passes when identities, custody, paired outcomes, gates, and the final
+decision reproduce from a fresh run root. The evaluated candidate may be
+correctly rejected; candidate promotion is not a phase-exit requirement.
+
 - [x] Select one existing RAG-TTC human-authored text candidate with no safety-policy mutation.
 - [x] Implement the RAG-TTC consumer arm in the RAG-TTC repository, not in `ragopt`.
 - [x] Declare RAG-TTC's required locked dimensions: corpus, index, suite, answer model, judge, prompts, tool safety, and evaluator.
 - [x] Run incumbent and candidate once on feedback with the corrected locked runtime.
-- [ ] Run incumbent and candidate twice on validation only after a candidate passes feedback hard gates; I5 failed and was stopped before this spend.
+- [x] Enforce the feedback-before-validation spending gate; I5 failed, so validation was correctly left unrun.
 - [x] Verify native RAG-TTC artifacts remain authoritative and are digest-linked from common outcomes.
 - [x] Review every feedback case outcome and record the reject decision.
 - [ ] Repeat the same candidate from a fresh run root and verify semantic identities and canonical deltas.
-- [ ] Integrate GEC-RAG only after the RAG-TTC proof cycle passes.
+- [ ] Integrate GEC-RAG only after the RAG-TTC integration proof reproduces; the I5 candidate does not need to pass promotion gates.
 - [ ] In GEC-RAG, fix authorization and judge-accounting P0 findings before using results for promotion.
 - [ ] Run one GEC-RAG human-authored candidate twice with a frozen suite and policy.
 - [ ] Document integration friction before adding any generic API to `ragopt`.
 
 Exit criterion: two product repositories use the library without a generic
 subprocess/plugin protocol, and one human candidate completes the path twice in
-each repository with explainable identities and paired outcomes.
+each repository with explainable identities and paired outcomes. A stable,
+evidence-backed rejection is a valid completed decision; validation spending
+remains conditional on feedback gates.
 
 ## Phase 6: CLI hardening and release
 
