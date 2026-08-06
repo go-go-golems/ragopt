@@ -71,3 +71,11 @@ Implemented and exercised strict artifact loading, exact incumbent/candidate joi
 - pkg/compare/build.go — Exact pairing and aggregate accounting
 - pkg/gate/evaluate.go — Lexicographic gate decision checkpoint
 - pkg/report/render.go — Deterministic promotion review
+
+## 2026-08-06 - Implementation bundle re-delivery and Phase 5 boundary
+
+Replaced the earlier reMarkable design PDF with the expanded eight-document default-layout implementation bundle. Scoped the existing RAG-TTC per-query tool-loop, judge, and human-authored combined-comparison search-description seam; product integration awaits publication of the local ragopt commits.
+
+### Related Files
+
+- ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Upload evidence and RAG-TTC dependency boundary
