@@ -125,6 +125,7 @@ remains conditional on feedback gates.
 
 ## Phase 6: CLI hardening and release
 
+- [ ] Rename or split policy byte-digest and semantic-digest fields across pre-v0.1 schemas, product adapters, tests, and docs; add no compatibility shim.
 - [ ] Add `ragopt run inspect` for manifest, input, result-count, and terminal-state inspection.
 - [ ] Add structured table/JSON/YAML output to all artifact commands through Glazed.
 - [ ] Add `--log-level` through Glazed fields and zerolog; do not read environment variables.
