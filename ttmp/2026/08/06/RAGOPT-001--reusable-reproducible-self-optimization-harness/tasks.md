@@ -99,9 +99,10 @@ the decision.
 - [x] Select one existing RAG-TTC human-authored text candidate with no safety-policy mutation.
 - [x] Implement the RAG-TTC consumer arm in the RAG-TTC repository, not in `ragopt`.
 - [x] Declare RAG-TTC's required locked dimensions: corpus, index, suite, answer model, judge, prompts, tool safety, and evaluator.
-- [ ] Run incumbent and candidate once on feedback and twice on validation.
-- [ ] Verify native RAG-TTC artifacts remain authoritative and are digest-linked from common outcomes.
-- [ ] Review every per-case regression and record the accept/reject decision.
+- [x] Run incumbent and candidate once on feedback with the corrected locked runtime.
+- [ ] Run incumbent and candidate twice on validation only after a candidate passes feedback hard gates; I5 failed and was stopped before this spend.
+- [x] Verify native RAG-TTC artifacts remain authoritative and are digest-linked from common outcomes.
+- [x] Review every feedback case outcome and record the reject decision.
 - [ ] Repeat the same candidate from a fresh run root and verify semantic identities and canonical deltas.
 - [ ] Integrate GEC-RAG only after the RAG-TTC proof cycle passes.
 - [ ] In GEC-RAG, fix authorization and judge-accounting P0 findings before using results for promotion.
