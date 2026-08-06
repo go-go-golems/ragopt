@@ -215,3 +215,19 @@ Step 29: added and verified the strict GEC knowledge-description seam in the exi
 - /tmp/gec-ragopt-phase5/internal/knowledge/tool.go — Applies the description before both catalog metadata and Geppetto registration are derived.
 - /tmp/gec-ragopt-phase5/internal/webchat/localwebchat/local_runner.go — Opens the real bundle and registers knowledge_search in the production-shaped local session runtime.
 
+## 2026-08-06
+
+Steps 30–32: added real production provider accounting and the resumable GEC
+adapter, committed a zero-provider preflight (`82c1659`), made the candidate
+contracts and source lock truthful, repaired malformed description YAML, and
+froze the executable one-mutation candidate (`e2d1997`). RAGOPT validation and
+the product preflight both pass for six feedback cells with zero provider
+calls; validation remains unrun.
+
+### Related Files
+
+- /tmp/gec-ragopt-phase5/cmd/coinvault/cmds/knowledge_ragopt.go — Product-owned adapter, budgets, source/runtime validation, resume custody, and provider-free preflight.
+- /tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/shared/source-lock.yaml — Exact GEC and RAGOPT revisions plus semantic source hashes.
+- /tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/parent/snapshot.yaml — Frozen incumbent identity.
+- /tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/candidate/snapshot.yaml — Frozen challenger identity.
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Full implementation, failure, preflight, and review evidence.
