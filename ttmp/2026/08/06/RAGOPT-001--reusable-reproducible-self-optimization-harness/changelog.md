@@ -136,3 +136,12 @@ Step 16: designed the shared production-refresh control plane for CoinVault/GEC,
 
 - /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/design-doc/02-production-index-build-scheduling-resumability-and-ragopt-integration.md — Shared lifecycle, APIs, AWS/River decisions, product adapters, and implementation phases
 - /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/tasks.md — Post-v0.1 shared refresh and product deployment ledger
+
+## 2026-08-06
+
+Step 17: completed no-provider readiness checks for the second RAG-TTC proof, distinguished policy/suite byte and semantic identities, and recorded the pre-v0.1 schema cleanup (commit 029c076); the six-cell provider run still awaits explicit approval.
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/06-first-rag-ttc-i5-feedback-proof-rejection-report.md — Corrected first-run policy and suite identity layers
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/07-rag-ttc-i5-fresh-root-reproducibility-protocol.md — Authoritative task 67 identities, readiness evidence, and comparison criteria

@@ -2140,3 +2140,209 @@ GEC evidence:          GEC bundle -> CoinVault native gate
 Mutation authority:    product deployer only; ragopt plan is non-applying
 reMarkable document:   /ai/2026/08/06/RAGOPT-001/RAGOPT Shared Production Refresh Design
 ```
+
+## Step 17: Audit the fresh-root proof identities and establish launch readiness
+
+This step resumed the next sequential Phase 5 task without spending on external
+providers. I verified the detached product worktree, exact candidate, source
+profiles, frozen index, focused tests, first-run artifacts, and current tmux
+state. The second six-cell proof is now technically ready but was not launched,
+because this continuation did not add explicit approval for another external
+answer/judge run.
+
+The audit also found a real pre-v0.1 naming ambiguity: evaluation custody uses
+the exact policy file's byte digest, while the gate decision uses the decoded
+policy's semantic digest, and both schemas call their field `policy_digest`.
+The values are not contradictory. I corrected the proof documents to pin both
+identity layers and added a Phase 6 breaking cleanup task after reproduction.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 15)
+
+**Assistant interpretation:** Continue RAGOPT-001 from its actual ledger and
+worktree state, preserve detailed diary evidence and focused commits, and make
+the next product-proof step genuinely ready without crossing the explicit
+provider export/spend boundary.
+
+**Inferred user intent:** Advance the reusable optimizer with evidence rather
+than declarations, catch custody mistakes before another live run, and keep
+the work understandable and resumable by another engineer.
+
+**Commit (documentation):** `029c076` — "docs(proof): disambiguate policy identity layers"
+
+### What I did
+
+- Read the diary skill and its full reference again.
+- Inspected the clean `ragopt` worktree, recent commits, all docmgr tasks, the
+  detached proof worktree, the reproducibility protocol, and the latest diary.
+- Confirmed the proof worktree is detached at product commit
+  `90485d8539515173e88d2a9703f3a7ad4aed74bc`.
+- Verified the intentionally copied `profiles.yaml` matches the source
+  workspace byte-for-byte at SHA-256 `72c197d…`.
+- Located the adapter's actual default index symlink and verified its manifest
+  byte digest is the frozen `b2e92c…` identity.
+- Ran focused RAG-TTC command/adapter/asset tests, strict candidate validation,
+  and read-only comparison of the first corrected run.
+- Inspected `pkg/eval`, `pkg/gate`, `pkg/compare`, and `pkg/report` to explain
+  policy identity at each schema layer.
+- Updated references 06 and 07 with separate suite/policy semantic and byte
+  digests, no-provider readiness evidence, and the pre-v0.1 naming warning.
+- Added a Phase 6 task to rename/split the ambiguous policy fields after task
+  67, with no compatibility shim.
+
+### Why
+
+- A fresh stochastic run is useful only if every deterministic input is proven
+  identical before the first provider request.
+- Changing identity schemas between the two executions would make the
+  reproduction comparison weaker, so the cleanup belongs after task 67.
+- Recording byte and semantic digests separately prevents a reviewer from
+  mistaking two correct values for drift.
+- The ticket's sequential phases prohibit skipping ahead to GEC or release
+  hardening while the RAG-TTC reproduction remains incomplete.
+
+### What worked
+
+- Focused tests passed:
+
+  ```text
+  ok  github.com/the-tree-center/rag-ttc/cmd/rag-ttc/cmds/chat/tooleval
+  ok  github.com/the-tree-center/rag-ttc/cmd/rag-ttc
+  ok  github.com/the-tree-center/rag-ttc/internal/ragoptassets
+  ```
+
+- `ragopt candidate validate` reproduced the exact candidate (`0d598d…`),
+  parent (`4cc350…`), child (`836466…`), and changed asset digests.
+- `ragopt compare` still returns `fail` with three expected and complete pairs,
+  candidate contract validity 1/3, and all original hard-gate behavior.
+- The proof roots contain only the first corrected run/report; no accidental
+  second run or partial result exists.
+- Approved tmux inspection found only the unrelated
+  `ttc-garden-chat-luna-low` session and no RAGOPT proof process.
+
+### What didn't work
+
+- The initial sandboxed tmux inspection could not reach the tmux socket:
+
+  ```text
+  error connecting to /tmp/tmux-1000/default (Operation not permitted)
+  ```
+
+  Repeating the read-only inspection with narrowly scoped approval succeeded.
+
+- I first guessed two asset paths without their `shared/` directory:
+
+  ```text
+  sha256sum: configs/ragopt/i5-combined-comparison-v1/gate-policy.yaml: No such file or directory
+  sha256sum: configs/ragopt/i5-combined-comparison-v1/feedback-suite.yaml: No such file or directory
+  ```
+
+  `rg --files` showed the authoritative paths under `shared/`, which were then
+  hashed successfully.
+
+- I initially checked an index directory named after the answer profile and
+  received:
+
+  ```text
+  zsh:5: no matches found: .cache/rag-ttc/indexes/ttc-live-luna-low/*
+  ls: cannot access '.cache/rag-ttc/indexes/ttc-live-luna-low': No such file or directory
+  ```
+
+  This was a diagnostic mistake, not missing proof data. Reading the command
+  source showed the locked default
+  `ttc-056cbd53e148922e847ceabab1f7c4ef`; its symlink and manifest are intact.
+
+- `docmgr changelog update` again left an extra terminal blank line, and
+  `git diff --check` reported:
+
+  ```text
+  ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/changelog.md:148: new blank line at EOF.
+  ```
+
+  I removed only that extra line before the bookkeeping commit.
+
+- My first patch to remove that line assumed docmgr preserved the file-note
+  argument order and failed safely with:
+
+  ```text
+  apply_patch verification failed: Failed to find expected lines in /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/changelog.md
+  ```
+
+  I inspected the actual tail, observed that docmgr had sorted the two related
+  files, and applied a context-correct patch.
+
+### What I learned
+
+- The first-run report's `75c56f…` and run config's `7d3fba…` are semantic and
+  byte identities for the same policy, respectively.
+- Suite custody already makes the distinction visible through semantic
+  `suite_digest` plus byte-valued `input_digests`; policy custody should follow
+  an equally unambiguous vocabulary before v0.1.
+- `readlink -f` can canonicalize a nonexistent path and therefore is not proof
+  that the target exists; combine it with `test`, `ls`, or hashing.
+- The frozen index is selected by the adapter's `--index-bundle` default, not
+  by the provider profile name or `--cache-directory`.
+
+### What was tricky to build
+
+The policy discrepancy initially looked like evidence drift because the same
+field name appears in multiple artifact schemas. Reading the code established
+the exact chain: `eval.RunConfig.PolicyDigest` is the copied YAML byte digest;
+`compare.Report.PolicyDigest` preserves it; `gate.LoadPolicy` computes both
+`ByteDigest` and canonical `Digest`; `gate.Evaluate` first checks the bytes and
+then stores the semantic digest in the decision; the promotion plan copies the
+semantic decision digest. Preserving both values in the protocol fixes review
+ambiguity without perturbing the experiment between repetitions.
+
+### What warrants a second pair of eyes
+
+- Confirm that the post-proof breaking cleanup should name fields explicitly
+  `policy_byte_digest` and `policy_semantic_digest`, rather than carrying a
+  nested policy identity object.
+- Recheck the second run's complete `input_digests` map, not only the summary
+  identity table.
+- Treat any changed decision as stochastic evidence requiring native paired
+  review, not automatic promotion or automatic harness failure.
+
+### What should be done in the future
+
+- Obtain explicit approval for the second six-cell provider-backed feedback
+  run, then launch it in a new tmux session from the detached proof worktree.
+- Generate comparison/report artifacts for the new run and apply every check
+  in reference 07.
+- After task 67, perform the policy identity field cleanup before v0.1 and
+  document the product-adapter migration as a deliberate breaking change.
+
+### Code review instructions
+
+- Start with reference 07's identity table and policy naming warning, then
+  compare reference 06's corrected quick-reference rows.
+- Inspect `pkg/eval/runner.go:loadPolicyIdentity`,
+  `pkg/gate/policy.go:PolicyDocument`, `pkg/gate/evaluate.go:Evaluate`, and
+  `pkg/report/types.go:PromotionPlan`.
+- From `/tmp/rag-ttc-ragopt-proof`, rerun:
+
+  ```bash
+  go test ./cmd/rag-ttc/cmds/chat/tooleval ./cmd/rag-ttc ./internal/ragoptassets -count=1
+  go run github.com/go-go-golems/ragopt/cmd/ragopt candidate validate \
+    --bundle configs/ragopt/i5-combined-comparison-v1 \
+    --manifest candidate.yaml --format json
+  go run github.com/go-go-golems/ragopt/cmd/ragopt compare \
+    --run experiments/ragopt-runs/20260806T180004.824520651Z-ttc-i5-feedback-a1781d11159f \
+    --format json
+  ```
+
+### Technical details
+
+```text
+Proof command status: ready, not launched
+External cells:       6 (3 feedback cases x 2 arms)
+Validation cells:     0 (feedback gate remains closed)
+Product commit:       90485d8539515173e88d2a9703f3a7ad4aed74bc
+Index manifest bytes: sha256:b2e92c7cd9964b6ab36c0b3dc47f96b1cdc72f1966c3ceeaf6772abf82f194dd
+Policy bytes:         sha256:7d3fba806e3824b26ff817b103fd6415cfe66117edc66ad3050c6ab6476b4d8e
+Policy semantic:      sha256:75c56ff46aab7bb2b281942514faf8a7de94fa1bb4c06e2e0df9548fb7ddb83f
+Suite bytes:          sha256:c22b6b186d5f4bd7c2a9177271bfa0005946474b67f78fc7ca85108b9106518d
+Suite semantic:       sha256:b009f9e913179007bf2da04cadb2e75200e22e1ab38689513015721ee76781b6
+```
