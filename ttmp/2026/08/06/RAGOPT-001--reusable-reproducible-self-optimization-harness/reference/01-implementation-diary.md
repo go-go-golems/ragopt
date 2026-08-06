@@ -1324,6 +1324,66 @@ OK: uploaded RAGOPT 001 Reusable Evidence Gated Optimization Harness.pdf
     -> /ai/2026/08/06/RAGOPT-001
 ```
 
+## Step 13: First live feedback run exposes an adapter budget bias
+
+After the user explicitly approved exporting the three feedback questions and
+retrieved TTC evidence to the configured providers, I started the exact locked
+command in tmux. It created:
+
+```text
+experiments/ragopt-runs/
+20260806T174701.722301319Z-ttc-i5-feedback-5cc789838eea
+```
+
+The immutable run completed in about one minute with 6/6 committed cells, zero
+arm failures, six digest-linked native artifacts, and a terminal `complete`
+status. Five cells were contract-invalid abstentions. Only challenger
+`ttc-expand-056` was valid and judged, scoring faithfulness 1.0 and answer
+relevance 1.0.
+
+This was not valid candidate evidence. Native artifacts showed why: the
+adapter permitted only one embedding call while the established tool loop can
+make up to three searches before its reserved final answer call. Five cells
+exhausted embedding budget during a second search:
+
+```text
+resource budget exceeded: requested 1, remaining 0, limit 1
+```
+
+The combined-query challenger happened to need fewer searches on one case, so
+the adapter budget structurally favored the candidate. I retained the run as
+rejected evidence and did not compare or promote it.
+
+Review also caught a separate accounting error: the adapter added two judge
+calls to every product `provider_calls` value, even when invalid answers caused
+the judge to make zero calls. Judge work is evaluator overhead and belongs in
+the native judge report, not the product-cost tie-breaker.
+
+### Narrow correction
+
+RAG-TTC commit `90485d8`:
+
+- locks embedding/answer/judge budgets to 3/4/2 per cell;
+- records those budgets explicitly in the immutable runtime contract;
+- projects only native answer-runtime calls and tokens into product costs;
+- keeps judge calls, cache outcomes, usage, and provenance in the native
+  artifact;
+- adds a regression test proving judge overhead cannot alter product cost.
+
+Strict candidate validation still reports exactly one mutation and now yields:
+
+```text
+candidate sha256:0d598d871694580d7e36af0238a3431cf02690249f6484ea4380b00179507106
+parent    sha256:4cc350f874416dd38e4288a090b95952a5d3d50de0b2ff8ff1fa0b26ee5b876a
+child     sha256:836466c1b61320034b9e88cd2ba5e1656555082f1196d6e500165653bc8e8eaa
+```
+
+Focused adapter and asset tests pass. A full repository build is temporarily
+blocked by concurrent unrelated logcopter generation in `pkg/app/chatserve`
+which declares `log` alongside an existing import. I did not modify that work.
+The fresh feedback rerun must use the corrected identities and cannot resume
+the rejected run.
+
 The `--force` replacement was intentional and authorized by the user's
 “reupload” request. It replaces the earlier same-named design bundle, so any
 annotations on that earlier remote document are not recoverable through the
