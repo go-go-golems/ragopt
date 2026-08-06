@@ -61,9 +61,17 @@ run.
 | Candidate | `sha256:0d598d871694580d7e36af0238a3431cf02690249f6484ea4380b00179507106` |
 | Parent | `sha256:4cc350f874416dd38e4288a090b95952a5d3d50de0b2ff8ff1fa0b26ee5b876a` |
 | Child | `sha256:836466c1b61320034b9e88cd2ba5e1656555082f1196d6e500165653bc8e8eaa` |
-| Suite | `sha256:b009f9e913179007bf2da04cadb2e75200e22e1ab38689513015721ee76781b6` |
-| Policy | `sha256:75c56ff46aab7bb2b281942514faf8a7de94fa1bb4c06e2e0df9548fb7ddb83f` |
+| Suite semantic digest | `sha256:b009f9e913179007bf2da04cadb2e75200e22e1ab38689513015721ee76781b6` |
+| Suite byte digest | `sha256:c22b6b186d5f4bd7c2a9177271bfa0005946474b67f78fc7ca85108b9106518d` |
+| Policy semantic digest | `sha256:75c56ff46aab7bb2b281942514faf8a7de94fa1bb4c06e2e0df9548fb7ddb83f` |
+| Policy byte digest | `sha256:7d3fba806e3824b26ff817b103fd6415cfe66117edc66ad3050c6ab6476b4d8e` |
 | Changed asset | `search_description` only |
+
+The evaluation run/config and comparison report use the policy byte digest to
+bind the exact copied YAML. The gate decision and promotion plan use the
+strictly decoded policy's semantic digest. Both identities are correct but the
+pre-v0.1 schemas currently call both fields `policy_digest`; this naming should
+be made unambiguous after the reproduction run and before release.
 
 ### Cell evidence
 
