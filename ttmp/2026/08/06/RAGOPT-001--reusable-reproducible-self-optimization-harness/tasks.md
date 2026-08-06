@@ -47,7 +47,7 @@ synced records plus copied inputs remain valid and inspectable.
 - [x] Strictly reject unknown YAML fields, multiple YAML documents, missing files, and digest mismatches.
 - [x] Compare parent and candidate snapshots and require exactly one changed mutable asset.
 - [x] Reject changes to locked assets or semantic dimensions.
-- [ ] Make evaluated candidate directories immutable by contract and status transition.
+- [x] Make evaluated candidate directories immutable by contract and status transition.
 - [x] Add fixtures for valid text mutation, two mutations, locked mutation, missing asset, digest mismatch, and unsafe path.
 - [x] Implement `ragopt candidate validate` as a Glazed structured-output command.
 
@@ -56,19 +56,19 @@ candidate digest, and every multi-surface or locked-input mutation is rejected.
 
 ## Phase 3: Resumable paired evaluation runner
 
-- [ ] Define `ragopt-suite/v1` with stable case IDs, groups, opaque JSON input, and suite digest.
-- [ ] Define the small `Arm` interface that executes a case and returns a common `Outcome` projection.
-- [ ] Keep native artifacts application-owned and require each outcome to reference its native artifact path and digest.
-- [ ] Define outcome fields for completion, contract validity, abstention, failure, metrics, calls, tokens, duration, and semantic identity.
-- [ ] Require unique arm names, case IDs, candidate IDs, and repeat indices.
-- [ ] Execute the incumbent and challenger over the same ordered cases and repeat numbers.
-- [ ] Append and sync one result cell immediately after completion.
-- [ ] Resume by loading completed cell keys and rejecting identity mismatches.
-- [ ] Run sequentially in v1; do not add worker pools until measured runtime requires them.
-- [ ] Continue after an arm error by recording a failed cell; abort only on custody or identity errors.
-- [ ] Record the exact suite, snapshots, candidates, policy, and caller config as run inputs.
-- [ ] Add deterministic scripted-arm tests for success, failure, interruption, resume, and duplicate cells.
-- [ ] Add an integration fixture proving resumed output equals uninterrupted output after canonical sorting.
+- [x] Define `ragopt-suite/v1` with stable case IDs, groups, opaque JSON input, and suite digest.
+- [x] Define the small `Arm` interface that executes a case and returns a common `Outcome` projection.
+- [x] Keep native artifacts application-owned and require each outcome to reference its native artifact path and digest.
+- [x] Define outcome fields for completion, contract validity, abstention, failure, metrics, calls, tokens, duration, and semantic identity.
+- [x] Require unique arm names, case IDs, candidate IDs, and repeat indices.
+- [x] Execute the incumbent and challenger over the same ordered cases and repeat numbers.
+- [x] Append and sync one result cell immediately after completion.
+- [x] Resume by loading completed cell keys and rejecting identity mismatches.
+- [x] Run sequentially in v1; do not add worker pools until measured runtime requires them.
+- [x] Continue after an arm error by recording a failed cell; abort only on custody or identity errors.
+- [x] Record the exact suite, snapshots, candidates, policy, and caller config as run inputs.
+- [x] Add deterministic scripted-arm tests for success, failure, interruption, resume, and duplicate cells.
+- [x] Add an integration fixture proving resumed output equals uninterrupted output after canonical sorting.
 
 Exit criterion: an interrupted paired run resumes without re-running completed
 cells and produces the same canonical results as an uninterrupted fixture run.

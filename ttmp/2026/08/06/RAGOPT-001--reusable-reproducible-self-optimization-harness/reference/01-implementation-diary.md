@@ -34,10 +34,20 @@ RelatedFiles:
       Note: Phase 2 rejection matrix and identity fixtures
     - Path: repo://pkg/candidate/snapshot.go
       Note: Strict snapshot and asset identity loading in commit d2329dd
+    - Path: repo://pkg/eval/bind.go
+      Note: Complete candidate and policy input binding in commit 0802670
+    - Path: repo://pkg/eval/resume.go
+      Note: Strict cell replay and truncated-tail recovery in commit 0802670
+    - Path: repo://pkg/eval/runner.go
+      Note: Deterministic paired execution, outcome custody, and run lifecycle in commit 0802670
+    - Path: repo://pkg/eval/runner_test.go
+      Note: Four-case interruption, resume, failure, and corruption proof
     - Path: repo://pkg/runstore/read.go
       Note: Strict read-only run and copied-input integrity validator in commit 9f1ccb4
     - Path: repo://pkg/runstore/run.go
-      Note: Phase 1 active-run lifecycle and synced JSONL implementation in commit 9f1ccb4
+      Note: |-
+        Phase 1 active-run lifecycle and synced JSONL implementation in commit 9f1ccb4
+        Explicit active config-identical Resume authority
     - Path: repo://pkg/runstore/run_test.go
       Note: Interruption recovery, terminal, path, identity, and drift proof suite in commit 9f1ccb4
 ExternalSources: []
@@ -46,6 +56,7 @@ LastUpdated: 2026-08-06T10:05:00-04:00
 WhatFor: Preserve the exact reasoning, commands, failures, and review guidance behind the initial ragopt design.
 WhenToUse: Read when reviewing the design or resuming implementation from the phased task ledger.
 ---
+
 
 
 
@@ -917,4 +928,227 @@ Candidate mutation: exactly one mutable asset with different verified bytes
 Locked invariants: system + dimensions + locked refs/bytes + mutable name set
 CLI output: one row on success, no false validity row on error
 Code checkpoint: d2329dd
+```
+
+## Step 7: Implement immutable input binding and resumable paired evaluation
+
+This step implements the execution spine that turns a validated candidate into
+durable evidence. `pkg/eval` now strictly loads ordered suites, binds every
+suite/policy/candidate/snapshot/asset input into a run, passes incumbent and
+challenger arms only copied candidate views, schedules paired cells
+deterministically, verifies native artifacts, and appends one synced cell after
+each completed arm invocation.
+
+Resume is explicit rather than inferred. `runstore.Resume` reopens only a valid
+active run whose canonical config matches the caller's exact request. The
+evaluation layer then verifies the complete copied-input set and every existing
+cell/native artifact before executing only missing schedule keys. Cancellation
+leaves the run active; ordinary product errors become retained failed cells;
+custody corruption fails the run.
+
+**Commit (code):** `0802670` — "feat(eval): add resumable paired runner"
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 5)
+
+**Assistant interpretation:** Implement the next ticket phase using the
+already chosen explicit two-arm API, prove interruption and exact resume with a
+scripted product, keep product-native artifacts authoritative, and avoid a
+workflow engine or concurrency layer.
+
+**Inferred user intent:** Make the previously “fake” optimization loop
+operationally honest: every incumbent/challenger result must be attributable,
+durable, resumable, paired by construction, and impossible to improve by
+silently losing failures.
+
+### What I did
+
+- Extended `candidate.Candidate` with its validated manifest locator so the
+  runner can copy the exact candidate declaration into a run.
+- Added explicit `runstore.Resume(ctx, directory, expectedConfig)` for active,
+  config-identical, single-writer recovery.
+- Added defensive `Run.Inputs()` access for input-set verification.
+- Defined `ragopt-suite/v1`, `ragopt-cell/v1`, case, outcome, failure, artifact,
+  candidate view, arm request, run request, and run result types.
+- Implemented strict suite JSON loading, opaque input canonicalization, unique
+  IDs/groups, sorted groups, declared case-order identity, and source reload.
+- Chose exactly two explicit public arms: `Incumbent` and `Challenger`.
+- Captured stable arm names once during request preparation.
+- Normalized the run root to an absolute path.
+- Reloaded suite, candidate, and policy sources immediately before run creation
+  or resume and recomputed their identities.
+- Built the complete expected role-to-byte-digest map for suite, policy,
+  candidate manifest, both snapshots, and every parent/child asset.
+- Copied all declared inputs with `runstore.CopyInput` and verified the exact
+  count, roles, and digests before execution and resume.
+- Built arm-facing `CandidateView` values exclusively from copied run inputs.
+- Implemented deterministic case → repeat → incumbent → challenger order.
+- Created a unique native directory per cell and required the returned artifact
+  to be a regular file inside that directory.
+- Recomputed native artifact SHA-256 and size, validated outcome state and
+  counters, and rejected non-finite metrics.
+- Converted ordinary arm errors into synthetic native `arm-error.json`
+  artifacts and durable failed cells, then continued the schedule.
+- Left cancellation/deadline-interrupted coordinates unrecorded and the run
+  active for explicit resume.
+- Implemented strict cell replay, full semantic cell keys, duplicate and
+  unexpected key rejection, timestamp checks, native artifact revalidation,
+  and missing-cell scheduling.
+- Implemented active-run truncated-tail recovery by truncating to the last
+  committed newline and syncing both file and directory.
+- Added a four-case, two-repeat scripted product fixture and corruption tests.
+
+### Why
+
+- Explicit parent/challenger arms are the smallest API already supported by
+  RAG-TTC evidence; shipping a second evaluator-shaped API would create a
+  compatibility surface before any consumer needs it.
+- Copying all candidate inputs is the actual `validated -> running`
+  immutability transition. A validated source directory alone remains writable.
+- A complete input role/digest map detects removal as well as drift; checking
+  only the assets an arm happens to request would leave hidden run state.
+- Immediate append plus `fsync` makes a successful cell return the resume
+  boundary, not a later summary write.
+- Failed arm invocations are data. Custody errors are different because they
+  make later data untrustworthy.
+- Sequential interleaving minimizes temporal drift and is sufficient for the
+  first two product proof cycles.
+
+### What worked
+
+- `TestInterruptedRunResumesToUninterruptedCanonicalResult` committed exactly
+  three cells before cancellation, discarded one uncommitted tail, and invoked
+  arms exactly thirteen times on resume to reach sixteen cells.
+- The resumed and uninterrupted runs produced equal canonical cells after
+  removing run ID, timestamps, and measured duration.
+- Arm observations proved every prompt path was below the immutable run
+  directory, not the source candidate bundle.
+- Editing the original candidate asset after completion did not invalidate or
+  alter the run's copied inputs.
+- An ordinary scripted provider error produced one failed cell and the other
+  seven cells still completed in the one-repeat fixture.
+- Identity mismatch refused resume while preserving active state.
+- Missing copied input, malformed middle line, duplicate cell, native artifact
+  escape, and NaN metric all failed custody explicitly.
+- `go generate ./...`, `go fmt ./...`, `go test ./...`, and `go build ./...`
+  passed.
+- `go test ./pkg/eval ./pkg/runstore ./pkg/candidate -race -count=1` passed.
+
+### What didn't work
+
+- While writing the first resume helper, I drafted an unnecessarily clever and
+  incorrect repeat formatter. Review caught it before compilation; it was
+  replaced with the direct contract:
+
+  ```go
+  func formatRepeat(repeat int) string {
+      return fmt.Sprintf("%04d", repeat)
+  }
+  ```
+
+- A bulk patch that attempted to add input-set verification and captured arm
+  names failed because its context no longer matched the formatted runner:
+
+  ```text
+  apply_patch verification failed: Failed to find expected lines in
+  /home/manuel/code/wesen/go-go-golems/ragopt/pkg/eval/runner.go:
+      if err := run.Complete(ctx, runstore.Summary{
+  ```
+
+  No partial change was applied. I re-read the current files and applied small
+  patches to the config, preparation, binding, schedule, and resume boundaries.
+
+- N/A for runtime validation: the focused Phase 3 suite passed on its first run
+  after the scripted fixtures were formatted.
+
+### What I learned
+
+- “Resume” has three separate identities: common run config, complete bound
+  input set, and completed cell/native-artifact set. Checking only one is not
+  enough.
+- A newline is part of the JSONL durability boundary. A final fragment without
+  one can be discarded safely only for an explicitly active run; malformed
+  committed middle lines must fail.
+- Arm names must be captured once. Repeated calls to a stateful `Name()` method
+  could otherwise change schedule and cell identity during a run.
+- Run-root normalization matters because native artifact confinement compares
+  resolved absolute paths.
+- The common outcome should remain small. Product answer/transcript detail
+  remains in the digest-linked native artifact.
+- Exact sequential resume is simpler when the deterministic schedule is
+  rebuilt and existing full keys are treated as a set.
+
+### What was tricky to build
+
+The difficult boundary was error classification. An ordinary arm error must
+not abort the experiment or vanish. The runner creates an attributable failure
+artifact and cell. Cancellation cannot use the same path because recording a
+failure would prevent a legitimate retry. A malformed outcome or escaped
+artifact cannot be converted to an arm failure because the runner cannot trust
+its custody; it fails the run instead.
+
+Input binding also needed two layers. Candidate validation proves source bytes
+and semantic isolation. Evaluation copies those bytes into a run and stores a
+complete role/digest map in the config. Resume then uses copied paths for arms
+but still requires the caller's same source identities. This is intentionally
+strict local recovery, not a bundle registry.
+
+### What warrants a second pair of eyes
+
+- `runstore.Resume` has no inter-process lock. Confirm every consumer command
+  makes the single-writer operator requirement explicit.
+- Review the decision to duplicate unchanged locked assets into separate parent
+  and candidate input roles. It is literal and simple but uses extra local disk.
+- Review whether policy byte digest should remain the cell identity once Phase
+  4 introduces a normalized semantic policy digest; use one documented value,
+  not both ambiguously.
+- Review outcome consistency rules, especially completed but
+  `contract_valid=false` without a `Failure`, which is intentionally retained.
+- Review the five-second best-effort terminal failure context for local storage.
+- The runner gives arms the absolute run directory as well as their assigned
+  native directory. Confinement validates the returned authoritative artifact,
+  but a malicious in-process arm is outside the v1 threat model.
+
+### What should be done in the future
+
+- Phase 4 must load the suite and cells strictly, join only exact parent/child
+  coordinates, and reject any missing cell.
+- Gate policy parsing should replace the current opaque policy interpretation
+  without changing the byte custody already recorded here.
+- The first RAG-TTC consumer must implement its arm in RAG-TTC and keep its
+  native artifacts authoritative.
+- Do not add concurrency until measured product runtimes justify the additional
+  custody and scheduling complexity.
+
+### Code review instructions
+
+- Read `pkg/eval/types.go` and `suite.go` first.
+- Follow new runs through `prepareRequest`, `bindInputs`, `buildSchedule`, and
+  `executeCell` in `runner.go`.
+- Follow resume through `runstore.Resume`, `verifyBoundInputs`, and
+  `loadCompletedCells` in `resume.go`.
+- Treat `pkg/eval/runner_test.go` as the executable lifecycle specification;
+  start with the interruption/resume test.
+- Run:
+
+  ```bash
+  go test ./pkg/eval ./pkg/runstore ./pkg/candidate -count=1
+  go test ./pkg/eval ./pkg/runstore ./pkg/candidate -race -count=1
+  go test ./...
+  go build ./...
+  ```
+
+### Technical details
+
+```text
+Suite schema: ragopt-suite/v1
+Cell schema: ragopt-cell/v1
+Run config schema: ragopt-eval-run/v1
+Schedule: case order -> repeat 0..N-1 -> incumbent -> challenger
+Cell durability: append JSON line -> fsync -> close
+Resume authority: active state + exact config + exact input set + valid cells
+Truncated recovery: discard only bytes after last committed newline
+Native custody: one assigned directory + regular file + recomputed SHA-256/size
+Code checkpoint: 0802670
 ```
