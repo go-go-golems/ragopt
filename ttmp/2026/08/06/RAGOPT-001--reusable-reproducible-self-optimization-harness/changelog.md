@@ -182,3 +182,14 @@ Steps 24–25: implemented and committed the first GEC Phase 5 prerequisite on i
 - /tmp/gec-ragopt-phase5/internal/knowledge/judge.go — Idempotent answer projection and strict judge response semantics
 - /tmp/gec-ragopt-phase5/cmd/coinvault/cmds/knowledge.go — Failure-visible judge populations and metric denominators
 - /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Full failures, commands, tests, cache audit, and review guidance
+
+## 2026-08-06
+
+Step 27: froze and validated the one-mutation GEC source-role-routing candidate contract (GEC commit 7599193); product adapter and provider execution remain pending.
+
+### Related Files
+
+- /tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/candidate.yaml — Declares the human-authored source-role routing hypothesis and exactly one mutable asset.
+- /tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/shared/runtime-contract.yaml — Locks the live runtime, model roles, cache policy, feedback gate, and provider ceilings.
+- /tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/shared/source-lock.yaml — Pins current source semantics and explicitly requires future adapter digests before provider execution.
+

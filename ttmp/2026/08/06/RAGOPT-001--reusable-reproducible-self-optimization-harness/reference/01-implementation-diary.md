@@ -3764,3 +3764,203 @@ Native diagnostics:  tool inputs, selected source_roles, evidence roles
 Provider calls:      0
 Next gate:           commit a RAGOPT-valid frozen candidate bundle
 ```
+
+## Step 27: Commit the frozen GEC source-role candidate contract
+
+The GEC candidate now exists as a complete RAGOPT bundle and validates as
+exactly one mutable asset. Its parent is the current production
+`knowledge_search` description; its challenger adds explicit routing for
+`schema_doc`, `product`, and `guide`. All other declared assets and dimensions
+are byte-identical between arms.
+
+This is a contract freeze, not a completed experiment. The source lock openly
+records that the description loader and consumer adapter do not exist yet and
+must be digest-pinned before the first provider cell. That makes the remaining
+implementation work visible without pretending that a validated YAML bundle
+is an exercised optimizer integration.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 24)
+
+**Assistant interpretation:** Freeze and commit the smallest credible GEC
+candidate before implementing its adapter, while keeping budgets, identities,
+and the feedback/validation spending boundary explicit.
+
+**Inferred user intent:** Ensure the product integration cannot move its target
+or hide confounders after seeing model results, and preserve a reviewable audit
+trail from hypothesis through implementation and execution.
+
+**Commit (code):** `7599193` — "Add frozen GEC source-role candidate contract"
+
+### What I did
+
+- Added `configs/ragopt/source-role-routing-v1` in the isolated GEC worktree.
+- Authored complete parent and challenger `knowledge_search` description assets.
+- Selected three feedback cases and three disjoint validation cases spanning
+  `schema_doc`, `product`, and `guide` routing.
+- Added gate, runtime, judge, native-answer, adapter, bundle, and source-lock
+  contracts.
+- Pinned the real hybrid bundle identity:
+
+  ```text
+  bundle:           rk-55be57b45fc6d624d0341c8ec6965f49
+  documents:        16032
+  corpus digest:    5569c5db5118534cfb3f26113fc09d42efdaaba688115754b24685e93233fd2b
+  vector index:     ca92a5bc4435a68e84e09ddd6fd62a1173dfad133506c864aeb238fc2bdfb29d
+  lexical manifest: d28e1f9b7650ba7042f9f3f04ef8c00d32be16cc6f76e42742406fdedb5ee0ea
+  ```
+
+- Pinned `gpt-5.6-luna-low` answering, `gpt-5.6-luna` judging, production
+  `analyst-rag`, disabled reranking and synonyms, and content-addressed judge
+  cache reuse.
+- Set the proof-run ceiling to six answer sessions, twelve judge generations,
+  zero embedding generations, fewer than 500,000 provider tokens, and at most
+  one US dollar.
+- Validated unique suite IDs and feedback/validation disjointness with `jq`.
+- Used RAGOPT's real CLI to derive the snapshot IDs and validate the bundle.
+- Ran `git diff --check` and committed all 14 candidate files.
+
+### Why
+
+- The exact suite, target, regressions, and budgets must exist before an adapter
+  can execute them.
+- A three-case feedback suite is enough to exercise each role and keeps the
+  first proof cheap. A second fresh run establishes repeatability without
+  silently expanding the suite.
+- Validation remains a separate asset so the spending gate is enforceable and
+  reviewable; its existence does not authorize executing it.
+- The source lock binds current product semantics and explicitly reserves the
+  not-yet-created adapter digests, preventing provisional custody from being
+  confused with final run custody.
+
+### What worked
+
+- RAGOPT accepted the bundle and independently proved one changed asset:
+
+  ```text
+  candidate:  sha256:e7be1ae545bc826a34fce3e4ca7dd7f1dfb8715a89b5d1b74ec931c771d00820
+  parent:     sha256:24145fce23d7ddfcc3e1766fbc730cecbf3c2e4a31f489beb6622120a9900938
+  challenger: sha256:2d14a0978c0e5c354b3b4b0b2db5965ff67d8a55d592d7d85f4726d837583b78
+  mutation:   knowledge_search_description
+  valid:      true
+  ```
+
+- Both JSON suites parsed, contained unique IDs, and had no ID overlap.
+- The parent description reproduces the current dynamic spec for the pinned
+  bundle: 16,032 documents and sorted roles `guide, product, schema_doc`.
+- The pre-commit hook correctly skipped Go/web jobs because this checkpoint
+  contains only configuration assets.
+- No provider, embedding, answer, or judge call occurred.
+
+### What didn't work
+
+- The first RAGOPT validation intentionally used zero snapshot IDs so the
+  validator would report its computed semantic identities. It failed first on
+  the parent and then on the challenger:
+
+  ```text
+  snapshot ID mismatch: manifest=sha256:0000... actual=sha256:24145fce...
+  snapshot ID mismatch: manifest=sha256:0000... actual=sha256:2d14a097...
+  ```
+
+  I inserted each computed ID and reran validation successfully. These were
+  controlled identity derivation failures, not ignored validation errors.
+- A broad search for a tool-loop ceiling produced a truncated module-cache
+  result. It established that Pinocchio has a bounded loop, but the GEC runtime
+  does not currently expose that value as a product setting. I therefore did
+  not invent a per-cell loop override in the frozen candidate.
+
+### What I learned
+
+- The current product loop boundary is less explicit than TTC's tool-QA runner.
+  The adapter must observe and account for production calls rather than claim a
+  configurable per-cell maximum that GEC does not expose.
+- Bundle identity needs more than the content-addressed bundle ID in this first
+  proof: explicit lexical-manifest and vector-SQLite digests make the physical
+  retrieval artifacts auditable.
+- The candidate's schema case is intentionally adversarial because `sql_doc`
+  and `sql_query` remain available. If the model bypasses `knowledge_search`,
+  that is a legitimate result about this description candidate, not an adapter
+  failure.
+- A valid candidate bundle proves custody shape only. “Implemented and
+  exercised” still requires a product arm, native artifacts, paired cells,
+  comparison, and a repeated decision.
+
+### What was tricky to build
+
+The hardest boundary was distinguishing a truly locked runtime input from a
+future implementation file. Existing prompts, product sources, corpus, index,
+models, and policies can be pinned now. The adapter and description loader
+cannot be honestly hashed before they exist. Instead of using placeholders
+that look final, `source-lock.yaml` states this incompleteness in machine-readable
+prose and requires those digests plus recomputed snapshot identities before any
+provider-backed execution.
+
+The budgets also use two different units. Six answer sessions is the number of
+RAGOPT cells across two arms and three cases; it is not necessarily six model
+generations because the production tool loop may call the answer provider more
+than once. The global token and dollar ceilings therefore remain separate from
+session and judge-call counts. The adapter must stop scheduling cells when a
+hard ceiling is reached and record a failure rather than drop the cell.
+
+### What warrants a second pair of eyes
+
+- Review the challenger wording for accidental preference toward SQL tools or
+  role overrestriction.
+- Review whether `orders-table` is the right schema feedback case given the
+  competing production SQL tools; changing it after adapter execution would
+  create a new candidate/suite identity.
+- Review the provisional gate thresholds, especially the zero minimum target
+  delta and per-case answer-relevance regression floor.
+- Confirm that the one-dollar/500k-token ceiling can be enforced or safely
+  preflighted with the current provider usage telemetry.
+- Confirm that copying the bundle manifest plus physical index digests is
+  sufficient custody without copying the 368 MB vector database into the
+  candidate directory.
+
+### What should be done in the future
+
+- Implement strict loading/rendering of `gec-knowledge-search-description/v1`
+  and prove the parent is byte-identical to the existing model description.
+- Project `knowledge_search` call inputs and evidence roles into the native GEC
+  artifact without changing shared RAGOPT APIs.
+- Implement the GEC consumer arm and budget accounting.
+- Add implementation source digests to `source-lock.yaml`, update both snapshot
+  identities, and revalidate before provider execution.
+- Run feedback twice from fresh roots. Do not run validation unless the
+  feedback gate passes.
+
+### Code review instructions
+
+- Start at `/tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/candidate.yaml`.
+- Diff the two files named `knowledge-search-description.yaml`; they must be the
+  only mutable byte difference.
+- Review `shared/runtime-contract.yaml`, `shared/source-lock.yaml`, and
+  `shared/adapter-contract.yaml` together.
+- Validate with:
+
+  ```bash
+  cd /home/manuel/code/wesen/go-go-golems/ragopt
+  go run ./cmd/ragopt candidate validate \
+    --bundle /tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1 \
+    --format yaml
+  ```
+
+- Confirm `git show --check 7599193` in the isolated GEC worktree.
+
+### Technical details
+
+```text
+GEC commit:          7599193
+Bundle files:        14
+Feedback cells:      3 cases x 2 arms x 1 repeat = 6
+Validation cells:    3 cases x 2 arms x 1 repeat = 6 (not authorized yet)
+Answer sessions:     <= 6 per feedback proof run
+Judge generations:   <= 12 per feedback proof run
+Embedding calls:     0
+Provider ceiling:    < 500,000 tokens and <= $1 per proof run
+Candidate valid:     yes, provisional source-lock caveat explicit
+Provider calls:      0
+Next gate:           implement product-owned loader and native adapter
+```
