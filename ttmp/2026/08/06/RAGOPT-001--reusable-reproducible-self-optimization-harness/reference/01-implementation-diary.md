@@ -3964,3 +3964,206 @@ Candidate valid:     yes, provisional source-lock caveat explicit
 Provider calls:      0
 Next gate:           implement product-owned loader and native adapter
 ```
+
+## Step 28: Trace and explicitly lock the shared Geppetto tool loop
+
+The user's objection exposed an important wording error in Step 27. TTC and
+GEC do not use unrelated tool-loop implementations: both execute
+`github.com/go-go-golems/geppetto/pkg/inference/toolloop`. The real difference
+is configuration ownership. TTC supplies a deliberate bounded policy; GEC
+constructs the same Geppetto engine builder without loop/tool configuration,
+so it inherits Geppetto v0.13.7 defaults.
+
+I corrected the frozen GEC runtime identity to record those exact defaults.
+This keeps the first proof production-faithful while making the mismatch
+visible. I did not force TTC's `4 / 1 / no retry / reserve final` evaluation
+policy into GEC: doing so would test a newly invented GEC runtime rather than
+the Admin Chat path we are supposed to optimize.
+
+### Prompt Context
+
+**User prompt (verbatim):** "3876 +- The current product loop boundary is less explicit than TTC's tool-QA runner.
+    3877 +  The adapter must observe and account for production calls rather than claim a
+    3878 +  configurable per-cell maximum that GEC does not expose.
+
+---
+
+Aren't we unifying things? Why are the tool loops different? Doesn't ragkit provide them?"
+
+**Assistant interpretation:** Verify whether TTC and GEC actually use different
+loop engines, correct the architecture explanation, and avoid preserving an
+accidental difference under the label of unification.
+
+**Inferred user intent:** Reuse proven shared machinery coherently: do not add a
+second framework, do not blame product boundaries for accidental divergence,
+and make the remaining policy difference explicit and intentional.
+
+**Commit (configuration):** `401f4e5` — "Lock explicit Geppetto tool loop semantics"
+
+### What I did
+
+- Traced TTC from `pkg/rag/toolanswer/service.go` into Geppetto
+  `toolloop.New`, `LoopConfig`, and `tools.ToolConfig`.
+- Traced GEC from `CoinVaultRuntimeResolver` through `RuntimeComposer`,
+  Pinocchio `chatapp`, and Geppetto `enginebuilder.Builder`.
+- Verified that GEC's composed engine internally owns the registry and loop;
+  Pinocchio receives it as a single `ComposedRuntime.Engine` and does not add a
+  second loop.
+- Read Geppetto v0.13.7's authoritative default constructors.
+- Updated the frozen runtime contract with exact implementation, version,
+  iterations, parallelism, timeout, error handling, retry behavior, and lack of
+  a reserved final call.
+- Replaced the vague snapshot dimension
+  `production-sessionstream-default` with a semantic value that states the
+  actual policy.
+- Recomputed both snapshot IDs and revalidated the one-mutation candidate.
+- Committed the contract correction before resuming adapter implementation.
+
+### Why
+
+- `ragkit` is the shared retrieval layer; it does not orchestrate model/tool
+  conversations.
+- Geppetto is the shared inference and tool-loop layer. Pinocchio/sessionstream
+  owns chat lifecycle and transport around it.
+- RAGOPT should compare and custody product executions, not grow a competing
+  tool-loop implementation.
+- A runtime default is still semantic behavior. If it affects provider calls,
+  concurrency, retries, cost, or completion, it must be explicit in an
+  experiment snapshot.
+
+### What worked
+
+- The shared substrate is now proven from source:
+
+  ```text
+  TTC Tool QA ----------------------+
+                                     +--> Geppetto toolloop
+  GEC RuntimeComposer -> enginebuilder+
+
+  ragkit: retrieval/index/fusion/rerank primitives
+  Pinocchio/sessionstream: chat lifecycle and persistence
+  ragopt: candidate/run/pair/gate custody
+  ```
+
+- GEC's actual inherited policy is now frozen:
+
+  ```text
+  max iterations:      20
+  tool choice:         auto
+  execution timeout:   30s
+  max parallel tools:  3
+  tool errors:         continue
+  retries:             2 (1s base, factor 2)
+  reserve final call:  false
+  ```
+
+- The corrected candidate remains exactly one mutable text asset:
+
+  ```text
+  candidate:  sha256:fc715984f0be41c2fbdb41a6446707cb00ce3f21ff39c8fc0adfc727488b4c13
+  parent:     sha256:9f7197c9b85ff75cfb2476a344bf77b7a46e712d14b8905b5fbdf9bd1e18c9a2
+  challenger: sha256:eeea2419b34e701ecd03b3b443726f607b8625402ff38606cbf294bd442997ad
+  ```
+
+### What didn't work
+
+- An earlier attempted implementation patch tried to add the description
+  loader, tool override, tests, and local-runner wiring at once. `apply_patch`
+  rejected the entire patch because `internal/knowledge/tool_test.go` did not
+  have the assumed imports:
+
+  ```text
+  apply_patch verification failed: Failed to find expected lines in
+  /tmp/gec-ragopt-phase5/internal/knowledge/tool_test.go:
+  import (
+      "context"
+      "strings"
+      "testing"
+  ```
+
+  No part of that patch was applied. The failure was useful: it left the code
+  untouched while the architectural objection was resolved.
+- One source inspection looked for `internal/webchat/runtime_composer.go`; the
+  implementation is `internal/webchat/runtime.go`.
+- One Geppetto inspection looked under `pkg/inference/enginebuilder`; the
+  package actually lives under `pkg/inference/toolloop/enginebuilder`.
+
+### What I learned
+
+- GEC does not have an unbounded loop. It has a 20-iteration Geppetto default,
+  but the product does not name or expose that policy.
+- TTC's provider-budget wrapper is additional policy around the same loop. It
+  counts provider calls and reserves a final response call; Geppetto's generic
+  default does neither.
+- “Unification” has several layers. We already share the execution engine; we
+  are extracting shared evaluation custody into RAGOPT. Policy values may still
+  differ by product, but they must use the same vocabulary and be locked.
+- Moving tool-loop ownership into `ragkit` would blur retrieval and inference
+  responsibilities. If a reusable named runtime policy is later extracted, its
+  natural owner is Geppetto, not ragkit or ragopt.
+
+### What was tricky to build
+
+The GEC call graph looks like a single-pass Pinocchio inference at first glance
+because `ComposedRuntime.Registry` is nil. The loop was not absent: GEC had
+already built an `enginebuilder` runner whose internal registry is non-nil.
+Pinocchio then invokes that engine once, and the engine performs the Geppetto
+loop internally. Understanding this nested composition was necessary to avoid
+adding a second tool loop or double-counting iterations.
+
+The policy question is separate from the implementation question. Using TTC's
+smaller limits would make the policies numerically uniform but the experiment
+less representative. The pragmatic first proof locks GEC's current behavior;
+the cross-product follow-up should define a named shared policy contract and
+then deliberately migrate products, with separate evaluation of that runtime
+change.
+
+### What warrants a second pair of eyes
+
+- Confirm that the first GEC proof should remain production-faithful at
+  `20 / 3 / retry 2`, rather than combining a loop-policy migration with the
+  source-role description mutation.
+- Review whether the Admin Chat production policy itself should later adopt a
+  reserved-final-call budget wrapper like TTC's.
+- Confirm that provider retry calls can be observed and charged accurately from
+  existing inference events; if not, the adapter must report accounting as
+  incomplete rather than fabricate a count.
+- Review whether the reusable named loop-policy schema belongs upstream in
+  Geppetto after the two product integrations expose concrete requirements.
+
+### What should be done in the future
+
+- Keep the current GEC candidate to one description mutation.
+- Implement the description injection through the existing Geppetto-backed GEC
+  composition, not a new evaluator-only loop.
+- Record actual inference/tool calls in native evidence and compare them to the
+  locked policy.
+- After Phase 5, propose one small Geppetto-owned named policy/config surface if
+  TTC and GEC adapters demonstrate the same requirements.
+- Do not move chat-loop execution into `ragkit` or `ragopt`.
+
+### Code review instructions
+
+- In TTC, start at
+  `/home/manuel/workspaces/2026-06-30/benchmark-cpu-inference/rag-ttc/pkg/rag/toolanswer/service.go:130`.
+- In GEC, follow
+  `/tmp/gec-ragopt-phase5/internal/webchat/sessionstream/sessionstream_runtime_resolver.go`
+  into `/tmp/gec-ragopt-phase5/internal/webchat/runtime.go`.
+- Read Geppetto v0.13.7
+  `pkg/inference/toolloop/enginebuilder/builder.go`,
+  `pkg/inference/toolloop/config.go`, and `pkg/inference/tools/config.go`.
+- Validate the corrected candidate with the RAGOPT command from Step 27.
+- Inspect `git show --check 401f4e5` in the isolated GEC worktree.
+
+### Technical details
+
+```text
+Shared engine:       Geppetto toolloop v0.13.7
+TTC policy:          explicit 4 / parallel 1 / no retry / reserve final
+GEC policy:          explicit identity of inherited 20 / parallel 3 / retry 2
+ragkit role:         retrieval primitives, not chat orchestration
+ragopt role:         immutable evaluation custody, not loop execution
+Config commit:       401f4e5
+Provider calls:      0
+Next gate:           inject candidate text into the existing GEC composition
+```
