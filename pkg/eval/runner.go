@@ -15,20 +15,26 @@ import (
 	"github.com/go-go-golems/ragopt/pkg/runstore"
 )
 
-const evaluationRunAPIVersion = "ragopt-eval-run/v1"
+const RunAPIVersion = "ragopt-eval-run/v1"
 
-type runConfig struct {
-	APIVersion      string            `json:"api_version"`
-	SuiteDigest     string            `json:"suite_digest"`
-	PolicyDigest    string            `json:"policy_digest"`
-	CandidateID     string            `json:"candidate_id"`
-	CandidateDigest string            `json:"candidate_digest"`
-	ParentSnapshot  string            `json:"parent_snapshot"`
-	ChildSnapshot   string            `json:"child_snapshot"`
-	IncumbentArm    string            `json:"incumbent_arm"`
-	ChallengerArm   string            `json:"challenger_arm"`
-	Repeats         int               `json:"repeats"`
-	InputDigests    map[string]string `json:"input_digests"`
+// RunConfig is the complete semantic identity required to resume and compare a
+// paired evaluation run.
+type RunConfig struct {
+	APIVersion        string                        `json:"api_version"`
+	SuiteDigest       string                        `json:"suite_digest"`
+	PolicyDigest      string                        `json:"policy_digest"`
+	CandidateID       string                        `json:"candidate_id"`
+	CandidateDigest   string                        `json:"candidate_digest"`
+	ParentSnapshot    string                        `json:"parent_snapshot"`
+	ChildSnapshot     string                        `json:"child_snapshot"`
+	IncumbentArm      string                        `json:"incumbent_arm"`
+	ChallengerArm     string                        `json:"challenger_arm"`
+	Repeats           int                           `json:"repeats"`
+	InputDigests      map[string]string             `json:"input_digests"`
+	Mutation          candidate.MutationDeclaration `json:"mutation"`
+	ChangedAsset      string                        `json:"changed_asset"`
+	ParentAssetDigest string                        `json:"parent_asset_digest"`
+	ChildAssetDigest  string                        `json:"child_asset_digest"`
 }
 
 type preparedRequest struct {
@@ -36,7 +42,7 @@ type preparedRequest struct {
 	suite      *SuiteDocument
 	candidate  *candidate.Candidate
 	policyPath string
-	config     runConfig
+	config     RunConfig
 }
 
 type scheduledCell struct {
@@ -163,18 +169,22 @@ func prepareRequest(ctx context.Context, request RunRequest) (*preparedRequest, 
 	if err != nil {
 		return nil, err
 	}
-	config := runConfig{
-		APIVersion:      evaluationRunAPIVersion,
-		SuiteDigest:     reloadedSuite.Digest,
-		PolicyDigest:    policyDigest,
-		CandidateID:     reloadedCandidate.Manifest.CandidateID,
-		CandidateDigest: reloadedCandidate.Digest,
-		ParentSnapshot:  reloadedCandidate.Parent.SnapshotID,
-		ChildSnapshot:   reloadedCandidate.Child.SnapshotID,
-		IncumbentArm:    incumbentName,
-		ChallengerArm:   challengerName,
-		Repeats:         request.Repeats,
-		InputDigests:    inputDigests,
+	config := RunConfig{
+		APIVersion:        RunAPIVersion,
+		SuiteDigest:       reloadedSuite.Digest,
+		PolicyDigest:      policyDigest,
+		CandidateID:       reloadedCandidate.Manifest.CandidateID,
+		CandidateDigest:   reloadedCandidate.Digest,
+		ParentSnapshot:    reloadedCandidate.Parent.SnapshotID,
+		ChildSnapshot:     reloadedCandidate.Child.SnapshotID,
+		IncumbentArm:      incumbentName,
+		ChallengerArm:     challengerName,
+		Repeats:           request.Repeats,
+		InputDigests:      inputDigests,
+		Mutation:          reloadedCandidate.Manifest.Mutation,
+		ChangedAsset:      reloadedCandidate.Mutation.AssetName,
+		ParentAssetDigest: reloadedCandidate.Mutation.ParentDigest,
+		ChildAssetDigest:  reloadedCandidate.Mutation.ChildDigest,
 	}
 	return &preparedRequest{
 		request:    request,
