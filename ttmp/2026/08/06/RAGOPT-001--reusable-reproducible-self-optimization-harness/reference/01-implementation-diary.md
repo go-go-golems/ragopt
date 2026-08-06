@@ -56,9 +56,15 @@ RelatedFiles:
       Note: Authoritative first corrected proof and rejected-candidate evidence
     - Path: repo://ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/tasks.md
       Note: Phase 5 product boundary, conditional validation gate, and reproducible-rejection criterion
+    - Path: abs:///tmp/gec-ragopt-phase5/internal/knowledge/service.go
+      Note: GEC product-owned pre-fusion and pre-reranker authorization repair in Step 24
+    - Path: abs:///tmp/gec-ragopt-phase5/internal/knowledge/judge.go
+      Note: GEC idempotent timeline projection and strict judge semantics in Step 24
+    - Path: abs:///tmp/gec-ragopt-phase5/cmd/coinvault/cmds/knowledge.go
+      Note: GEC failure-visible judge accounting and denominators in Step 24
 ExternalSources: []
 Summary: Chronological record of the ragopt repository bootstrap, evidence audit, scope decisions, documentation, validation, and delivery.
-LastUpdated: 2026-08-06T16:05:00-04:00
+LastUpdated: 2026-08-06T16:24:00-04:00
 WhatFor: Preserve the exact reasoning, commands, failures, and review guidance behind the initial ragopt design.
 WhenToUse: Read when reviewing the design or resuming implementation from the phased task ledger.
 ---
@@ -3170,4 +3176,414 @@ Task closed:   67
 Next tasks:    68 and 69 — GEC integration boundary and P0 repairs
 Ticket docs:   10
 Ticket stale:  false
+```
+
+## Step 24: Repair GEC authorization and judge accounting on an isolated branch
+
+This step began the second product integration required by Phase 5. I audited
+the current GEC repository and confirmed that the colleague's Admin Chat and
+AWS work had left the main worktree heavily dirty, while the P0 retrieval and
+judge findings still reproduced at `acc53c5`. I therefore created the isolated
+branch `codex/ragopt-phase5-gec` in `/tmp/gec-ragopt-phase5` and changed only
+the product-owned knowledge retrieval, evaluation, and tests.
+
+The implementation now removes unauthorized lexical and vector candidates
+before fusion and rechecks them before external reranker hydration. It also
+rebuilds the answer record from each cumulative timeline snapshot, rejects
+timeline HTTP failures, fails malformed zero-statement verdict calls, validates
+judge indices and required fields, and retains answer/judge failures in
+explicit summary denominators. The affected packages and CoinVault build pass.
+The code is staged but not committed because two pre-commit attempts collided
+with another GolangCI-Lint process; I stopped rather than bypassing the hook.
+
+### Prompt Context
+
+**User prompt (verbatim):**
+
+> work on RAGOPT-001. Keep a detailed diary as you work, commit at appropriate intervals, make sure to use the diary format form the skill
+
+**Assistant interpretation:** Continue the canonical RAGOPT-001 phase order,
+keep strict implementation evidence, and checkpoint verified work without
+overlapping the colleague's Admin Chat stream.
+
+**Inferred user intent:** Complete a real two-product proof of the reusable
+optimization harness while preserving reviewability, avoiding fake completion,
+and committing only after the repository's own checks pass.
+
+### What I did
+
+- Read the diary skill and full reference, and reread the Almanach printing
+  skill because every diary entry now requires a closing paper ticket.
+- Inspected the GEC main worktree, Git history, worktrees, optimization handoff,
+  deep review P0 findings, blueprint Phase 0, task files, and owning source.
+- Confirmed the dirty main worktree contains another stream's Admin Chat/AWS
+  changes and did not modify it.
+- Created worktree `/tmp/gec-ragopt-phase5` on branch
+  `codex/ragopt-phase5-gec` from `acc53c5f75a9b14e2b593bfd2ffd2836ac0abadf`.
+- Added per-channel authorization in `internal/knowledge/service.go`:
+  authorized hits are filtered and renumbered before RRF; fused candidates are
+  rechecked before hydration and external reranking; final projection remains a
+  defense-in-depth check.
+- Updated the RRF sweep to authorize each channel before refusion.
+- Added a spy-reranker test proving analyst-only text never crosses a public
+  rerank request and a channel test proving scope plus role filtering happens
+  before fusion.
+- Made `AnswerClient.extract` a deterministic snapshot projection, added
+  timeline status validation, and introduced the typed `ErrAnswerTimeout`.
+- Made zero-statement verdict errors fatal and required ordered statement
+  indices, supported flags, bounded relevance, and explicit abstention.
+- Replaced success-only judge summaries with explicit selected, attempted,
+  answered, judged, answer-error, judge-error, timeout, skipped-policy, and
+  metric-denominator counts.
+- Excluded abstentions from earned-faithfulness means while retaining them in
+  relevance and explicit abstention counts.
+- Added focused tests for every repaired invariant.
+
+### Why
+
+- RAGOPT task 69 forbids using GEC results for promotion until authorization
+  and judge-accounting P0 findings are fixed.
+- Filtering after reranking can disclose analyst text to an external endpoint
+  and lets disallowed candidates affect fused ranks.
+- Success-only means allow hard questions that time out or fail judging to
+  improve a candidate by disappearing.
+- Cumulative polling must be projected, not appended, or SQL evidence grows on
+  every poll.
+- A malformed judge response is an error outcome, not a vacuous success.
+- A new generic Ragkit filtering API or scope-partition builder was unnecessary
+  for the confidentiality fix and would exceed the pragmatic phase scope.
+
+### What worked
+
+- The contract-first test initially failed at the missing authorization-aware
+  rerank signature, then passed after implementation.
+- Focused new tests passed, including the spy reranker, repeated polling,
+  non-200 timeline, verdict failure, malformed semantics, and denominator
+  accounting cases.
+- Complete affected-package tests passed:
+
+  ```text
+  ok github.com/go-go-golems/gec-rag/internal/knowledge
+  ok github.com/go-go-golems/gec-rag/cmd/coinvault/cmds
+  ```
+
+- `go build ./cmd/coinvault` passed.
+- The repository pre-commit `test` hook passed every package under
+  `./cmd/... ./internal/...`, including the colleague's Admin Chat packages.
+- `git diff --check` passed before staging.
+
+### What didn't work
+
+- The first focused test run inside the restricted sandbox could not create an
+  `httptest` listener and panicked:
+
+  ```text
+  panic: httptest: failed to listen on a port: listen tcp6 [::1]:0: socket: operation not permitted
+  ```
+
+  Rerunning the same test with local-loopback approval passed. This was an
+  execution-sandbox restriction, not a product failure.
+
+- A command-package test initially could not read the shared Go build cache:
+
+  ```text
+  open /home/manuel/.cache/go-build/33/33de0f184c6fa8c36baf3c92e8f15d7b9ff897c4d25db52d432823b558991b39-d: read-only file system
+  ```
+
+  The approved rerun passed.
+
+- `go test ./... -count=1` passed all product packages but failed because two
+  historical ticket script directories contain several independent `main`
+  probes in one Go package:
+
+  ```text
+  02-limit-node-shape-probe.go:9:6: main redeclared in this block
+  03-limit-option-probe.go:9:6: main redeclared in this block
+  02-list-profile-models.go:11:6: main redeclared in this block
+  03-filter-deployment-profiles.go:20:6: main redeclared in this block
+  ```
+
+  The repository hook correctly scopes tests to `./cmd/... ./internal/...`,
+  which passed. I did not alter unrelated historical probes.
+
+- The first commit command emitted only the Lefthook banner and returned with
+  all files still staged and `HEAD` unchanged. The second attempt exposed the
+  actual concurrent-process failure:
+
+  ```text
+  Error: parallel golangci-lint is running
+  The command is terminated due to an error: parallel golangci-lint is running
+  make: *** [Makefile:99: lint] Error 3
+  ```
+
+  The test hook passed, but the lint hook returned exit status 2. After two
+  attempts I stopped, did not use `--no-verify`, and left the exact staged
+  checkpoint intact.
+
+### What I learned
+
+- The smallest safe authorization repair does not require changing Ragkit:
+  trusted local indexes may over-fetch, while GEC filters collapsed chunk IDs
+  against canonical document metadata before fusion or external hydration.
+- Authorized hits must be renumbered before RRF; preserving their old ranks
+  would retain the influence of removed candidates.
+- A reranker-boundary recheck is worthwhile defense in depth even when both
+  channels have already been filtered.
+- “Faithfulness 1.0 for no statements” is only a reporting convention. It must
+  never suppress a failed relevance/abstention judge call, and it should not be
+  mixed into earned-faithfulness means.
+- The repository's `go test ./...` scope is knowingly broader than its valid
+  product package graph because ticket probe scripts are not standalone Go
+  packages. The hook's `./cmd/... ./internal/...` scope is the meaningful
+  whole-product check here.
+
+### What was tricky to build
+
+Authorization has two distinct boundaries. The lexical/vector indexes are
+trusted local code, but their ranked outputs contain chunk identities that must
+be filtered before fusion; the reranker is potentially remote and must never
+receive disallowed hydrated text. The implementation therefore filters each
+collapsed channel, renumbers survivors, fuses only authorized hits, and checks
+again immediately before hydration. This fixes confidentiality and fusion
+attribution without claiming that finite over-fetch gives partition-equivalent
+recall.
+
+Judge accounting required separating populations rather than adding one error
+counter. Selected, attempted, answered, and successfully judged are different
+denominators; timeouts are a subset of answer errors; policy skips are selected
+but not attempted; abstentions are judged but excluded from earned
+faithfulness. Encoding those distinctions in one outcome projection prevents a
+candidate from improving by failure or vacuous truth.
+
+### What warrants a second pair of eyes
+
+- Confirm that filtering after trusted local top-k retrieval but before fusion
+  is the accepted v1 boundary; scope partitions may later improve recall but
+  are not needed to prevent external disclosure.
+- Review the change from all-judged faithfulness to non-abstained earned
+  faithfulness and ensure the future GEC gate binds the explicit denominator.
+- Check whether context deadline/cancellation errors should also be classified
+  as timeouts in addition to `ErrAnswerTimeout`.
+- Review the strict judge requirement for explicit `abstained` and `supported`
+  fields against cached historical judge responses before the first frozen run.
+- Retry the commit only after the concurrent GolangCI-Lint process exits; do
+  not bypass Lefthook.
+
+### What should be done in the future
+
+- Complete the staged commit after the external lint process clears.
+- Rebase or merge the isolated branch only with explicit coordination around
+  the colleague's active main worktree.
+- Inventory cached judge responses for strict-schema compatibility; a new
+  prompt version may be required rather than reusing malformed cache entries.
+- Freeze one small human-authored GEC candidate only after this code checkpoint
+  is committed and its semantic inputs are enumerated.
+- Do not run a provider evaluation until the candidate, suite, policy, budget,
+  and native artifact contract are frozen.
+
+### Code review instructions
+
+- Start at `/tmp/gec-ragopt-phase5/internal/knowledge/service.go` in `Search`,
+  `retrieve`, `authorizeHits`, `authorizeFused`, and `rerank`.
+- Read `TestRerankNeverReceivesUnauthorizedCandidates` before reviewing the
+  implementation.
+- Review `/tmp/gec-ragopt-phase5/internal/knowledge/judge.go` from
+  `AnswerClient.Answer` through `JudgeAnswer`.
+- Review `judgeOutcome` and `emitJudgeSummaries` in
+  `/tmp/gec-ragopt-phase5/cmd/coinvault/cmds/knowledge.go` beside
+  `TestEmitJudgeSummariesAccountsForFailuresAndDenominators`.
+- Validate with:
+
+  ```bash
+  go test ./internal/knowledge ./cmd/coinvault/cmds -count=1
+  go test ./cmd/... ./internal/... -count=1
+  go build ./cmd/coinvault
+  ```
+
+### Technical details
+
+```text
+GEC worktree:       /tmp/gec-ragopt-phase5
+GEC branch:         codex/ragopt-phase5-gec
+Base commit:        acc53c5f75a9b14e2b593bfd2ffd2836ac0abadf
+Code commit:        pending — hook collision, files remain staged
+Main worktree:      untouched; colleague changes preserved
+Affected tests:     pass
+CoinVault build:    pass
+Hook product tests: pass
+Hook lint:          blocked by concurrent golangci-lint
+Provider calls:     0
+RAGOPT next gate:   commit P0 repair, then freeze GEC candidate
+```
+
+## Step 25: Verify the landed GEC P0 checkpoint and historical judge cache
+
+On resume, the isolated branch was no longer staged: commit `69c1391` existed,
+the worktree was clean, and its reflog recorded the commit at 16:14. The second
+commit process had continued through Lefthook after the earlier client session
+returned, so Step 24 accurately records the observable state at stop time but
+not the eventual repository state. I verified the landed object rather than
+assuming either account was authoritative.
+
+I then audited the durable judge cache against the stricter response contract.
+All 242 cache entries parse; 122 are statement-extraction responses and 120 are
+verdict responses. Every verdict response has ordered one-based statement
+indices, explicit Boolean `supported` fields, numeric relevance in `[0,1]`, and
+an explicit Boolean abstention field. No cache version bump or cache purge is
+needed before the first frozen GEC proof. Task 69 is now complete.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 24)
+
+**Assistant interpretation:** Resume the interrupted checkpoint from actual Git
+and cache state, complete verification, and advance RAGOPT only when durable
+evidence proves the P0 prerequisite.
+
+**Inferred user intent:** Avoid both false blockage and false completion: trust
+the repository and artifacts, not a stale terminal impression, while preserving
+the strict diary and commit discipline.
+
+**Commit (code):** `69c1391bfcdcfa8012c1f779482d0fae1b379e92` — "Fix retrieval authorization and judge accounting"
+
+### What I did
+
+- Re-read the diary and Almanach skills for this continuation.
+- Inspected exact process names, isolated branch status, main worktree status,
+  RAGOPT status, commit log, and reflog.
+- Verified `69c1391` contains exactly eight intended knowledge/command files,
+  491 insertions, and 54 deletions.
+- Ran `git show --check --oneline 69c1391`; it passed.
+- Confirmed `/tmp/gec-ragopt-phase5` is clean and the colleague-owned main
+  worktree remains untouched.
+- Re-ran the repository's meaningful full product scope:
+
+  ```bash
+  go test ./cmd/... ./internal/... -count=1
+  go build ./cmd/coinvault
+  ```
+
+- Scanned all 242 files under the existing judge cache without printing prompt,
+  answer, or evidence content.
+- Parsed each cached string exactly or through the judge's outer-brace tolerance
+  and classified statement versus verdict responses.
+- Validated every verdict's indices, required types, and relevance range.
+- Checked RAGOPT task 69 and updated the ticket entry point and changelog.
+
+### Why
+
+- Git commit state can change after a detached client session stops reading a
+  still-running hook. The commit object, reflog, and clean index are the
+  authoritative evidence.
+- Tightening parser semantics without auditing the durable cache could turn
+  old cache hits into systematic judge errors during the proof.
+- Reusing valid cached generations is desirable: it saves provider work while
+  the content-addressed key continues to bind prompt version, model, and prompt.
+- Task 69 should close only after both the code and its historical operational
+  inputs satisfy the new contract.
+
+### What worked
+
+- Commit `69c1391` exists on `codex/ragopt-phase5-gec`; the isolated worktree is
+  clean.
+- No exact `golangci-lint` or `lefthook` process remained.
+- All `./cmd/...` and `./internal/...` packages passed.
+- CoinVault compiled successfully.
+- Cache audit result:
+
+  ```text
+  total:             242
+  parsed:            242
+  unparsed:          0
+  statements:        122
+  verdicts:          120
+  valid verdicts:    120
+  invalid verdicts:  0
+  other:             0
+  ```
+
+- Existing judge prompt version `v1` and cache content remain semantically
+  compatible with the strict decoder, so no provider regeneration is required.
+
+### What didn't work
+
+- The first process search used `pgrep -af 'golangci-lint|lefthook'`. Because
+  the pattern itself appeared in the current shell command line, it returned
+  the sandbox wrapper and its own zsh process, producing a very large false
+  positive. I corrected the check to exact executable names:
+
+  ```bash
+  pgrep -ax golangci-lint
+  pgrep -ax lefthook
+  ```
+
+  Both returned no process.
+
+- Step 24's closing state said the commit was pending. That was true when the
+  client stopped observing the second hook, but the underlying session later
+  completed and created the commit. I did not rewrite Step 24; this step records
+  the state transition and authoritative evidence.
+
+### What I learned
+
+- A unified execution wrapper can return control while a PTY-backed Git hook is
+  still active. After any ambiguous commit result, future continuations must
+  inspect `HEAD`, the index, and reflog before retrying.
+- Strict validation did not invalidate the historical GEC judge cache. The
+  earlier model responses were better formed than the old decoder required.
+- Cache reuse and evaluation correctness are compatible when validation occurs
+  after cache load and malformed cached values remain explicit judge errors.
+
+### What was tricky to build
+
+The operational ambiguity came from two layers of execution: the commit invoked
+Lefthook, Lefthook launched Dagger generation and GolangCI-Lint, and the client
+session stopped observing before the Git process reached its terminal state.
+The only safe reconciliation was evidence triangulation: commit object, reflog,
+clean worktree, staged diff absence, and rerun tests.
+
+The cache audit needed to verify structure without leaking cached questions or
+retrieved evidence into logs. The projection therefore emitted only booleans
+and class counts, never raw `value` strings, while accepting the same exact-JSON
+or outer-brace parsing forms used by production.
+
+### What warrants a second pair of eyes
+
+- Review whether the proof should deliberately use the validated existing
+  cache or a fresh empty cache. Reusing it reduces spend; a fresh run better
+  exercises provider behavior. Either choice must be frozen as run identity.
+- Confirm the GEC candidate's judge policy binds earned-faithfulness denominator
+  and completion rates explicitly.
+- Coordinate how `69c1391` will enter the colleague's evolving main branch
+  before running any production-shaped server from that branch.
+
+### What should be done in the future
+
+- Freeze one human-authored GEC candidate and a small feedback suite before
+  writing the adapter.
+- Declare cache identity and whether cache reuse is part of the proof protocol.
+- Preserve the current provider budget ceiling and feedback-before-validation
+  gate.
+- Check task 68 only after the GEC adapter actually completes the full path;
+  task 70 remains the two-run proof requirement.
+
+### Code review instructions
+
+- Inspect `git show 69c1391` from `/tmp/gec-ragopt-phase5`.
+- Run the exact product test/build commands above.
+- Recompute cache class counts without emitting `.value`.
+- Confirm RAGOPT task 69 is checked while tasks 68, 70, and 71 remain open.
+
+### Technical details
+
+```text
+GEC commit:          69c1391bfcdcfa8012c1f779482d0fae1b379e92
+Branch:              codex/ragopt-phase5-gec
+Worktree:            /tmp/gec-ragopt-phase5 (clean)
+Product tests:       pass
+CoinVault build:     pass
+Judge cache:         242/242 parse; 120/120 verdicts strict-valid
+Task closed:         RAGOPT-001 task 69
+Provider calls:      0
+Next gate:           freeze candidate, suite, policy, cache, and budgets
 ```

@@ -1,0 +1,34 @@
+almanach_studio_version: 1
+theme: brutalist
+paperWidth: 384
+bodyScale: 1
+feedLines: 8
+blocks:
+  - id: head
+    type: banner
+    data: { text: "RAGOPT-001 / STEP 25", right: "GEC P0", pad: "m" }
+  - id: gap1
+    type: space
+    data: { size: "s" }
+  - id: title
+    type: text
+    data: { text: "P0 COMMITTED. CACHE CLEAN.", preset: h1, lines: 3 }
+  - id: rule1
+    type: rule
+    data: { weight: heavy }
+  - id: facts
+    type: kv
+    data:
+      items:
+        - ["COMMIT", "69c1391"]
+        - ["PRODUCT TESTS", "PASS"]
+        - ["BUILD", "PASS"]
+        - ["CACHE", "242 / 242"]
+        - ["VERDICTS", "120 / 120 VALID"]
+        - ["TASK 69", "CLOSED"]
+  - id: result
+    type: banner
+    data: { text: "NEXT / FREEZE CANDIDATE", pad: "m" }
+  - id: note
+    type: text
+    data: { text: "No provider calls. Main worktree untouched. Adapter work waits for frozen suite, policy, cache, and budgets.", preset: body }

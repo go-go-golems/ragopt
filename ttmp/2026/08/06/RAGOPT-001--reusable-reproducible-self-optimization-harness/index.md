@@ -14,7 +14,7 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: Design and implementation ledger for a small reusable Go harness that makes candidate identity, immutable evaluation, paired comparison, gates, and human promotion evidence mandatory.
-LastUpdated: 2026-08-06T16:15:00-04:00
+LastUpdated: 2026-08-06T16:24:00-04:00
 WhatFor: Prevent ad hoc experiment commands or unimplemented reflectors from being mistaken for a working self-optimization system.
 WhenToUse: Start here before implementing or integrating ragopt; then read the design guide and follow tasks.md in phase order.
 ---
@@ -62,8 +62,11 @@ Phase 5 task 67 is complete. The authorized six-cell fresh-root execution
 reproduced all identities, copied-input custody, complete pairing, and the
 `fail` decision. The I5 candidate remains rejected; validation was correctly
 left unrun. Reference 08 records the exact outcomes, budgets, stochastic
-differences, and proof decision. Tasks 68–71 now move to GEC-RAG, beginning
-with the known authorization and judge-accounting P0 findings.
+differences, and proof decision. GEC-RAG authorization and judge-accounting P0
+repairs are committed on isolated branch `codex/ragopt-phase5-gec` as
+`69c1391`; task 69 is complete. The next checkpoint is to freeze one small
+human-authored GEC candidate, suite, policy, budgets, and native-artifact
+contract before implementing the product-owned adapter or contacting providers.
 
 The post-v0.1 production-refresh design makes `ragopt` the shared fixed
 control-plane protocol for CoinVault/GEC, the TTC Garden Assistant, and the
