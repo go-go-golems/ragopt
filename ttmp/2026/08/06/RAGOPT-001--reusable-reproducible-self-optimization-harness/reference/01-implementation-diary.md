@@ -1152,3 +1152,157 @@ Truncated recovery: discard only bytes after last committed newline
 Native custody: one assigned directory + regular file + recomputed SHA-256/size
 Code checkpoint: 0802670
 ```
+
+## Step 8: Implement strict paired comparison and lexicographic gates
+
+This step started the read-only decision half of the harness. The first
+boundary was a strict artifact loader: comparison must not trust a caller's
+in-memory cells or silently repair an active run. `eval.LoadArtifactRun` now
+opens the run through `runstore.Reader`, strictly decodes the evaluation
+configuration, verifies the complete copied-input role/digest set, loads the
+copied suite, and validates each committed cell plus its native artifact.
+
+The evaluation configuration was extended with the already-proven mutation
+identity needed by a promotion report: mutation declaration, changed logical
+asset, and parent/child asset digests. These values are copied from the
+validated candidate at run creation rather than reconstructed later.
+
+The comparison package now joins cells by the exact tuple `(case_id,
+repeat_index, arm)`. It rejects unknown and duplicate coordinates, constructs
+only complete incumbent/challenger pairs, and retains absent arms as explicit
+`MissingPair` records. It computes raw candidate-minus-incumbent deltas and
+separately aggregates completion, contract validity, failures, abstentions,
+costs, and quality metrics. No failed or missing cell receives a synthetic
+quality score.
+
+The gate package now strictly loads one `ragopt-gate-policy/v1` YAML document.
+There are deliberately no product-independent quality defaults: the product
+must name its target metric, threshold, floors, regression limits, and ordered
+cost tie-breakers. Gate evaluation is lexicographic:
+
+```text
+identity and complete pairing
+        -> hard completion/contract/failure/floor gates
+        -> target improvement
+        -> per-case and per-group regression limits
+        -> informational ordered cost tie-breakers
+```
+
+Once a phase fails, later phases are not evaluated. This prevents a cheaper
+candidate from compensating for incomplete evidence, broken contracts, or a
+quality regression.
+
+### Commands run
+
+```bash
+git status --short
+rg -n "type Policy|func Evaluate|RunAPIVersion|type RunConfig" pkg
+gofmt -w pkg/eval/runner.go pkg/eval/artifacts.go pkg/compare/types.go \
+  pkg/compare/build.go pkg/gate/policy.go pkg/gate/evaluate.go
+go test ./pkg/eval ./pkg/compare ./pkg/gate
+```
+
+The first focused test run found one compile error. After the correction, the
+same focused command passed for all three packages.
+
+### What worked
+
+- The partially interrupted source patch was present as complete Go files and
+  could be reconciled without discarding work.
+- Existing evaluation tests remained green after publishing `RunConfig` and
+  adding report identities.
+- The strict loader reuses the runstore reader and evaluation outcome custody
+  checks instead of inventing a second run format.
+- Comparison preserves complete pairs, missing pairs, metric presence, raw
+  values, deltas, and non-quality outcomes as separate facts.
+- Policy parsing rejects unknown fields, multiple YAML documents, invalid
+  identifiers, non-finite thresholds, absent failure thresholds, duplicate
+  tie-breakers, and unsupported tie-breakers.
+
+### What didn't work
+
+- The first compile reported:
+
+  ```text
+  pkg/gate/evaluate.go:156:13: invalid operation: cannot call mean
+  (variable of type float64): float64 is not a function
+  ```
+
+  A local `mean` accumulator shadowed the helper of the same name. It was
+  renamed to `targetMean`; the next focused run passed.
+
+- Review found a semantic aggregation bug before tests were written:
+  `MetricAggregate.CompletePairs` was incremented only when both arms exposed
+  that metric. This collapsed pair completeness into metric presence. It now
+  takes the group's complete-pair count, while `PairsWithMetric` independently
+  counts usable paired metric values.
+
+### What I learned
+
+- Artifact validity, pair completeness, and metric presence are three
+  different denominators and must remain different fields.
+- A raw policy byte digest is appropriate for proving which exact policy was
+  evaluated; the normalized semantic digest is appropriate for identifying
+  the parsed policy in a decision. Both need explicit names.
+- Missing pairs should fail at the identity phase even if a policy author
+  accidentally sets `require_all_cells: false`; absence of paired evidence is
+  not a product-specific quality preference.
+
+### Next actions
+
+- Begin Phase 5 with one human-authored RAG-TTC text candidate; keep its Arm
+  and native scoring artifacts in the product repository.
+- Record integration friction before expanding any generic `ragopt` API.
+
+### Phase 4 completion update
+
+The comparison, policy, decision, report, and CLI layers were completed in
+commit `7fc1a98`. Six decision goldens cover pass, hard-gate failure, target
+failure, catastrophic regression, tie-break reporting, and incomplete
+pairing. The incomplete fixture deletes a challenger cell and fails during
+identity, demonstrating that missing evidence cannot improve the result.
+
+The deterministic report contains identities, hypothesis, exact asset digests,
+checks, group outcomes, metric denominators and deltas, missing pairs, and
+per-pair failure/cost evidence. Its JSON plan is fixed to
+`state=review_required` and `human_apply_required=true`; there is no apply API.
+
+Final commands for this checkpoint:
+
+```bash
+go test ./...
+go test ./pkg/eval ./pkg/compare ./pkg/gate ./pkg/report -race -count=1
+go build ./...
+go run ./cmd/ragopt compare --help
+go run ./cmd/ragopt report --help
+git diff --check
+docmgr status --ticket RAGOPT-001
+docmgr validate frontmatter --doc \
+  ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/05-paired-comparison-gate-and-promotion-report-v1-contract.md
+```
+
+All Go validation and both CLI smoke checks passed. Docmgr recognized one
+design and five reference documents, and the new reference frontmatter passed.
+
+One documentation command was attempted with an unsupported scope:
+
+```text
+docmgr validate --ticket RAGOPT-001
+Error: unknown flag: --ticket
+```
+
+This did not change files. I used the supported per-document `validate
+frontmatter --doc ...` form, which passed.
+
+### Phase 4 review instructions
+
+- Start with `pkg/eval/artifacts.go` and verify it stays read-only.
+- In `pkg/compare/build.go`, inspect full cell-identity checks before the
+  coordinate join, then verify `ExpectedPairs`, `CompletePairs`, and
+  `PairsWithMetric` remain distinct.
+- In `pkg/gate/evaluate.go`, verify each failing phase returns before cheaper
+  tie-breakers can influence the decision.
+- Confirm `pkg/report` contains no candidate or product mutation operation.
+- Read `pkg/gate/testdata/*.golden` as the compact decision specification.
+- Use `reference/05-paired-comparison-gate-and-promotion-report-v1-contract.md`
+  for the complete intern-facing API and review guide.

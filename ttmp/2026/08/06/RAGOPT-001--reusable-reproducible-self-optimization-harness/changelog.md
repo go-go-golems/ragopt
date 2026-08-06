@@ -60,3 +60,14 @@ Implemented and exercised ragopt-suite/v1, explicit incumbent/challenger arms, c
 - /home/manuel/code/wesen/go-go-golems/ragopt/pkg/eval/resume.go — Resume and corruption semantics
 - /home/manuel/code/wesen/go-go-golems/ragopt/pkg/eval/runner.go — Paired runner checkpoint
 - /home/manuel/code/wesen/go-go-golems/ragopt/pkg/eval/runner_test.go — Interruption and equivalence proof
+
+## 2026-08-06 - Phase 4 paired decisions and promotion reports
+
+Implemented and exercised strict artifact loading, exact incumbent/candidate joins, transparent denominators, ragopt-gate-policy/v1 lexicographic decisions, deterministic Markdown reviews, non-applying promotion plans, and Glazed compare/report commands (commit 7fc1a98).
+
+### Related Files
+
+- cmd/ragopt/commands/report/report.go — Explicit non-applying report CLI
+- pkg/compare/build.go — Exact pairing and aggregate accounting
+- pkg/gate/evaluate.go — Lexicographic gate decision checkpoint
+- pkg/report/render.go — Deterministic promotion review
