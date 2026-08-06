@@ -102,3 +102,5 @@ Published ragopt main, pinned the portable module revision in RAG-TTC, and imple
 ## 2026-08-06 - Feedback proof run awaiting explicit provider approval
 
 Verified the exact six-cell feedback command and tmux run procedure. The live start was rejected before execution because it would export evaluation questions and retrieved evidence to external answer/judge providers and may incur spend. No provider calls or run artifacts were created.
+
+Refreshed the eight-document reMarkable bundle at `/ai/2026/08/06/RAGOPT-001`; the dry run explicitly confirmed `layout=default` before replacement.
