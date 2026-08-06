@@ -5,12 +5,15 @@ import (
 	"os"
 
 	"github.com/go-go-golems/glazed/pkg/cli"
+	"github.com/go-go-golems/glazed/pkg/cmds"
 	"github.com/go-go-golems/glazed/pkg/cmds/logging"
 	"github.com/go-go-golems/glazed/pkg/cmds/schema"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	candidatecmd "github.com/go-go-golems/ragopt/cmd/ragopt/commands/candidate"
+	comparecmd "github.com/go-go-golems/ragopt/cmd/ragopt/commands/compare"
+	reportcmd "github.com/go-go-golems/ragopt/cmd/ragopt/commands/report"
 )
 
 var version = "dev"
@@ -49,7 +52,35 @@ func newRootCommand() (*cobra.Command, error) {
 	}
 	candidateParent.AddCommand(validateCobra)
 	root.AddCommand(candidateParent)
+
+	compareCommand, err := comparecmd.NewCommand()
+	if err != nil {
+		return nil, err
+	}
+	compareCobra, err := buildGlazedCommand(compareCommand)
+	if err != nil {
+		return nil, errors.Wrap(err, "build compare command")
+	}
+	reportCommand, err := reportcmd.NewCommand()
+	if err != nil {
+		return nil, err
+	}
+	reportCobra, err := buildGlazedCommand(reportCommand)
+	if err != nil {
+		return nil, errors.Wrap(err, "build report command")
+	}
+	root.AddCommand(compareCobra, reportCobra)
 	return root, nil
+}
+
+func buildGlazedCommand(command cmds.Command) (*cobra.Command, error) {
+	return cli.BuildCobraCommandFromCommand(
+		command,
+		cli.WithParserConfig(cli.CobraParserConfig{
+			ShortHelpSections:          []string{schema.DefaultSlug},
+			SkipCommandSettingsSection: true,
+		}),
+	)
 }
 
 func main() {

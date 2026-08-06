@@ -81,6 +81,9 @@ func normalizeSuite(suite *Suite) error {
 			if !identifierPattern.MatchString(group) {
 				return errors.Errorf("case %q has invalid group %q", caseValue.ID, group)
 			}
+			if group == "all" {
+				return errors.Errorf("case %q uses reserved group %q", caseValue.ID, group)
+			}
 			if _, exists := groups[group]; exists {
 				return errors.Errorf("case %q has duplicate group %q", caseValue.ID, group)
 			}

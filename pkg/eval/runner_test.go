@@ -74,6 +74,11 @@ func TestInterruptedRunResumesToUninterruptedCanonicalResult(t *testing.T) {
 	if uninterrupted.Completed != 16 || uninterruptedControl.callCount() != 16 {
 		t.Fatalf("uninterrupted result: %#v calls=%d", uninterrupted, uninterruptedControl.callCount())
 	}
+	loaded, err := LoadArtifactRun(t.Context(), uninterrupted.RunDirectory)
+	mustNoError(t, err)
+	if len(loaded.Cells) != 16 || loaded.Config.ChangedAsset != fixture.candidate.Mutation.AssetName || loaded.PolicyPath == "" {
+		t.Fatalf("strictly loaded artifact run: cells=%d config=%#v policy=%q", len(loaded.Cells), loaded.Config, loaded.PolicyPath)
+	}
 
 	resumedCells := canonicalCells(t, readCells(t, resumed.RunDirectory))
 	uninterruptedCells := canonicalCells(t, readCells(t, uninterrupted.RunDirectory))
