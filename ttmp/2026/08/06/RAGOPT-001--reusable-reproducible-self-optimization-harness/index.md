@@ -14,7 +14,7 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: Design and implementation ledger for a small reusable Go harness that makes candidate identity, immutable evaluation, paired comparison, gates, and human promotion evidence mandatory.
-LastUpdated: 2026-08-06T10:05:00-04:00
+LastUpdated: 2026-08-06T16:15:00-04:00
 WhatFor: Prevent ad hoc experiment commands or unimplemented reflectors from being mistaken for a working self-optimization system.
 WhenToUse: Start here before implementing or integrating ragopt; then read the design guide and follow tasks.md in phase order.
 ---
@@ -38,16 +38,19 @@ artifact path; product execution and candidate proposal remain outside it.
 - [Snapshot and candidate v1 contract](reference/03-snapshot-and-candidate-v1-bundle-contract.md)
 - [Paired evaluation v1 contract](reference/04-paired-evaluation-v1-api-cell-and-resume-contract.md)
 - [Comparison, gate, and promotion report v1 contract](reference/05-paired-comparison-gate-and-promotion-report-v1-contract.md)
+- [First corrected RAG-TTC I5 rejection](reference/06-first-rag-ttc-i5-feedback-proof-rejection-report.md)
+- [Fresh-root reproduction protocol](reference/07-rag-ttc-i5-fresh-root-reproducibility-protocol.md)
+- [Second fresh-root proof and decision](reference/08-second-rag-ttc-i5-fresh-root-proof-and-reproducibility-decision.md)
 - [Phased task ledger](tasks.md)
 - [Changelog](changelog.md)
 
 ## Status
 
-Current status: **active — Phase 4 complete; product proof cycle pending**
+Current status: **active — RAG-TTC proof reproduced; GEC integration next**
 
 The reusable custody, candidate, paired-run, comparison, gate, and report path
-is implemented and exercised with deterministic fixtures. Phase 5 must prove
-the boundary in RAG-TTC and GEC-RAG before v0.1 is released.
+is implemented and exercised with deterministic fixtures. Phase 5 has now
+proved the boundary twice in RAG-TTC; GEC-RAG remains required before v0.1.
 
 The current RAG-TTC proof exercises the product-owned
 `rag-ttc tool-loop ragopt` evaluation adapter. It does not modify or evaluate
@@ -55,10 +58,12 @@ the canonical Admin Chat/sessionstream cutover, and it does not own the
 customer-facing TTC Garden Assistant. Those products may add their own
 product-owned adapters later if their exact serving runtimes need optimization.
 
-Phase 5 task 67 is technically ready but externally blocked. It requires one
-explicitly approved six-cell provider execution with the bounded consent
-envelope in reference 07. Three consecutive continuations supplied no such
-approval. No second run, partial run, provider call, or validation cell exists.
+Phase 5 task 67 is complete. The authorized six-cell fresh-root execution
+reproduced all identities, copied-input custody, complete pairing, and the
+`fail` decision. The I5 candidate remains rejected; validation was correctly
+left unrun. Reference 08 records the exact outcomes, budgets, stochastic
+differences, and proof decision. Tasks 68–71 now move to GEC-RAG, beginning
+with the known authorization and judge-accounting P0 findings.
 
 The post-v0.1 production-refresh design makes `ragopt` the shared fixed
 control-plane protocol for CoinVault/GEC, the TTC Garden Assistant, and the

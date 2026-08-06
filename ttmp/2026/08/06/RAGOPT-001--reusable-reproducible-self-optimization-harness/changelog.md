@@ -162,3 +162,12 @@ Step 19: recorded task 67 as externally blocked after three consecutive continua
 
 - /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/index.md — Current blocker and exact resume condition
 - /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Strict blocker audit and preserved execution boundary
+
+## 2026-08-06
+
+Steps 20–23: ran the authorized six-cell RAG-TTC I5 feedback proof from a fresh root, verified frozen identities and complete artifact custody, reproduced the `fail` decision within 22/17/8 answer/search/judge calls and 108,548 provider tokens, and kept validation closed. Checked task 67, added the formal reproducibility report, and printed the RAGOPT brutalist mission board plus per-diary closing tickets.
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/08-second-rag-ttc-i5-fresh-root-proof-and-reproducibility-decision.md — Fresh-root identities, cells, custody, budgets, stochastic interpretation, and phase decision
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/sources/almanach/21-ragopt-mission-board.yaml — Reprintable physical project mission board

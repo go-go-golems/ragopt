@@ -1,0 +1,31 @@
+almanach_studio_version: 1
+theme: brutalist
+paperWidth: 384
+bodyScale: 1
+feedLines: 8
+blocks:
+  - id: head
+    type: banner
+    data: { text: "RAGOPT-001 / DIARY", right: "NEW RULE", pad: "m" }
+  - id: gap1
+    type: space
+    data: { size: "m" }
+  - id: title
+    type: text
+    data: { text: "EVERY STEP LEAVES PAPER", preset: h1, lines: 3 }
+  - id: rule1
+    type: rule
+    data: { weight: heavy }
+  - id: policy
+    type: list
+    data:
+      marker: "—"
+      lines: 2
+      items:
+        - "Write one strict diary entry."
+        - "State what changed and how it went."
+        - "Print one short brutalist closing ticket."
+        - "Do not create a diary-print recursion."
+  - id: result
+    type: banner
+    data: { text: "POLICY ACTIVE", pad: "m" }

@@ -1,0 +1,95 @@
+almanach_studio_version: 1
+theme: brutalist
+paperWidth: 384
+bodyScale: 1
+feedLines: 8
+blocks:
+  - id: head
+    type: banner
+    data: { text: "RAGOPT-001", right: "MISSION BOARD", pad: "m" }
+  - id: gap1
+    type: space
+    data: { size: "m" }
+  - id: title
+    type: text
+    data: { text: "BUILD PROOF. NOT THEATER.", preset: display, lines: 3 }
+  - id: rule1
+    type: rule
+    data: { weight: heavy }
+  - id: purpose
+    type: text
+    data:
+      text: "A reusable evidence-gated optimization harness for TTC Garden, TTC Admin, and CoinVault/GEC. Products own retrieval and evaluation. RAGOPT owns identity, custody, paired comparison, gates, and reviewable decisions."
+      preset: body
+  - id: state
+    type: banner
+    data: { text: "NOW / PHASE 5", right: "PROOF PASSED", pad: "s" }
+  - id: done
+    type: checks
+    data:
+      items:
+        - "run store + immutable inputs"
+        - "one-mutation candidates"
+        - "paired resume + custody"
+        - "gates + reports + human apply"
+        - "RAG-TTC I5 run one"
+        - "RAG-TTC I5 fresh-root repeat"
+      columns: 1
+  - id: decision
+    type: banner
+    data: { text: "I5 CANDIDATE REJECTED", pad: "m" }
+  - id: decision-body
+    type: text
+    data:
+      text: "The harness reproduced the decision. The candidate did not earn promotion. Validation stayed closed. That is a successful proof cycle."
+      preset: body
+  - id: next-head
+    type: text
+    data: { text: "NEXT / GEC PROOF", preset: h2 }
+  - id: next
+    type: list
+    data:
+      marker: "01"
+      lines: 3
+      items:
+        - "Fix authorization and judge-accounting P0 findings."
+        - "Freeze one human candidate, suite, policy, corpus, model, and judge."
+        - "Run feedback twice from fresh roots; preserve native artifacts."
+        - "Explain identity and metric differences; do not hide failures."
+  - id: release-head
+    type: text
+    data: { text: "THEN / V0.1", preset: h2 }
+  - id: release
+    type: checks
+    data:
+      items:
+        - "clarify byte vs semantic digests"
+        - "run inspect + structured CLI"
+        - "schema and corruption docs"
+        - "tests, build, lint, gosec"
+        - "tag only after two consumers"
+      columns: 1
+  - id: later-head
+    type: text
+    data: { text: "LATER / REFRESH CONTROL PLANE", preset: h2, lines: 2 }
+  - id: later
+    type: list
+    data:
+      marker: "—"
+      lines: 3
+      items:
+        - "Shared build identity, event log, resume, verify, evaluate, gate, plan."
+        - "Native adapters for GEC and shared TTC index; separate Garden and Admin gates."
+        - "AWS Batch + EventBridge + durable bundles + conditional activation + rollback."
+  - id: guard
+    type: banner
+    data: { text: "DO NOT OVERENGINEER", pad: "s" }
+  - id: guard-list
+    type: text
+    data:
+      text: "No reflector. No generic workflow engine. No auto-deploy. No warehouse. No multi-mutation search. No validation before feedback passes."
+      preset: body
+  - id: invariant
+    type: text
+    data: { text: "IDENTITY → CUSTODY → PAIRS → GATES → HUMAN APPLY", preset: h2, lines: 3 }
+
