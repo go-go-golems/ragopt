@@ -12,7 +12,7 @@ phase does not start until the preceding exit criterion is demonstrated.
 - [x] Audit GEC-RAG handoff, review, design, diaries, and implementation boundaries.
 - [x] Audit RAG-TTC experiment, tool-eval, diagnostic, and semantic-config implementations.
 - [x] Separate implemented evidence from proposed GEPA/warehouse/reflector work.
-- [ ] Review and accept the v1 scope and public terminology.
+- [x] Review and accept the v1 scope and public terminology.
 
 Exit criterion: reviewers agree that v1 is an evidence-gated optimization
 harness and that autonomous proposal, transcript warehousing, and deployment
@@ -20,18 +20,18 @@ are excluded.
 
 ## Phase 1: Immutable run store and semantic identity
 
-- [ ] Define `ragopt-run/v1` manifest, status, input-reference, and summary schemas.
-- [ ] Port the proven `pkg/experiment` lifecycle into a narrowly named `pkg/runstore` package.
-- [ ] Replace RAG-TTC-specific module and directory assumptions with documented generic names only.
-- [ ] Preserve path confinement for every artifact write.
-- [ ] Preserve atomic JSON writes and append-plus-`fsync` JSONL writes.
-- [ ] Copy declared inputs into `inputs/` and record SHA-256, size, role, and original path.
-- [ ] Record host, Go module, start time, config digest, and caller-supplied semantic dimensions.
-- [ ] Reject writes after a run becomes terminal.
-- [ ] Preserve all prior artifacts when a run fails.
-- [ ] Add tests for path escape, interrupted JSONL, terminal writes, duplicate completion, and stable config digests.
-- [ ] Add a run reader that validates schema and exposes status without mutating artifacts.
-- [ ] Document the run-directory contract and recovery guarantees.
+- [x] Define `ragopt-run/v1` manifest, status, input-reference, and summary schemas.
+- [x] Port the proven `pkg/experiment` lifecycle into a narrowly named `pkg/runstore` package.
+- [x] Replace RAG-TTC-specific module and directory assumptions with documented generic names only.
+- [x] Preserve path confinement for every artifact write.
+- [x] Preserve atomic JSON writes and append-plus-`fsync` JSONL writes.
+- [x] Copy declared inputs into `inputs/` and record SHA-256, size, role, and original path.
+- [x] Record host, Go module, start time, config digest, and caller-supplied semantic dimensions.
+- [x] Reject writes after a run becomes terminal.
+- [x] Preserve all prior artifacts when a run fails.
+- [x] Add tests for path escape, interrupted JSONL, terminal writes, duplicate completion, and stable config digests.
+- [x] Add a run reader that validates schema and exposes status without mutating artifacts.
+- [x] Document the run-directory contract and recovery guarantees.
 
 Exit criterion: a fixture process can be interrupted after N results, and all N
 synced records plus copied inputs remain valid and inspectable.

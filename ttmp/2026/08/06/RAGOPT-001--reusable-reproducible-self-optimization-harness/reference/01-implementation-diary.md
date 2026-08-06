@@ -17,17 +17,26 @@ RelatedFiles:
     - Path: abs:///home/manuel/code/wesen/go-go-golems/go-template/go.mod
       Note: Committed template module used for the initial scaffold
     - Path: abs:///home/manuel/workspaces/2026-06-30/benchmark-cpu-inference/rag-ttc/pkg/experiment/run.go
-      Note: Implemented immutable run and synced JSONL evidence audited in Step 2
+      Note: |-
+        Implemented immutable run and synced JSONL evidence audited in Step 2
+        Proven lifecycle ported narrowly in Phase 1
     - Path: abs:///home/manuel/workspaces/2026-06-30/benchmark-cpu-inference/rag-ttc/pkg/rag/tooleval/runner.go
       Note: Implemented small Arm and Outcome comparison boundary audited in Step 2
     - Path: repo://go.mod
       Note: Normalized ragopt module and dependency baseline
+    - Path: repo://pkg/runstore/read.go
+      Note: Strict read-only run and copied-input integrity validator in commit 9f1ccb4
+    - Path: repo://pkg/runstore/run.go
+      Note: Phase 1 active-run lifecycle and synced JSONL implementation in commit 9f1ccb4
+    - Path: repo://pkg/runstore/run_test.go
+      Note: Interruption recovery, terminal, path, identity, and drift proof suite in commit 9f1ccb4
 ExternalSources: []
 Summary: Chronological record of the ragopt repository bootstrap, evidence audit, scope decisions, documentation, validation, and delivery.
 LastUpdated: 2026-08-06T10:05:00-04:00
 WhatFor: Preserve the exact reasoning, commands, failures, and review guidance behind the initial ragopt design.
 WhenToUse: Read when reviewing the design or resuming implementation from the phased task ledger.
 ---
+
 
 
 # Implementation Diary
@@ -498,4 +507,187 @@ Layout: default
 Remote directory: /ai/2026/08/06/RAGOPT-001
 Upload result: OK
 Final build recheck: PASS after granting module-cache write permission
+```
+
+## Step 5: Implement the immutable run store and strict reader
+
+This step turns the first proven mechanism in the design into repository code.
+`pkg/runstore` now creates self-identifying run directories, copies and hashes
+immutable inputs, atomically publishes artifacts, syncs each JSONL result, and
+enforces irreversible complete/failed transitions. The implementation remains
+domain-neutral: it has no retrieval, judging, candidate, pairing, or gate
+behavior.
+
+The step also adds the missing half of the RAG-TTC pattern: a strict read-only
+`Open` path. A run is not considered inspectable merely because its files can
+be parsed. The reader verifies schema, run-directory identity, canonical config
+digest, status state machine, copied-input membership, sizes, and digests. It
+accepts a valid `active` run after interruption but deliberately grants no
+mutation authority.
+
+**Commit (code):** `9f1ccb4` — "feat(runstore): add durable run lifecycle"
+
+### Prompt Context
+
+**User prompt (verbatim):** "implement the ticket, keep a detailed diarya s you work, commit at appropriateintervals, make sure to use the format from the diary askill."
+
+**Assistant interpretation:** Implement the accepted phases of RAGOPT-001 in
+order, preserve a strict diary entry for every meaningful checkpoint, validate
+behavior, and make focused code and documentation commits.
+
+**Inferred user intent:** Replace another potentially design-only optimizer
+effort with exercised library behavior and an auditable sequence of small,
+reviewable milestones.
+
+### What I did
+
+- Re-read the Phase 1 ledger and the proven RAG-TTC `pkg/experiment` source.
+- Defined public `ragopt-run/v1` manifest, status, input reference, host, and
+  summary types in `pkg/runstore/types.go`.
+- Implemented canonical JSON SHA-256 identity using `json.Decoder.UseNumber`.
+- Implemented lexical path confinement plus rejection of existing symlink
+  components.
+- Implemented atomic write, file sync, rename, and directory sync publication.
+- Implemented run creation with host, Go module, timestamps, semantic
+  dimensions, config digest, and secure directory modes.
+- Implemented append-open-sync-close JSONL durability.
+- Implemented copied input custody with absolute original path, copied path,
+  exact size, and SHA-256.
+- Implemented complete and failed terminal transitions that reject all later
+  mutation and preserve prior artifacts.
+- Implemented strict read-only validation for active and terminal runs.
+- Added focused lifecycle, interruption, identity, drift, path, symlink,
+  terminal, failure-preservation, and schema tests.
+- Ran generation so logcopter package metadata includes `pkg/runstore`.
+- Added a separate on-disk contract and recovery reference for interns.
+
+### Why
+
+- Run custody is the lowest reusable layer and already had exercised source to
+  port; candidate abstractions should not precede it.
+- A strict reader makes corruption and semantic drift explicit before Phase 3
+  tries to resume or compare result cells.
+- Read-only active inspection preserves researchctl's proven refusal to guess
+  that abandoned work is safe to overwrite.
+- Secure local permissions, confinement, and synced records make durability a
+  behavior with tests rather than a comment.
+
+### What worked
+
+- `go test ./pkg/runstore -count=1` passed with all focused tests.
+- `go generate ./...`, `go fmt ./...`, `go test ./...`, and `go build ./...`
+  passed together.
+- `go test ./pkg/runstore -race -count=1` passed.
+- The interruption fixture appended and synced two JSONL records, opened the
+  still-active run through the strict reader, and recovered both records.
+- A failed run retained its previously synced result cell and exposed the
+  original failure message.
+- Config hashes remained identical across different Go map insertion orders.
+
+### What didn't work
+
+- The first focused compilation found one concrete implementation error:
+
+  ```text
+  # github.com/go-go-golems/ragopt/pkg/runstore
+  pkg/runstore/run.go:56:24: cannot use &prettyConfig (value of type *strings.Builder) as *bytes.Buffer value in argument to json.Indent
+  FAIL github.com/go-go-golems/ragopt/pkg/runstore [build failed]
+  ```
+
+  `encoding/json.Indent` requires `*bytes.Buffer`. I replaced the
+  `strings.Builder`, formatted again, and the test suite passed.
+
+- A later `go mod tidy; go test ./...; go build ./...` attempt did not reach a
+  Go failure. The external permission reviewer timed out without changing the
+  worktree:
+
+  ```text
+  The automatic permission approval review did not finish before its deadline.
+  Do not assume the action is unsafe based on the timeout alone. You may retry
+  once, or ask the user for guidance or explicit approval.
+  ```
+
+  The repository-wide test and build had already passed immediately before
+  this cleanup attempt. I left the template's existing `pkg/errors` module
+  classification unchanged and deferred module normalization to the final
+  validation phase rather than manufacture file changes around an approval
+  failure.
+
+### What I learned
+
+- The proven RAG-TTC lifecycle ports cleanly when product-owned directories and
+  tags are replaced by three generic roots and semantic dimensions.
+- Canonical config hashing must avoid a decode through `float64`; `UseNumber`
+  preserves large JSON number text while still normalizing key order and
+  whitespace.
+- An active status is useful evidence. Automatically converting it to failed
+  or resumable would erase the distinction between process interruption and a
+  recorded evaluator decision.
+- Strict input validation should also reject untracked files. Validating only
+  the manifest's listed entries would allow silent extra state into a bundle.
+
+### What was tricky to build
+
+There are two publication models with different guarantees. Ordinary JSON and
+byte artifacts can use a sibling temporary file, `fsync`, rename, and parent
+directory `fsync`; JSONL results must append in place. The JSONL API therefore
+opens, appends one line, syncs, and closes before returning. Its successful
+return—not the later run completion—is the recovery boundary.
+
+Path confinement also has two layers. Lexical normalization rejects absolute
+paths and `..`, while `Lstat` rejects any existing symlink component. This is
+stronger and simpler than following symlinks and proving their destination,
+but it still does not claim safety against a hostile process racing filesystem
+changes between validation and write operations.
+
+### What warrants a second pair of eyes
+
+- Review whether Phase 3 should acquire resumable write ownership through a
+  new explicit API or create a continuation run. Do not add a generic `OpenRW`
+  method without full suite/snapshot/candidate/policy identity checks.
+- Review the crash window in `CopyInput`: copied bytes are atomically published
+  before the updated input manifest. The strict reader detects the resulting
+  untracked file, but does not repair it.
+- Review whether v1 should require an error string for every failed status;
+  `Fail(nil)` currently records a valid failed state with no message.
+- The symlink policy intentionally rejects even benign in-run symlinks. Keep it
+  unless a demonstrated product integration requires a different contract.
+
+### What should be done in the future
+
+- Keep `ragopt-run/v1` unchanged through the candidate and evaluator phases;
+  add fields only when a real consumer proves they belong in every run.
+- Implement Phase 2 snapshots and candidates as copied, strict artifacts;
+  do not add active-run recovery or generic plugins during that phase.
+- Retry `go mod tidy` during the final full-repository validation checkpoint.
+
+### Code review instructions
+
+- Start at `pkg/runstore/types.go`, then follow `Create` in `run.go`,
+  `CopyInput` in `input.go`, terminal transitions in `terminal.go`, and `Open`
+  in `read.go`.
+- Review `path.go` and `write.go` as one filesystem boundary.
+- Read `pkg/runstore/run_test.go` next; `TestRunLifecycleAndReader` is the
+  interruption and terminal-state proof.
+- Run:
+
+  ```bash
+  go test ./pkg/runstore -count=1
+  go test ./pkg/runstore -race -count=1
+  go test ./...
+  go build ./...
+  ```
+
+### Technical details
+
+```text
+Schema: ragopt-run/v1
+States: active -> complete | failed
+Required roots: inputs/, results/, native/
+JSON publication: write temp -> fsync -> close -> rename -> fsync directory
+JSONL publication: append one line -> fsync -> close
+Config identity: sha256(canonical JSON with UseNumber)
+Input identity: sha256(exact copied bytes) + byte count
+Reader authority: validation only; no mutation or resume
+Code checkpoint: 9f1ccb4
 ```
