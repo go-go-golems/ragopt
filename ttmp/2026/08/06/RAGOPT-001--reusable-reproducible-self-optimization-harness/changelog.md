@@ -122,7 +122,7 @@ Replaced the reMarkable bundle with the nine-document default-layout edition con
 
 ## 2026-08-06
 
-Step 15: clarified the product-proof boundary, recorded reproducible rejection as valid harness evidence, and preserved the feedback-before-validation spending gate; the fresh provider rerun awaits explicit approval.
+Step 15: clarified the product-proof boundary, recorded reproducible rejection as valid harness evidence, and preserved the feedback-before-validation spending gate; the fresh provider rerun awaits explicit approval (commit `15f5757`).
 
 ### Related Files
 
