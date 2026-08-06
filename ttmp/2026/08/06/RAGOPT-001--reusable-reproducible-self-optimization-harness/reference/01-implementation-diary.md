@@ -4167,3 +4167,216 @@ Config commit:       401f4e5
 Provider calls:      0
 Next gate:           inject candidate text into the existing GEC composition
 ```
+
+## Step 29: Add the strict description seam and verify the asynchronous commit
+
+The first executable GEC candidate seam is now committed. A strict
+`gec-knowledge-search-description/v1` loader supplies a complete replacement
+description to the existing `knowledge_search` tool spec, and the no-HTTP local
+CoinVault runner can open the real bundle and register that description in the
+same Geppetto-backed runtime composition used by chat.
+
+The commit process again outlived the execution wrapper. Two commit clients
+stopped observing after Lefthook began, so I stopped after the second attempt as
+required. On continuation, Git proved that commit `b2256f2` had landed at
+16:43:13 with a clean worktree. I then ran the complete lint hook separately in
+tmux and captured its real `__EXIT__:0` result.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 28)
+
+**Assistant interpretation:** Continue RAGOPT-001 after correcting the shared
+loop architecture; implement only the narrow product-owned candidate injection
+seam, maintain the diary, and preserve reliable commit evidence.
+
+**Inferred user intent:** Turn the frozen text candidate into real product
+behavior without introducing a second loop or an evaluator-only fake, while
+keeping failures and operational ambiguity fully auditable.
+
+**Commit (code):** `b2256f2` — "Add evaluated knowledge description seam"
+
+### What I did
+
+- Added `internal/knowledge/description.go` with:
+  - exact API-version validation;
+  - YAML `KnownFields(true)`;
+  - one-document enforcement;
+  - required summary validation;
+  - rejection of empty note and starter-query elements;
+  - conversion to the existing promptpack description shape.
+- Added an optional `Description *ToolDescription` to `knowledge.ToolConfig`.
+- Kept `NewToolEntry` on the same `catalog.ToolSpec` and registrar path so the
+  catalog description and model-visible description stay identical.
+- Added focused strict-load and rendered-description tests.
+- Extended `localwebchat.RunnerOptions` with a bundle path and description path.
+- Made `NewLocalRunner` open and own the knowledge service, load the description
+  once, and register `knowledge_search` beside the existing SQL tools.
+- Deliberately did not enable the environment-driven reranker or synonym paths
+  in the proof runner; the frozen runtime contract says both are disabled.
+- Formatted the changed Go files.
+- Ran focused tests for `internal/knowledge` and
+  `internal/webchat/localwebchat`.
+- Ran the full repository `make lint` in tmux and captured exit zero.
+- Reconciled the commit through `HEAD`, reflog, clean index, and
+  `git show --check` rather than issuing another commit.
+
+### Why
+
+- The candidate must enter the real product tool registry before it can affect
+  the real Geppetto loop.
+- Strict parsing ensures unknown fields or multiple YAML documents cannot
+  silently change evaluated meaning.
+- A complete replacement asset preserves RAGOPT's one-mutation model; no patch
+  application or merge semantics are needed.
+- The local runner uses CoinVault's existing application profiles, runtime
+  resolver, projection runtime, sessionstream Hub, chatapp service, and
+  Geppetto engine. It removes only HTTP/websocket transport from evaluation,
+  not product inference behavior.
+
+### What worked
+
+- Focused test result:
+
+  ```text
+  ok github.com/go-go-golems/gec-rag/internal/webchat/localwebchat 0.322s
+  ok github.com/go-go-golems/gec-rag/internal/knowledge             1.624s
+  ```
+
+- Full lint completed in the tmux session `ragopt-gec-lint`:
+
+  ```text
+  golangci-lint: 0 issues
+  GOWORK=off go vet -vettool=/tmp/geppetto-lint ./cmd/... ./internal/...
+  __EXIT__:0
+  ```
+
+- The commit landed with exactly four intended files and the worktree is clean.
+- The override changes only description content. Input schema, authorization,
+  result budgets, evidence ledger, and retrieval service are shared by both
+  arms.
+- No provider call was made.
+
+### What didn't work
+
+- The first focused test run inside the restricted sandbox failed because an
+  existing `httptest.NewServer` could not bind IPv6 localhost:
+
+  ```text
+  panic: httptest: failed to listen on a port:
+  listen tcp6 [::1]:0: socket: operation not permitted
+  ```
+
+  I reran the same tests with approved local-socket access; they passed.
+- Two ordinary `git commit` calls returned after printing only the Lefthook
+  header and a session identifier. At that moment the files still appeared
+  staged and no exact hook process was visible. Per the repository debugging
+  rule, I stopped after the second identical attempt and reported:
+
+  ```text
+  I think I'm stuck, let's TOUCH GRASS.
+  ```
+
+- `lefthook run pre-commit --verbose` and a direct `make lint` launched Dagger
+  work that again outlived the short execution wrapper. Neither output was a
+  trustworthy terminal result.
+- The first sandboxed tmux attempt failed with:
+
+  ```text
+  error connecting to /tmp/tmux-1000/default (Operation not permitted)
+  ```
+
+  Running tmux with the required permission succeeded. The captured pane
+  eventually showed the real exit marker.
+- On reconciliation, `b2256f2` already existed in the reflog at 16:43:13. The
+  later commit command correctly replied `nothing to commit`; I did not create
+  a duplicate or amend the landed object.
+
+### What I learned
+
+- The recurring commit ambiguity is not a code or hook failure. It is an
+  observation-lifetime mismatch: Dagger generation inside `make lint` can
+  outlive the execution wrapper while Git continues and eventually commits.
+- Long hooks in this repository should be run and captured in tmux before a
+  commit. Once they pass, Git state must still be checked because an earlier
+  client may already have completed asynchronously.
+- The local CoinVault runner was missing knowledge registration even though the
+  HTTP server had it. Adding the same optional bundle/tool composition makes it
+  suitable for production-shaped local evaluation without changing chat
+  session semantics.
+- The candidate injection seam belongs to GEC. RAGOPT remains unaware of
+  promptpack types and receives only native outcome evidence.
+
+### What was tricky to build
+
+The description appears in two places that must not drift: `ToolEntry.Description`
+for catalog metadata and the description passed to Geppetto's tool definition.
+The implementation resolves that by replacing the structured spec before both
+values are derived; it does not mutate only one string after registration.
+
+Resource ownership also mattered. `knowledge.Open` owns Bleve and vector-index
+handles. The local runner adds `knowledgeService.Close` to its existing reverse
+cleanup stack before any later dependency can fail, so description-load or
+runtime-construction errors do not leak bundle locks.
+
+The operationally tricky part was distinguishing a slow child process from a
+failed hook. Exact process searches were empty after the wrapper returned, yet
+the reflog later proved Git had committed. Tmux with an explicit `__EXIT__`
+marker is the reliable pattern for future long validation commands.
+
+### What warrants a second pair of eyes
+
+- Review whether `ToolDescription.Validate` should require at least one note or
+  starter query; v1 currently permits empty lists but rejects empty elements.
+- Confirm the local proof runner should intentionally keep reranking and
+  synonyms off rather than reuse environment-driven server configuration.
+- Review cleanup ordering around the knowledge service, turn store, and local
+  runtime.
+- Verify the eventual adapter compares the parent description's rendered bytes
+  to the default description for the opened 16,032-document bundle before any
+  provider call.
+- Confirm that using the no-HTTP local runner is production-shaped enough: it
+  shares sessionstream/chatapp/runtime composition but not authorization
+  middleware or websocket transport, neither of which the candidate mutates.
+
+### What should be done in the future
+
+- Add a preflight that renders parent/default descriptions and rejects drift.
+- Capture complete tool-call inputs, tool results, final answer, evidence roles,
+  and session identity from local projected events.
+- Implement the GEC RAGOPT arm around the local runner and existing decomposed
+  judge.
+- Add adapter/source digests to the candidate source lock and recompute
+  snapshots before provider execution.
+- Run long repository hooks in tmux and inspect Git before retrying commits.
+
+### Code review instructions
+
+- Start at `/tmp/gec-ragopt-phase5/internal/knowledge/description.go`.
+- Follow `ToolConfig.Description` through `NewToolEntry` and `toolSpec` in
+  `/tmp/gec-ragopt-phase5/internal/knowledge/tool.go`.
+- Review bundle ownership and registration in
+  `/tmp/gec-ragopt-phase5/internal/webchat/localwebchat/local_runner.go`.
+- Run:
+
+  ```bash
+  go test ./internal/knowledge ./internal/webchat/localwebchat -count=1
+  make lint
+  git show --check b2256f2
+  ```
+
+- Use tmux for `make lint`; wait for an explicit exit marker.
+
+### Technical details
+
+```text
+GEC commit:          b2256f2
+Files:               4
+Description API:     gec-knowledge-search-description/v1
+Execution substrate: existing GEC -> Geppetto composition
+Focused tests:       pass
+Full lint:           pass, __EXIT__:0
+Worktree:            clean
+Provider calls:      0
+Next gate:           native event projection and GEC RAGOPT arm
+```

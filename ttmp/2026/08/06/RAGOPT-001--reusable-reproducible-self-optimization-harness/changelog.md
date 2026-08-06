@@ -204,3 +204,14 @@ Step 28: traced TTC and GEC to the shared Geppetto toolloop and replaced GEC def
 - /tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/shared/runtime-contract.yaml — Locks the exact Geppetto v0.13.7 loop and tool defaults used by GEC production composition.
 - /tmp/gec-ragopt-phase5/internal/webchat/runtime.go — Shows GEC building the shared Geppetto enginebuilder runner with inherited defaults.
 
+
+## 2026-08-06
+
+Step 29: added and verified the strict GEC knowledge-description seam in the existing Geppetto-backed local chat composition (GEC commit b2256f2); focused tests and full lint pass.
+
+### Related Files
+
+- /tmp/gec-ragopt-phase5/internal/knowledge/description.go — Strict complete-replacement description asset loader for evaluated candidates.
+- /tmp/gec-ragopt-phase5/internal/knowledge/tool.go — Applies the description before both catalog metadata and Geppetto registration are derived.
+- /tmp/gec-ragopt-phase5/internal/webchat/localwebchat/local_runner.go — Opens the real bundle and registers knowledge_search in the production-shaped local session runtime.
+
