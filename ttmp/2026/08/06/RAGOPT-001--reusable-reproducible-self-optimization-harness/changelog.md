@@ -231,3 +231,17 @@ calls; validation remains unrun.
 - /tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/parent/snapshot.yaml — Frozen incumbent identity.
 - /tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/candidate/snapshot.yaml — Frozen challenger identity.
 - /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Full implementation, failure, preflight, and review evidence.
+
+## 2026-08-06
+
+Step 33: attempted to launch the first bounded six-cell GEC feedback proof,
+but stopped before tmux, run artifacts, database access, or provider calls
+because budget authorization did not explicitly authorize sending possible
+database-derived GEC tool results to the external answer and judge providers.
+The frozen candidate remains unchanged and validation remains unrun.
+
+### Related Files
+
+- /tmp/gec-ragopt-phase5/application-profiles.yaml — Shows the production Admin Chat profile and its SQL plus knowledge tools.
+- /tmp/gec-ragopt-phase5/internal/coinvaulttools/catalog/registry.go — Registers the product tools whose outputs can enter provider context.
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Exact launch envelope, rejection, zero-call evidence, and resume condition.

@@ -22,6 +22,8 @@ RelatedFiles:
         Proven lifecycle ported narrowly in Phase 1
     - Path: abs:///home/manuel/workspaces/2026-06-30/benchmark-cpu-inference/rag-ttc/pkg/rag/tooleval/runner.go
       Note: Implemented small Arm and Outcome comparison boundary audited in Step 2
+    - Path: abs:///tmp/gec-ragopt-phase5/application-profiles.yaml
+      Note: Production analyst-rag tool surface underlying the Step 33 provider data boundary
     - Path: abs:///tmp/gec-ragopt-phase5/cmd/coinvault/cmds/knowledge.go
       Note: GEC failure-visible judge accounting and denominators in Step 24
     - Path: abs:///tmp/gec-ragopt-phase5/cmd/coinvault/cmds/knowledge_ragopt.go
@@ -34,6 +36,8 @@ RelatedFiles:
       Note: Recomputed incumbent snapshot identity for the executable proof
     - Path: abs:///tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/shared/source-lock.yaml
       Note: Committed semantic source identities proven by the GEC preflight
+    - Path: abs:///tmp/gec-ragopt-phase5/internal/coinvaulttools/catalog/registry.go
+      Note: SQL and knowledge tool registration whose outputs can enter provider context
     - Path: abs:///tmp/gec-ragopt-phase5/internal/knowledge/judge.go
       Note: GEC idempotent timeline projection and strict judge semantics in Step 24
     - Path: abs:///tmp/gec-ragopt-phase5/internal/knowledge/service.go
@@ -78,6 +82,7 @@ LastUpdated: 2026-08-06T16:24:00-04:00
 WhatFor: Preserve the exact reasoning, commands, failures, and review guidance behind the initial ragopt design.
 WhenToUse: Read when reviewing the design or resuming implementation from the phased task ledger.
 ---
+
 
 
 
@@ -5151,4 +5156,147 @@ Feedback cells:             3 cases x 2 arms = 6
 Provider calls in preflight: 0
 Validation cells:           not run
 Next gate:                  first six-cell feedback execution
+```
+
+## Step 33: Stop the Feedback Launch at the External Data Boundary
+
+This step attempted to cross the already frozen execution boundary and start
+the first six feedback cells in tmux. The launch was rejected before the tmux
+session, RAGOPT run directory, database query, embedding request, answer call,
+or judge call existed because the GEC tool loop may send database-derived
+schema or SQL results to external model and judge providers.
+
+The earlier authorization covered provider cost and token ceilings, but it did
+not explicitly authorize that data flow. I preserved the candidate, isolated
+bundle, judge cache, and fresh run root without weakening the product loop or
+substituting a canned/offline runner. Explicit user approval is now required
+before the real production-shaped proof may start.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 32)
+
+**Assistant interpretation:** Continue from the passing zero-provider
+preflight into the first bounded six-cell GEC feedback proof, while preserving
+the shared production Geppetto loop and all custody constraints.
+
+**Inferred user intent:** Obtain real evidence from the Admin Chat evaluation
+path without fake conversations, surprise provider spending, validation
+leakage, or unapproved disclosure of backend data.
+
+### What I did
+
+- Verified both the isolated GEC and RAGOPT worktrees were clean.
+- Verified `/tmp/gec-ragopt-feedback-proof-1` did not exist.
+- Copied the existing 242-entry content-addressed judge cache to
+  `/tmp/ragopt-gec-feedback-judge-cache` for isolated reuse.
+- Verified local listeners for:
+  - Ollama query embeddings on `127.0.0.1:11434`;
+  - MySQL on port 3306;
+  - the colleague's live CoinVault server on `127.0.0.1:18933`.
+- Verified the dedicated tmux session `ragopt-gec-feedback-1` did not exist.
+- Requested launch of exactly `--split feedback` with the frozen candidate,
+  isolated bundle, explicit database/profile settings, and exact
+  `24/18/12/500000` ceilings.
+- Stopped when authorization review rejected the external data flow. I did not
+  retry through a different command, provider, fixture, or execution surface.
+
+### Why
+
+- Budget approval and data-disclosure approval are independent. A cheap run
+  can still send sensitive backend-derived context to an external provider.
+- The real GEC loop exposes `sql_doc`, `sql_query`, and `knowledge_search`.
+  Even if a particular question is expected to use curated public knowledge,
+  the model controls tool choice and may request database-derived context.
+- Replacing those tools or forcing canned outputs would invalidate the exact
+  production-loop proof RAGOPT-001 is designed to require.
+
+### What worked
+
+- All local readiness checks passed.
+- The candidate and run inputs remain frozen and clean.
+- The authorization boundary fired before any irreversible or chargeable
+  action.
+- No tmux session and no run directory were created.
+- Validation remains unrun.
+
+### What didn't work
+
+The launch request was rejected with this exact reason:
+
+```text
+This action was rejected due to unacceptable risk.
+Reason: The run would send database-derived GEC context through model and judge providers, but the user has not specifically authorized that sensitive payload to those destinations; the budget approval alone is insufficient.
+The agent must not attempt to achieve the same outcome via workaround, indirect execution, or policy circumvention. Proceed only with a materially safer alternative, or if the user explicitly approves the action after being informed of the risk. Otherwise, stop and request user input.
+```
+
+### What I learned
+
+- The GEC experiment consent envelope must name both provider budgets and the
+  class of backend-derived payload the real tool loop may disclose.
+- Preflight can prove code and artifact identity without provider authority;
+  feedback execution cannot, because production tool choice is intentionally
+  dynamic.
+- This is another reason not to describe the GEC runner as a simple retrieval
+  benchmark. It evaluates a multi-tool administrative assistant.
+
+### What was tricky to build
+
+The boundary is dynamic rather than tied to one known SQL statement. The three
+feedback questions are frozen, but the Geppetto model chooses among SQL and
+knowledge tools at runtime. Therefore an allow-list based only on expected
+`source_roles` would not prove that database context cannot enter the answer
+or subsequent judge request. The correct consent scope must cover the
+production-shaped possibility, not only the expected path.
+
+### What warrants a second pair of eyes
+
+- Confirm whether the `gec_dev` database contains only approved development
+  data or can include customer/order/business-sensitive records.
+- Confirm that OpenAI-hosted `gpt-5.6-luna` is an approved destination for
+  model prompts containing outputs from `sql_doc`, `sql_query`, and
+  `knowledge_search` in this evaluation.
+- Confirm whether the same native answer/evidence payload may be sent to the
+  separately invoked judge profile.
+
+### What should be done in the future
+
+- Obtain explicit user authorization for the described GEC-to-provider data
+  flow, or receive an explicit restriction that changes the approved product
+  tools/data scope.
+- After authorization, launch the already prepared six feedback cells without
+  changing the candidate or running validation.
+- If authorization is restricted, stop and redesign the candidate/suite
+  contract openly; do not silently swap in fixtures or disable production
+  tools.
+
+### Code review instructions
+
+- Confirm the absence of execution artifacts:
+
+  ```bash
+  tmux has-session -t ragopt-gec-feedback-1
+  test -e /tmp/gec-ragopt-feedback-proof-1
+  ```
+
+- Review the available Admin Chat tools in
+  `/tmp/gec-ragopt-phase5/application-profiles.yaml` and
+  `/tmp/gec-ragopt-phase5/internal/coinvaulttools/catalog/registry.go`.
+- Review the exact launch envelope in this diary before granting consent.
+
+### Technical details
+
+```text
+Candidate digest:          sha256:20e0c3f65da9d3a5c8bdcebb0d9a727645acd269db8fbd50186a620205a6ace8
+Requested split:           feedback only
+Requested cells:           6
+Requested ceilings:        answer 24 / embedding 18 / judge 12 / tokens 500000
+Potential external data:   sql_doc, sql_query, knowledge_search outputs
+Answer provider:           default/gpt-5.6-luna-low
+Judge provider:            default/gpt-5.6-luna
+Run directory created:     no
+Tmux session created:      no
+Provider calls:            0
+Validation cells:          0
+Resume condition:          explicit approval of the described provider data flow
 ```
