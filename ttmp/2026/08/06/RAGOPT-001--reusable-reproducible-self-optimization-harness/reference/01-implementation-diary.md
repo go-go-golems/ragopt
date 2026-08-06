@@ -1804,6 +1804,8 @@ paired custody, canonical deltas, and fail-closed decision. A rejected
 candidate can prove the harness. It does not need to become promotable, and
 the feedback failure means the validation split must remain unrun.
 
+**Commit (documentation):** `15f5757` — "docs(ticket): clarify product proof boundary"
+
 ### Prompt Context
 
 **User prompt (verbatim):** "work on RAGOPT-001. Keep a detailed diary as you work, commit at appropriate intervals, make sure to use the diary format form the skill"
