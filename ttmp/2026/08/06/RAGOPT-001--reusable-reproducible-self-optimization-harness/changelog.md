@@ -108,3 +108,12 @@ Refreshed the eight-document reMarkable bundle at `/ai/2026/08/06/RAGOPT-001`; t
 ## 2026-08-06 - First live feedback run rejected; budget bias corrected
 
 Completed and retained the first six-cell feedback run, then rejected it after native evidence showed that a one-embedding budget biased execution toward the combined-query candidate. RAG-TTC commit `90485d8` locks sufficient 3/4/2 per-cell budgets and excludes judge overhead from product cost accounting. Focused tests and strict one-mutation validation pass; a fresh proof run is required.
+
+## 2026-08-06 - Corrected RAG-TTC feedback proof formally rejected
+
+Ran the corrected I5 candidate in an isolated worktree: 6/6 cells and all native artifact links validated, but only one candidate answer was contract-valid and the incumbent had one real iteration-ceiling failure. `ragopt compare` returned `fail`; the non-applying report says not to promote. Validation was intentionally skipped after feedback hard-gate failure.
+
+### Related Files
+
+- ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/06-first-rag-ttc-i5-feedback-proof-rejection-report.md — Identities, six cell outcomes, gates, commands, and decision
+- ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Isolated setup, failures, commands, and lessons

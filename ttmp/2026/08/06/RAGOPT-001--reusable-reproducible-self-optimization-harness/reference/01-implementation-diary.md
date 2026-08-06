@@ -1324,66 +1324,6 @@ OK: uploaded RAGOPT 001 Reusable Evidence Gated Optimization Harness.pdf
     -> /ai/2026/08/06/RAGOPT-001
 ```
 
-## Step 13: First live feedback run exposes an adapter budget bias
-
-After the user explicitly approved exporting the three feedback questions and
-retrieved TTC evidence to the configured providers, I started the exact locked
-command in tmux. It created:
-
-```text
-experiments/ragopt-runs/
-20260806T174701.722301319Z-ttc-i5-feedback-5cc789838eea
-```
-
-The immutable run completed in about one minute with 6/6 committed cells, zero
-arm failures, six digest-linked native artifacts, and a terminal `complete`
-status. Five cells were contract-invalid abstentions. Only challenger
-`ttc-expand-056` was valid and judged, scoring faithfulness 1.0 and answer
-relevance 1.0.
-
-This was not valid candidate evidence. Native artifacts showed why: the
-adapter permitted only one embedding call while the established tool loop can
-make up to three searches before its reserved final answer call. Five cells
-exhausted embedding budget during a second search:
-
-```text
-resource budget exceeded: requested 1, remaining 0, limit 1
-```
-
-The combined-query challenger happened to need fewer searches on one case, so
-the adapter budget structurally favored the candidate. I retained the run as
-rejected evidence and did not compare or promote it.
-
-Review also caught a separate accounting error: the adapter added two judge
-calls to every product `provider_calls` value, even when invalid answers caused
-the judge to make zero calls. Judge work is evaluator overhead and belongs in
-the native judge report, not the product-cost tie-breaker.
-
-### Narrow correction
-
-RAG-TTC commit `90485d8`:
-
-- locks embedding/answer/judge budgets to 3/4/2 per cell;
-- records those budgets explicitly in the immutable runtime contract;
-- projects only native answer-runtime calls and tokens into product costs;
-- keeps judge calls, cache outcomes, usage, and provenance in the native
-  artifact;
-- adds a regression test proving judge overhead cannot alter product cost.
-
-Strict candidate validation still reports exactly one mutation and now yields:
-
-```text
-candidate sha256:0d598d871694580d7e36af0238a3431cf02690249f6484ea4380b00179507106
-parent    sha256:4cc350f874416dd38e4288a090b95952a5d3d50de0b2ff8ff1fa0b26ee5b876a
-child     sha256:836466c1b61320034b9e88cd2ba5e1656555082f1196d6e500165653bc8e8eaa
-```
-
-Focused adapter and asset tests pass. A full repository build is temporarily
-blocked by concurrent unrelated logcopter generation in `pkg/app/chatserve`
-which declares `log` alongside an existing import. I did not modify that work.
-The fresh feedback rerun must use the corrected identities and cannot resume
-the rejected run.
-
 The `--force` replacement was intentional and authorized by the user's
 “reupload” request. It replaces the earlier same-named design bundle, so any
 annotations on that earlier remote document are not recoverable through the
@@ -1761,3 +1701,78 @@ editor layout. The forced replacement completed successfully:
 OK: uploaded RAGOPT 001 Reusable Evidence Gated Optimization Harness.pdf
     -> /ai/2026/08/06/RAGOPT-001
 ```
+
+## Step 13: First live feedback run exposes an adapter budget bias
+
+After explicit approval for external provider use, I started the locked
+six-cell feedback command in tmux. Run
+`20260806T174701.722301319Z-ttc-i5-feedback-5cc789838eea` completed 6/6 cells
+with zero arm failures and six digest-linked native artifacts.
+
+The results were not valid candidate evidence. Five cells became
+contract-invalid abstentions because the adapter permitted only one embedding
+call while the tool loop permits as many as three searches before its reserved
+final answer call. Native failures said:
+
+```text
+resource budget exceeded: requested 1, remaining 0, limit 1
+```
+
+This structurally favored the combined-query candidate. The adapter also
+incorrectly added two judge calls to every product `provider_calls` value even
+when the judge skipped invalid cells. I retained the run as rejected
+operational evidence and did not compare or promote it.
+
+RAG-TTC commit `90485d8` made one bounded correction: lock per-cell budgets to
+3/4/2 embedding/answer/judge calls, record them in the runtime contract,
+exclude judge overhead from product cost, and test that separation. The
+corrected one-mutation identities are:
+
+```text
+candidate sha256:0d598d871694580d7e36af0238a3431cf02690249f6484ea4380b00179507106
+parent    sha256:4cc350f874416dd38e4288a090b95952a5d3d50de0b2ff8ff1fa0b26ee5b876a
+child     sha256:836466c1b61320034b9e88cd2ba5e1656555082f1196d6e500165653bc8e8eaa
+```
+
+Focused tests passed. Concurrent unrelated logcopter generation temporarily
+prevented rebuilding the shared root command; I did not touch those files.
+
+## Step 14: Isolated corrected feedback proof and formal rejection
+
+At the user's direction, I continued in detached worktree
+`/tmp/rag-ttc-ragopt-proof` at commit `90485d8`. I copied the exact locked
+`profiles.yaml` bytes into it. The first test failed because its ignored cache
+did not contain the frozen index:
+
+```text
+digest locked I5 index manifest: ... manifest.json: no such file or directory
+```
+
+I linked only the established index into the detached worktree's ignored
+`.cache` path. Focused adapter, asset, and root-command tests then passed.
+
+Corrected run `20260806T180004.824520651Z-ttc-i5-feedback-a1781d11159f`
+reached terminal `complete` in 100 seconds with 6/6 cells and one arm failure.
+All expected pairs exist and every committed native artifact has validated
+SHA-256 and size.
+
+Cell outcomes:
+
+- `ttc-y-005` incumbent: arm failure at the four-iteration ceiling;
+- `ttc-y-005` challenger: valid and judged; faithfulness 1.0, relevance 1.0,
+  four provider calls, and three searches;
+- `ttc-y-007` incumbent: invalid abstention; four calls, three searches;
+- `ttc-y-007` challenger: invalid abstention; three calls, two searches;
+- `ttc-expand-056` incumbent: invalid abstention; three calls, two searches;
+- `ttc-expand-056` challenger: invalid abstention; four calls, three searches.
+
+`ragopt compare` returned `fail`. Identity, pairing, candidate completion, and
+candidate failure-rate checks passed. Hard gates failed because only one of
+three candidate cells was contract-valid and faithfulness had coverage for
+only one pair. `ragopt report` produced a non-applying `review_required`,
+`human_apply_required` plan saying not to promote. Validation was skipped
+because the candidate failed feedback hard gates.
+
+A diagnostic loop initially used zsh's special variable `path`, replacing the
+command search path and causing repeated `command not found: jq`. Renaming it
+to `artifact_file` fixed the read-only diagnostic; no artifact changed.
