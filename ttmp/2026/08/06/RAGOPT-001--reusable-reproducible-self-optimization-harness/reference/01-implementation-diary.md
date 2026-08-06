@@ -1776,3 +1776,7 @@ because the candidate failed feedback hard gates.
 A diagnostic loop initially used zsh's special variable `path`, replacing the
 command search path and causing repeated `command not found: jq`. Renaming it
 to `artifact_file` fixed the read-only diagnostic; no artifact changed.
+
+The final nine-document ticket bundle dry run reported `layout=default` and
+included the new proof rejection report. The forced replacement then uploaded
+successfully to `/ai/2026/08/06/RAGOPT-001`. No editor layout was used.
