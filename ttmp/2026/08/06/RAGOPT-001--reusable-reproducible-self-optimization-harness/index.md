@@ -55,6 +55,11 @@ the canonical Admin Chat/sessionstream cutover, and it does not own the
 customer-facing TTC Garden Assistant. Those products may add their own
 product-owned adapters later if their exact serving runtimes need optimization.
 
+Phase 5 task 67 is technically ready but externally blocked. It requires one
+explicitly approved six-cell provider execution with the bounded consent
+envelope in reference 07. Three consecutive continuations supplied no such
+approval. No second run, partial run, provider call, or validation cell exists.
+
 The post-v0.1 production-refresh design makes `ragopt` the shared fixed
 control-plane protocol for CoinVault/GEC, the TTC Garden Assistant, and the
 RAG-TTC Admin Chat. Product repositories retain extraction, indexing, serving,
