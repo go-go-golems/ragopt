@@ -81,10 +81,11 @@ type Mutation struct {
 
 // Candidate is a fully loaded and validated immutable candidate view.
 type Candidate struct {
-	Manifest CandidateManifest `json:"manifest"`
-	Parent   Snapshot          `json:"parent"`
-	Child    Snapshot          `json:"child"`
-	Mutation Mutation          `json:"mutation"`
-	Digest   string            `json:"digest"`
-	Root     string            `json:"root"`
+	Manifest     CandidateManifest `json:"manifest"`
+	Parent       Snapshot          `json:"parent"`
+	Child        Snapshot          `json:"child"`
+	Mutation     Mutation          `json:"mutation"`
+	Digest       string            `json:"digest"`
+	Root         string            `json:"root"`
+	ManifestPath string            `json:"manifest_path"`
 }
