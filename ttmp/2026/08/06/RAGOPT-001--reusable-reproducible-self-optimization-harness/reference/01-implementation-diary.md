@@ -3587,3 +3587,180 @@ Task closed:         RAGOPT-001 task 69
 Provider calls:      0
 Next gate:           freeze candidate, suite, policy, cache, and budgets
 ```
+
+## Step 26: Select the minimum GEC candidate and identify its injection seam
+
+The first GEC proof will test one human-authored text mutation: the
+model-facing `knowledge_search` description. The challenger will add explicit
+routing guidance for `schema_doc`, `product`, and `guide`; the incumbent will
+preserve the current description. This is the smallest candidate recommended
+by the optimizer handoff, and it exercises real live-session tool selection
+without changing retrieval, authorization, the corpus, or the judge.
+
+The investigation also found the exact missing product seam. CoinVault builds
+the description inside `knowledge.NewToolEntry`, captures the resulting spec in
+its registrar closure, and registers that entry once at server startup. A
+frozen candidate therefore cannot be evaluated honestly until the product can
+load one explicit description asset at composition time. The seam belongs in
+GEC, not in `ragopt`; `ragopt` should only validate the one-mutation bundle and
+run the paired cells.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 24)
+
+**Assistant interpretation:** Continue the first real GEC integration, keep it
+small and evidence-gated, and record/print every material checkpoint.
+
+**Inferred user intent:** Prove that the reusable harness prevents fake
+self-optimization by freezing one real product mutation and every confounder
+before implementation or provider spending.
+
+### What I did
+
+- Verified both the isolated GEC worktree and RAGOPT worktree are clean.
+- Read `internal/knowledge/tool.go`, the catalog tool-spec renderer and
+  registrar, live server composition, application profiles, answer acquisition,
+  and the decomposed judge path.
+- Enumerated all 60 existing knowledge-eval questions and their seven strata.
+- Re-read the implemented RAG-TTC I5 candidate bundle and consumer adapter to
+  preserve the proven custody shape without copying TTC runtime code.
+- Selected a source-role-routing tool-description candidate rather than a
+  retrieval-algorithm or synonym mutation.
+- Confirmed the current answer record captures evidence and tool-result counts,
+  but does not yet project tool-call input arguments such as `source_roles`.
+- Made no file, serving, or provider changes in GEC during this investigation.
+
+### Why
+
+- One text mutation gives RAGOPT an honest parent/challenger comparison without
+  entangling the colleague-owned Admin Chat transport and frontend work.
+- Source-role routing is already part of the production tool schema and search
+  service. The candidate changes guidance, not capability.
+- Freezing the candidate before adding its injection seam prevents the adapter
+  implementation from silently defining the experiment after seeing results.
+- The existing feedback-before-validation rule prevents unnecessary provider
+  spending if the cheap candidate has no measurable benefit.
+
+### What worked
+
+- The runtime boundary is clear:
+
+  ```text
+  frozen description asset
+          |
+          v
+  knowledge.NewToolEntry
+          |
+          v
+  ToolCatalog registrar -> per-session tool registry -> live tool loop
+          |
+          v
+  timeline -> AnswerRecord -> decomposed judge -> native outcome -> ragopt
+  ```
+
+- `SearchInput.SourceRoles` and `Service.Search` already support the candidate's
+  intended behavior; no retrieval feature is missing.
+- The existing eval set has schema, product/facet, guide, paraphrase, and
+  multi-document cases from which disjoint feedback and validation suites can
+  be selected.
+- The proven TTC bundle establishes the required candidate, snapshot, suite,
+  gate-policy, runtime-contract, and native-artifact custody pattern.
+
+### What didn't work
+
+- The first broad source search included a nonexistent `configs` path in GEC
+  and printed `rg: configs: No such file or directory`. This was only a search
+  target mistake; GEC has no RAGOPT config tree yet.
+- One inspection command requested `internal/knowledge/answer.go`, but answer
+  acquisition actually lives in `internal/knowledge/judge.go`; `sed` reported:
+
+  ```text
+  sed: can't read internal/knowledge/answer.go: No such file or directory
+  ```
+
+  I corrected the inspection path and read the complete live answer projection.
+- The current `AnswerRecord` is insufficient to prove that improved answer
+  scores came from better `source_roles` choices. It counts tool results but
+  discards tool-call input payloads. The native artifact must retain that
+  product evidence; the shared RAGOPT outcome does not need a new generic field.
+
+### What I learned
+
+- The description shown in catalog health metadata and the description passed
+  to the model come from the same captured `ToolSpec`; an override must affect
+  both or identity reporting becomes misleading.
+- The description includes bundle-derived document count and available roles.
+  The frozen asset should be a complete product-owned description specification,
+  while the bundle digest and roles are locked dimensions.
+- A server-startup injection seam is sufficient for this proof. A dynamic
+  per-request prompt mutation API would expand scope and is unnecessary.
+- Source-role selection belongs in the native GEC artifact because it is a
+  product diagnostic, while answer relevance, faithfulness, completion, calls,
+  tokens, and duration remain the common comparison projection.
+
+### What was tricky to build
+
+The candidate is text, but the existing text is assembled dynamically from a
+structured prompt spec and bundle metadata. Treating the final rendered string
+as an opaque flag would be easy but brittle; treating all prompt-pack machinery
+as a new generic RAGOPT feature would be overengineering. The narrow solution
+is a GEC-owned, strict description asset loaded once at startup and passed into
+the existing spec/registrar path. Parent and challenger assets remain complete
+replacements, and RAGOPT sees exactly one changed mutable asset.
+
+The other sharp edge is causal evidence. Answer relevance can be the declared
+promotion target, but the experiment should still record actual tool arguments
+so a reviewer can distinguish successful role routing from score noise. That
+projection must be added to the native artifact without changing shared gates
+or the production timeline contract.
+
+### What warrants a second pair of eyes
+
+- Confirm that a complete structured tool-description asset is preferable to a
+  raw rendered string for the GEC product contract.
+- Review the exact three feedback cases and disjoint validation cases before
+  provider execution; each should have an unambiguous expected source role.
+- Confirm that the native artifact may record tool-call arguments from the
+  existing timeline without exposing reasoning or unauthorized evidence.
+- Review whether the incumbent asset must reproduce the current dynamic
+  description byte-for-byte for the locked bundle, including document count
+  and sorted available roles.
+
+### What should be done in the future
+
+- Write and validate the parent/challenger description assets, disjoint suites,
+  gate policy, runtime contract, answer schema, and judge contract.
+- Add only the startup-time GEC description injection and native tool-input
+  projection required to execute those frozen assets.
+- Add the GEC consumer arm after the candidate bundle validates with RAGOPT.
+- Run feedback twice from fresh run roots; run validation only if feedback gates
+  pass.
+
+### Code review instructions
+
+- Start with `/tmp/gec-ragopt-phase5/internal/knowledge/tool.go` at
+  `NewToolEntry` and `toolSpec`.
+- Follow registration through
+  `/tmp/gec-ragopt-phase5/internal/coinvaulttools/catalog/registry.go` and server
+  startup in `/tmp/gec-ragopt-phase5/internal/webchat/server/server.go`.
+- Read `AnswerClient.extract` in
+  `/tmp/gec-ragopt-phase5/internal/knowledge/judge.go` to see the current native
+  projection limitation.
+- Compare the intended custody layout with
+  `configs/ragopt/i5-combined-comparison-v1` in the RAG-TTC proof worktree.
+
+### Technical details
+
+```text
+Candidate track:     C / source-role routing
+Mutable assets:      1 (knowledge_search description)
+Parent behavior:     current production description
+Challenger behavior: explicit schema_doc/product/guide routing
+Locked:              corpus, bundle, index, retrieval, scopes, models, judge,
+                     suites, budgets, answer schema, runtime, adapter sources
+Promotion target:    answer_relevance (provisional until policy freeze)
+Native diagnostics:  tool inputs, selected source_roles, evidence roles
+Provider calls:      0
+Next gate:           commit a RAGOPT-valid frozen candidate bundle
+```
