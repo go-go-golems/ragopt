@@ -48,6 +48,12 @@ The reusable custody, candidate, paired-run, comparison, gate, and report path
 is implemented and exercised with deterministic fixtures. Phase 5 must prove
 the boundary in RAG-TTC and GEC-RAG before v0.1 is released.
 
+The current RAG-TTC proof exercises the product-owned
+`rag-ttc tool-loop ragopt` evaluation adapter. It does not modify or evaluate
+the canonical Admin Chat/sessionstream cutover, and it does not own the
+customer-facing TTC Garden Assistant. Those products may add their own
+product-owned adapters later if their exact serving runtimes need optimization.
+
 ## Scope Boundary
 
 V1 owns artifact identity, custody, pairing, comparison, gates, and reports. It

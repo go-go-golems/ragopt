@@ -50,12 +50,21 @@ RelatedFiles:
         Explicit active config-identical Resume authority
     - Path: repo://pkg/runstore/run_test.go
       Note: Interruption recovery, terminal, path, identity, and drift proof suite in commit 9f1ccb4
+    - Path: repo://ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/index.md
+      Note: Ticket-level distinction between the RAG-TTC proof adapter and both chat products
+    - Path: repo://ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/06-first-rag-ttc-i5-feedback-proof-rejection-report.md
+      Note: Authoritative first corrected proof and rejected-candidate evidence
+    - Path: repo://ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/tasks.md
+      Note: Phase 5 product boundary, conditional validation gate, and reproducible-rejection criterion
 ExternalSources: []
 Summary: Chronological record of the ragopt repository bootstrap, evidence audit, scope decisions, documentation, validation, and delivery.
 LastUpdated: 2026-08-06T10:05:00-04:00
 WhatFor: Preserve the exact reasoning, commands, failures, and review guidance behind the initial ragopt design.
 WhenToUse: Read when reviewing the design or resuming implementation from the phased task ledger.
 ---
+
+
+
 
 
 
@@ -1780,3 +1789,141 @@ to `artifact_file` fixed the read-only diagnostic; no artifact changed.
 The final nine-document ticket bundle dry run reported `layout=default` and
 included the new proof rejection report. The forced replacement then uploaded
 successfully to `/ai/2026/08/06/RAGOPT-001`. No editor layout was used.
+
+## Step 15: Re-establish the RAGOPT boundary and prepare the reproducibility proof
+
+This step resumed `RAGOPT-001` after a conversation had conflated three
+different products: the reusable optimizer harness, the canonical full-page
+Admin Chat cutover, and the customer-facing Garden Assistant. I tightened the
+Phase 5 ledger so the current proof target and its success criterion are
+unambiguous before spending on a second provider-backed run.
+
+The next proof remains the same: repeat the rejected I5 feedback experiment
+from a fresh run root and require the same semantic identities, complete
+paired custody, canonical deltas, and fail-closed decision. A rejected
+candidate can prove the harness. It does not need to become promotable, and
+the feedback failure means the validation split must remain unrun.
+
+### Prompt Context
+
+**User prompt (verbatim):** "work on RAGOPT-001. Keep a detailed diary as you work, commit at appropriate intervals, make sure to use the diary format form the skill"
+
+**Assistant interpretation:** Resume the active RAGOPT implementation ledger,
+use the strict diary structure for every step, preserve focused commits, and
+continue until the real product-integration requirements are evidenced.
+
+**Inferred user intent:** Keep the optimization work separate from the
+colleague's sessionstream/Admin Chat work and make trustworthy, reviewable
+progress toward reusable RAG-TTC and GEC proof cycles.
+
+### What I did
+
+- Read the diary and docmgr skills completely, including the diary reference.
+- Re-read the current task ledger, ticket index, latest diary steps, rejection
+  report, Git history, and docmgr task status.
+- Added an explicit Phase 5 scope boundary: the current adapter targets
+  `rag-ttc tool-loop ragopt`, not Admin Chat, sessionstream, or Garden Assistant.
+- Defined a product proof as reproducible custody and decision behavior; a
+  stable rejection is valid proof.
+- Recast the validation item as the already-satisfied spending gate: I5 failed
+  feedback, so the 28-cell validation run correctly did not happen.
+- Updated the two missing related-file notes in the rejection report through
+  `docmgr doc relate`.
+- Attempted to launch the second six-cell feedback proof in tmux from the
+  isolated `/tmp/rag-ttc-ragopt-proof` worktree.
+
+### Why
+
+- The ticket must not imply ownership of the colleague's canonical chat work.
+- Requiring a candidate to win would confuse optimization-harness correctness
+  with stochastic product quality and could encourage weakening gates.
+- Validation spending must remain conditional on feedback success.
+- The second live run exports questions/evidence to configured providers and
+  incurs new spend, so it requires explicit approval for that distinct run.
+
+### What worked
+
+- `docmgr task list --ticket RAGOPT-001` recognizes task 64 as complete and
+  leaves the fresh-root reproduction as the next task.
+- The task and index text now name the exact product boundary and success
+  condition.
+- Both stale related-file entries now have explanatory notes.
+- The isolated proof worktree is still at corrected product commit `90485d8`;
+  its frozen index link and first corrected run remain intact.
+
+### What didn't work
+
+- The first two sandboxed metadata updates failed exactly as follows:
+
+  ```text
+  Error: failed to write document: open /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/.docmgr-2850251983: read-only file system
+  Error: failed to write document: open /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/.docmgr-3388705735: read-only file system
+  ```
+
+  Re-running only those `docmgr doc relate` writes with repository-scoped
+  approval succeeded.
+
+- The provider-backed tmux launch was rejected before process creation:
+
+  ```text
+  This starts a new provider-backed reproducibility run with additional external data export and spend; prior approval covered the corrected run, not this separate second run.
+  ```
+
+  No tmux session, run root, provider call, or partial result was created. I did
+  not retry through another command or execution path.
+
+### What I learned
+
+- The current RAG-TTC adapter proves the product evaluation runtime, not either
+  chat UI. A serving-runtime optimizer would be a separate product-owned adapter.
+- “Proof passes” must describe infrastructure evidence, while “candidate
+  passes” describes a product gate decision. They are independent claims.
+- The conditional validation task is a spending invariant, not an outstanding
+  command to run for every rejected feedback candidate.
+
+### What was tricky to build
+
+The task ledger previously mixed an unconditional checkbox with conditional
+provider spending. Leaving the validation checkbox open suggested unfinished
+work, while checking text that said “run validation” would falsely claim the
+28 cells ran. The correction makes the task the enforceable behavior—stop after
+failed feedback—while retaining the actual fresh-root reproduction separately.
+
+### What warrants a second pair of eyes
+
+- Confirm that `tool-loop ragopt` remains the intended first consumer seam and
+  that no canonical Admin Chat or Garden Assistant runtime identity is implied.
+- Confirm that a repeated, evidence-identical rejection satisfies the RAG-TTC
+  integration proof even if individual stochastic answer text differs.
+- Review the eventual comparison method carefully: semantic identities and
+  decision class should be exact; stochastic metrics need canonical paired
+  comparison rather than byte-identical native transcripts.
+
+### What should be done in the future
+
+- Obtain explicit approval for the second six-cell provider-backed feedback run.
+- After it completes, compare semantic identities, cell coordinates, native
+  artifact custody, metric deltas, and the final gate decision with the first
+  corrected run.
+- Only after that proof, begin the GEC-RAG product-owned adapter and its P0
+  authorization/judge-accounting corrections.
+
+### Code review instructions
+
+- Start with `tasks.md` Phase 5 and the ticket `index.md` status section.
+- Check the report frontmatter with
+  `docmgr doctor --ticket RAGOPT-001 --stale-after 30`.
+- Confirm `git diff --check` and `docmgr task list --ticket RAGOPT-001` pass.
+- Do not inspect or modify `rag-ttc/pkg/app/chatserver` for this step.
+
+### Technical details
+
+```text
+RAGOPT repository: /home/manuel/code/wesen/go-go-golems/ragopt
+Product proof worktree: /tmp/rag-ttc-ragopt-proof
+Product commit: 90485d8539515173e88d2a9703f3a7ad4aed74bc
+First corrected run: 20260806T180004.824520651Z-ttc-i5-feedback-a1781d11159f
+Next ledger task: 67 — fresh-root reproduction
+External work needed: 6 cells (3 feedback cases x 2 arms)
+Validation cells intentionally not authorized: 28
+```

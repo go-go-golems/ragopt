@@ -13,13 +13,17 @@ Intent: long-term
 Owners: []
 RelatedFiles:
     - Path: /home/manuel/workspaces/2026-06-30/benchmark-cpu-inference/rag-ttc/cmd/rag-ttc/cmds/chat/tooleval/ragopt.go
+      Note: Product-owned adapter exercised by the rejected I5 feedback proof
     - Path: /home/manuel/workspaces/2026-06-30/benchmark-cpu-inference/rag-ttc/configs/ragopt/i5-combined-comparison-v1/candidate.yaml
+      Note: Strict one-mutation candidate manifest evaluated and rejected by the proof
 ExternalSources: []
 Summary: Evidence, cell outcomes, gate decision, and operational lessons from the corrected first product proof.
 LastUpdated: 2026-08-06T14:03:18.131169279-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
+
 
 # First RAG-TTC I5 Feedback Proof Rejection Report
 

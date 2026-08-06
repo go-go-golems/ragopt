@@ -119,3 +119,11 @@ Ran the corrected I5 candidate in an isolated worktree: 6/6 cells and all native
 - ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Isolated setup, failures, commands, and lessons
 
 Replaced the reMarkable bundle with the nine-document default-layout edition containing the formal rejection report.
+
+## 2026-08-06
+
+Step 15: clarified the product-proof boundary, recorded reproducible rejection as valid harness evidence, and preserved the feedback-before-validation spending gate; the fresh provider rerun awaits explicit approval.
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/tasks.md — Phase 5 scope and task semantics
