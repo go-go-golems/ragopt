@@ -50,3 +50,13 @@ Implemented and exercised strict ragopt-snapshot/v1 identity, ragopt-candidate/v
 - /home/manuel/code/wesen/go-go-golems/ragopt/cmd/ragopt/commands/candidate/validate.go — Artifact CLI checkpoint
 - /home/manuel/code/wesen/go-go-golems/ragopt/pkg/candidate/candidate.go — Phase 2 validation checkpoint
 - /home/manuel/code/wesen/go-go-golems/ragopt/pkg/candidate/candidate_test.go — Mutation and corruption fixtures
+
+## 2026-08-06 - Phase 3 resumable paired evaluation
+
+Implemented and exercised ragopt-suite/v1, explicit incumbent/challenger arms, complete immutable input binding, synced ragopt-cell/v1 results, native artifact custody, failed-cell retention, and exact active-run resume (commit 0802670).
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/ragopt/pkg/eval/resume.go — Resume and corruption semantics
+- /home/manuel/code/wesen/go-go-golems/ragopt/pkg/eval/runner.go — Paired runner checkpoint
+- /home/manuel/code/wesen/go-go-golems/ragopt/pkg/eval/runner_test.go — Interruption and equivalence proof
