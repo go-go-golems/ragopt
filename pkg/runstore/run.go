@@ -1,0 +1,256 @@
+package runstore
+
+import (
+	"bytes"
+	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"runtime"
+	"runtime/debug"
+	"sort"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/pkg/errors"
+)
+
+// Run owns one active run directory.
+type Run struct {
+	mu       sync.Mutex
+	dir      string
+	manifest Manifest
+	status   Status
+	inputs   []InputRef
+	terminal bool
+}
+
+// Create initializes an active run and durably writes its configuration,
+// manifest, and status.
+func Create(ctx context.Context, options Options, config any) (*Run, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(options.Root) == "" {
+		return nil, errors.New("run root is required")
+	}
+	name, err := safeName("run name", options.Name)
+	if err != nil {
+		return nil, err
+	}
+	dimensions, err := validateDimensions(options.Dimensions)
+	if err != nil {
+		return nil, err
+	}
+	rawConfig, err := json.Marshal(config)
+	if err != nil {
+		return nil, errors.Wrap(err, "marshal run config")
+	}
+	canonicalConfig, err := canonicalizeJSON(rawConfig)
+	if err != nil {
+		return nil, errors.Wrap(err, "canonicalize run config")
+	}
+	var prettyConfig bytes.Buffer
+	if err := json.Indent(&prettyConfig, rawConfig, "", "  "); err != nil {
+		return nil, errors.Wrap(err, "format run config")
+	}
+
+	startedAt := time.Now().UTC()
+	runID, err := newRunID(startedAt, name)
+	if err != nil {
+		return nil, err
+	}
+	dir := filepath.Join(options.Root, runID)
+	for _, child := range []string{"inputs", "results", "native"} {
+		if err := os.MkdirAll(filepath.Join(dir, child), 0o700); err != nil {
+			return nil, errors.Wrap(err, "create run directory")
+		}
+	}
+
+	hostname, _ := os.Hostname()
+	manifest := Manifest{
+		SchemaVersion: ManifestSchemaVersion,
+		RunID:         runID,
+		Name:          options.Name,
+		Description:   options.Description,
+		StartedAt:     startedAt,
+		GoVersion:     runtime.Version(),
+		Host: Host{
+			Hostname: hostname,
+			OS:       runtime.GOOS,
+			Arch:     runtime.GOARCH,
+			CPUs:     runtime.NumCPU(),
+		},
+		ConfigDigest: digestBytes(canonicalConfig),
+		Dimensions:   dimensions,
+	}
+	if info, ok := debug.ReadBuildInfo(); ok {
+		manifest.ModulePath = info.Main.Path
+		manifest.ModuleVersion = info.Main.Version
+	}
+	run := &Run{
+		dir:      dir,
+		manifest: manifest,
+		status:   Status{State: StateActive, StartedAt: startedAt},
+	}
+	if err := run.writeBytes(ctx, "config.json", append(prettyConfig.Bytes(), '\n')); err != nil {
+		return nil, err
+	}
+	if err := run.writeJSON(ctx, "manifest.json", manifest); err != nil {
+		return nil, err
+	}
+	if err := run.writeJSON(ctx, "status.json", run.status); err != nil {
+		return nil, err
+	}
+	return run, nil
+}
+
+// Dir returns the run directory.
+func (run *Run) Dir() string {
+	if run == nil {
+		return ""
+	}
+	return run.dir
+}
+
+// Manifest returns a defensive copy of the run manifest.
+func (run *Run) Manifest() Manifest {
+	if run == nil {
+		return Manifest{}
+	}
+	run.mu.Lock()
+	defer run.mu.Unlock()
+	manifest := run.manifest
+	manifest.Dimensions = cloneStrings(run.manifest.Dimensions)
+	return manifest
+}
+
+// Path returns a validated path within the run without creating it.
+func (run *Run) Path(relative string) (string, error) {
+	if run == nil {
+		return "", errors.New("run is nil")
+	}
+	return joinWithin(run.dir, relative)
+}
+
+// WriteJSON atomically writes a JSON artifact inside an active run.
+func (run *Run) WriteJSON(ctx context.Context, relative string, value any) error {
+	if run == nil {
+		return errors.New("run is nil")
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	run.mu.Lock()
+	defer run.mu.Unlock()
+	if run.terminal {
+		return errors.New("run is terminal")
+	}
+	return run.writeJSON(ctx, relative, value)
+}
+
+// WriteBytes atomically writes an artifact inside an active run.
+func (run *Run) WriteBytes(ctx context.Context, relative string, data []byte) error {
+	if run == nil {
+		return errors.New("run is nil")
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	run.mu.Lock()
+	defer run.mu.Unlock()
+	if run.terminal {
+		return errors.New("run is terminal")
+	}
+	return run.writeBytes(ctx, relative, data)
+}
+
+// AppendJSONL appends and fsyncs one JSON record. Each successful return is a
+// durability boundary suitable for interruption and later resume.
+func (run *Run) AppendJSONL(ctx context.Context, relative string, value any) error {
+	if run == nil {
+		return errors.New("run is nil")
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	path, err := joinWithin(run.dir, relative)
+	if err != nil {
+		return err
+	}
+	data, err := json.Marshal(value)
+	if err != nil {
+		return errors.Wrap(err, "marshal JSONL record")
+	}
+
+	run.mu.Lock()
+	defer run.mu.Unlock()
+	if run.terminal {
+		return errors.New("run is terminal")
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return errors.Wrap(err, "create JSONL parent directory")
+	}
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		return errors.Wrap(err, "open JSONL artifact")
+	}
+	if _, err := file.Write(append(data, '\n')); err != nil {
+		_ = file.Close()
+		return errors.Wrap(err, "append JSONL artifact")
+	}
+	if err := file.Sync(); err != nil {
+		_ = file.Close()
+		return errors.Wrap(err, "sync JSONL artifact")
+	}
+	return errors.Wrap(file.Close(), "close JSONL artifact")
+}
+
+func newRunID(startedAt time.Time, name string) (string, error) {
+	random := make([]byte, 6)
+	if _, err := rand.Read(random); err != nil {
+		return "", errors.Wrap(err, "generate run ID")
+	}
+	return startedAt.Format("20060102T150405.000000000Z") + "-" + name + "-" + hex.EncodeToString(random), nil
+}
+
+func validateDimensions(dimensions map[string]string) (map[string]string, error) {
+	if dimensions == nil {
+		return nil, nil
+	}
+	keys := make([]string, 0, len(dimensions))
+	for key := range dimensions {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	result := make(map[string]string, len(dimensions))
+	for _, key := range keys {
+		trimmedKey := strings.TrimSpace(key)
+		if trimmedKey == "" {
+			return nil, errors.New("semantic dimension key is required")
+		}
+		if trimmedKey != key {
+			return nil, errors.Errorf("semantic dimension key %q has surrounding whitespace", key)
+		}
+		value := strings.TrimSpace(dimensions[key])
+		if value == "" {
+			return nil, errors.Errorf("semantic dimension %q has an empty value", key)
+		}
+		result[key] = value
+	}
+	return result, nil
+}
+
+func cloneStrings(values map[string]string) map[string]string {
+	if values == nil {
+		return nil
+	}
+	result := make(map[string]string, len(values))
+	for key, value := range values {
+		result[key] = value
+	}
+	return result
+}
