@@ -282,3 +282,117 @@ Designed, not proved:
 ragopt v1 boundary:
   identity + custody + resume + paired compare + gates + promotion report
 ```
+
+## Step 3: Write the reusable harness design and phased implementation guide
+
+This step converted the evidence audit into the primary intern-facing design.
+The guide treats the missing experimental control plane as the product: system
+snapshots, one-mutation candidates, immutable runs, synced result cells,
+strict pairing, gate evaluation, and promotion reports. It also records the
+specific boundaries that keep the repository pragmatic.
+
+The design does not add runtime code. API blocks and schemas are proposed
+contracts for phased review. Package directories must not be created until
+their phase begins and the preceding exit criterion passes.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 1)
+
+**Assistant interpretation:** Produce enough technical detail that a new intern
+can implement the package without reconstructing earlier projects or confusing
+designed-only reflector work with proven mechanisms.
+
+**Inferred intent:** Turn lessons from the earlier struggle into enforceable
+defaults while resisting a broad optimizer platform.
+
+### What I did
+
+- Wrote the evidence classification and mechanism matrix.
+- Compared `ragopt` with Ragkit, RAG-TTC, GEC-RAG, and researchctl ownership.
+- Defined the v1 package layout and product dependency direction.
+- Defined proposed asset, snapshot, candidate, suite, outcome, cell, policy,
+  run-directory, decision, and promotion-plan contracts.
+- Added lifecycle, component, and state diagrams.
+- Added validation, scheduling/resume, pairing, and gate pseudocode.
+- Defined the artifact-only Glazed CLI boundary.
+- Defined separate RAG-TTC and GEC-RAG integration sequences.
+- Added failure, security, privacy, testing, review, and operating guidance.
+- Recorded architecture decisions and rejected alternatives.
+- Expanded implementation phases and kept `tasks.md` as the canonical ledger.
+
+### Why
+
+- The earlier work had strong principles but no reusable implementation path.
+- A new intern needs to know which code can be ported, which code must remain
+  product-owned, and which appealing features are explicitly deferred.
+- Schemas and negative tests reduce the chance that implementation silently
+  weakens identity or failure accounting.
+
+### What worked
+
+- The design maps every v1 mechanism to implemented RAG-TTC or researchctl
+  evidence, or labels it as a proposed composition of those mechanisms.
+- The artifact CLI plus in-process library boundary avoids a new process/plugin
+  compatibility layer.
+- The phased plan can produce useful checkpoints before any live LLM run.
+
+### What didn't work
+
+- N/A. No runtime behavior was attempted in this step.
+
+### What I learned
+
+- “Batteries included” should mean the custody and gate path is complete, not
+  that the package owns every diagnosis, proposal, execution, and deployment
+  concern.
+- The product's native artifact should remain authoritative; a generic outcome
+  only needs comparable fields and a digest-linked pointer.
+- A standalone optimizer command cannot safely execute arbitrary products
+  without inventing an unproved protocol. The library boundary is smaller.
+
+### What was tricky to build
+
+Snapshot dimensions must be generic enough for different products without
+becoming untyped, undigested metadata. The design allows bounded string
+dimensions but requires each integration to declare the keys it considers
+mandatory. The first two integrations should determine the smallest final API.
+
+### What warrants a second pair of eyes
+
+- Choose one public execution API after the first RAG-TTC spike: explicit arms
+  or one evaluator receiving candidate views. Do not ship both.
+- Decide whether v0.1 requires native artifacts inside the run directory.
+- Review cancellation and active-run recovery semantics before Phase 1 freezes
+  the status schema.
+- Confirm candidate bundles can copy complete parent assets without excessive
+  size before adding content-addressed indirection.
+
+### What should be done in the future
+
+- Obtain Phase 0 scope acceptance.
+- Implement only Phase 1 next and prove interruption recovery with a scripted
+  fixture before creating candidate or comparison packages.
+
+### Code review instructions
+
+- Read Sections 1–4 first to verify evidence strength.
+- Review Sections 7–9 for schema and algorithm invariants.
+- Review every architecture decision against the non-goals.
+- Cross-check implementation sequence with `tasks.md`.
+
+### Technical details
+
+```text
+Primary guide:
+ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/design-doc/01-ragopt-intern-guide-to-a-reusable-evidence-gated-optimization-harness.md
+
+Proposed v1 packages:
+pkg/runstore, pkg/candidate, pkg/eval, pkg/compare, pkg/gate
+
+Standalone CLI responsibility:
+validate + inspect + compare + report
+
+Product responsibility:
+execute real arms + score/judge + diagnose + apply reviewed promotion
+```
