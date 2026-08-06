@@ -1,0 +1,138 @@
+# Tasks
+
+This is the canonical implementation ledger. Phases are sequential. A later
+phase does not start until the preceding exit criterion is demonstrated.
+
+## Phase 0: Repository and contract design
+
+- [x] Initialize `ragopt` from committed `go-template` content without copying template Git metadata.
+- [x] Normalize module, command, logging, Makefile, CI, and release identifiers.
+- [x] Run generation, formatting, complete tests, and complete build.
+- [x] Create ticket `RAGOPT-001`, primary design guide, diary, and task ledger.
+- [x] Audit GEC-RAG handoff, review, design, diaries, and implementation boundaries.
+- [x] Audit RAG-TTC experiment, tool-eval, diagnostic, and semantic-config implementations.
+- [x] Separate implemented evidence from proposed GEPA/warehouse/reflector work.
+- [ ] Review and accept the v1 scope and public terminology.
+
+Exit criterion: reviewers agree that v1 is an evidence-gated optimization
+harness and that autonomous proposal, transcript warehousing, and deployment
+are excluded.
+
+## Phase 1: Immutable run store and semantic identity
+
+- [ ] Define `ragopt-run/v1` manifest, status, input-reference, and summary schemas.
+- [ ] Port the proven `pkg/experiment` lifecycle into a narrowly named `pkg/runstore` package.
+- [ ] Replace RAG-TTC-specific module and directory assumptions with documented generic names only.
+- [ ] Preserve path confinement for every artifact write.
+- [ ] Preserve atomic JSON writes and append-plus-`fsync` JSONL writes.
+- [ ] Copy declared inputs into `inputs/` and record SHA-256, size, role, and original path.
+- [ ] Record host, Go module, start time, config digest, and caller-supplied semantic dimensions.
+- [ ] Reject writes after a run becomes terminal.
+- [ ] Preserve all prior artifacts when a run fails.
+- [ ] Add tests for path escape, interrupted JSONL, terminal writes, duplicate completion, and stable config digests.
+- [ ] Add a run reader that validates schema and exposes status without mutating artifacts.
+- [ ] Document the run-directory contract and recovery guarantees.
+
+Exit criterion: a fixture process can be interrupted after N results, and all N
+synced records plus copied inputs remain valid and inspectable.
+
+## Phase 2: System snapshots and one-mutation candidate bundles
+
+- [ ] Define `ragopt-snapshot/v1` with system name, locked assets, mutable assets, and semantic dimensions.
+- [ ] Define one canonical `AssetRef` containing logical name, media type, copied path, SHA-256, and size.
+- [ ] Canonically sort logical maps before computing snapshot identity.
+- [ ] Define `ragopt-candidate/v1` with ID, parent snapshot, proposer identity, hypothesis, expected improvement, and regression risks.
+- [ ] Store complete replacement assets; do not support model-generated patch application.
+- [ ] Resolve every candidate path inside its bundle root and reject symlink/path escapes.
+- [ ] Strictly reject unknown YAML fields, multiple YAML documents, missing files, and digest mismatches.
+- [ ] Compare parent and candidate snapshots and require exactly one changed mutable asset.
+- [ ] Reject changes to locked assets or semantic dimensions.
+- [ ] Make evaluated candidate directories immutable by contract and status transition.
+- [ ] Add fixtures for valid text mutation, two mutations, locked mutation, missing asset, digest mismatch, and unsafe path.
+- [ ] Implement `ragopt candidate validate` as a Glazed structured-output command.
+
+Exit criterion: a human-authored asset replacement produces one deterministic
+candidate digest, and every multi-surface or locked-input mutation is rejected.
+
+## Phase 3: Resumable paired evaluation runner
+
+- [ ] Define `ragopt-suite/v1` with stable case IDs, groups, opaque JSON input, and suite digest.
+- [ ] Define the small `Arm` interface that executes a case and returns a common `Outcome` projection.
+- [ ] Keep native artifacts application-owned and require each outcome to reference its native artifact path and digest.
+- [ ] Define outcome fields for completion, contract validity, abstention, failure, metrics, calls, tokens, duration, and semantic identity.
+- [ ] Require unique arm names, case IDs, candidate IDs, and repeat indices.
+- [ ] Execute the incumbent and challenger over the same ordered cases and repeat numbers.
+- [ ] Append and sync one result cell immediately after completion.
+- [ ] Resume by loading completed cell keys and rejecting identity mismatches.
+- [ ] Run sequentially in v1; do not add worker pools until measured runtime requires them.
+- [ ] Continue after an arm error by recording a failed cell; abort only on custody or identity errors.
+- [ ] Record the exact suite, snapshots, candidates, policy, and caller config as run inputs.
+- [ ] Add deterministic scripted-arm tests for success, failure, interruption, resume, and duplicate cells.
+- [ ] Add an integration fixture proving resumed output equals uninterrupted output after canonical sorting.
+
+Exit criterion: an interrupted paired run resumes without re-running completed
+cells and produces the same canonical results as an uninterrupted fixture run.
+
+## Phase 4: Paired comparison, gates, and promotion report
+
+- [ ] Join incumbent and candidate outcomes strictly by case ID and repeat index.
+- [ ] Reject missing, duplicate, cross-suite, cross-policy, or cross-snapshot cells.
+- [ ] Compute per-cell metric deltas without replacing native values.
+- [ ] Aggregate wins, ties, losses, failures, and deltas by metric and case group.
+- [ ] Keep completion, contract validity, and failure rates separate from quality means.
+- [ ] Define `ragopt-gate-policy/v1` with hard conditions, one declared target metric, regression limits, and ordered tie-breakers.
+- [ ] Require products to choose metrics and thresholds; ship no universal RAG quality threshold.
+- [ ] Evaluate hard gates before target improvement and cost tie-breakers.
+- [ ] Treat missing or invalid outcomes as failures, never as dropped samples.
+- [ ] Retain every rejected candidate and machine-readable rejection reason.
+- [ ] Generate a Markdown promotion report containing identities, hypothesis, asset diff, paired table, group aggregates, all regressions, and gate decisions.
+- [ ] Generate a machine-readable promotion plan that describes but does not apply the product change.
+- [ ] Add golden tests for pass, hard-gate fail, target fail, catastrophic regression, tie-break, and incomplete pairing.
+- [ ] Implement `ragopt compare` and `ragopt report` Glazed commands over existing artifacts.
+
+Exit criterion: the fixture candidate yields a deterministic decision and a
+reviewable report; changing a failed cell into a missing cell cannot improve
+the decision.
+
+## Phase 5: First real integration and proof cycle
+
+- [ ] Select one existing RAG-TTC human-authored text candidate with no safety-policy mutation.
+- [ ] Implement the RAG-TTC consumer arm in the RAG-TTC repository, not in `ragopt`.
+- [ ] Declare RAG-TTC's required locked dimensions: corpus, index, suite, answer model, judge, prompts, tool safety, and evaluator.
+- [ ] Run incumbent and candidate once on feedback and twice on validation.
+- [ ] Verify native RAG-TTC artifacts remain authoritative and are digest-linked from common outcomes.
+- [ ] Review every per-case regression and record the accept/reject decision.
+- [ ] Repeat the same candidate from a fresh run root and verify semantic identities and canonical deltas.
+- [ ] Integrate GEC-RAG only after the RAG-TTC proof cycle passes.
+- [ ] In GEC-RAG, fix authorization and judge-accounting P0 findings before using results for promotion.
+- [ ] Run one GEC-RAG human-authored candidate twice with a frozen suite and policy.
+- [ ] Document integration friction before adding any generic API to `ragopt`.
+
+Exit criterion: two product repositories use the library without a generic
+subprocess/plugin protocol, and one human candidate completes the path twice in
+each repository with explainable identities and paired outcomes.
+
+## Phase 6: CLI hardening and release
+
+- [ ] Add `ragopt run inspect` for manifest, input, result-count, and terminal-state inspection.
+- [ ] Add structured table/JSON/YAML output to all artifact commands through Glazed.
+- [ ] Add `--log-level` through Glazed fields and zerolog; do not read environment variables.
+- [ ] Add schema/API reference documentation and one scripted fixture example.
+- [ ] Add corruption diagnostics for malformed JSONL tails, missing inputs, and digest mismatches.
+- [ ] Run `go test ./...`, `go build ./...`, `make lint`, `make logcopter-check`, and `make gosec`.
+- [ ] Verify release metadata and disabled docs publishing configuration.
+- [ ] Tag v0.1 only after the real integration exit criterion passes.
+
+Exit criterion: v0.1 is useful as a library and artifact CLI, with passing CI
+and evidence from at least two consumers.
+
+## Explicitly deferred and not part of v1
+
+- [ ] Do not implement a reflector or model proposer before Phase 5 evidence exists.
+- [ ] Do not implement a transcript warehouse in `ragopt`.
+- [ ] Do not implement a generic workflow engine, scheduler, daemon, web UI, or plugin system.
+- [ ] Do not implement automatic production mutation or deployment.
+- [ ] Do not allow candidates to mutate evaluators, judges, suites, safety ceilings, authorization, or secrets.
+- [ ] Do not add population search, Pareto selection, multi-component mutation, or automatic SQL generation.
+
+These checkboxes are guardrails, not a backlog to complete for v1.

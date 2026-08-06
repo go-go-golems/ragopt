@@ -5,6 +5,16 @@ topics:
       description: Backend services
     - slug: websocket
       description: WebSocket lifecycle & events
+    - slug: rag
+      description: Retrieval-augmented generation systems
+    - slug: evaluation
+      description: Evaluation contracts and measurements
+    - slug: experiments
+      description: Reproducible experiment execution
+    - slug: reproducibility
+      description: Artifact identity, custody, and replay
+    - slug: architecture
+      description: System and API design
 docTypes:
     - slug: design-doc
       description: Structured rationale and architecture notes
