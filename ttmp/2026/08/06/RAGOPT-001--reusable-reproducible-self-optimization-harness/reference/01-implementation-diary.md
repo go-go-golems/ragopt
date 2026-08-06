@@ -1546,3 +1546,128 @@ chatserver/profile/ticket files and untracked ticket sources/scripts remained
 unstaged after the commit. The current RAG-TTC branch is
 `task/rag-ttc-tui-polish`, an important coordination fact for later adapter
 work and publication.
+
+## Step 11: Publish ragopt and implement the product-owned RAG-TTC arm
+
+The user authorized the previously blocked publication step with `push`. I
+pushed ragopt `main` from `0a31939` through `4d410c5`, then pinned RAG-TTC to
+the resulting portable pseudo-version:
+
+```text
+github.com/go-go-golems/ragopt
+v0.0.0-20260806162156-4d410c57e242
+```
+
+This removed the dependency blocker without a machine-local `replace`.
+
+### Adapter boundary implemented
+
+RAG-TTC commit `56432fd` adds the product-owned adapter at
+`cmd/rag-ttc/cmds/chat/tooleval/ragopt.go`. The new
+`rag-ttc tool-loop ragopt` Glazed command composes only established mechanisms:
+
+- `candidate.LoadCandidate` validates the one-mutation bundle;
+- `eval.LoadSuite`, `eval.Run`, and `eval.Resume` own immutable paired custody;
+- the existing `chat.NewRuntime` executes the real tool-QA implementation;
+- the existing session archive remains the full native answer/trace evidence;
+- the existing `answerquality.JudgeToolLoop` produces faithfulness and answer
+  relevance;
+- a `rag-ttc-ragopt-native/v1` JSON artifact links the session, runtime
+  projection, judge score, and judge provenance;
+- the common ragopt outcome contains comparison fields and a run-relative
+  native-artifact reference.
+
+No subprocess protocol, plugin interface, generic runtime adapter, proposal
+model, worker pool, or deployment mutation was introduced. Execution remains
+sequential. Every cell gets a fresh chat runtime rooted inside its assigned
+native directory, preventing evidence from another cell from becoming its
+authoritative artifact.
+
+The interface exposes only the two locked proof splits:
+
+```text
+feedback   -> 3 cases x 1 repeat x 2 arms = 6 cells
+validation -> 7 cases x 2 repeats x 2 arms = 28 cells
+```
+
+Per-cell budgets are visible but fail closed if changed from one embedding
+call, four answer-generation calls, and two judge calls. The answer profile
+must resolve as `ttc-live-luna-low`/`gpt-5.6-luna`; the established named judge
+profiles are resolved separately.
+
+### Preventing a fake implementation
+
+The adapter does not accept arbitrary incumbent and challenger configuration
+paths. ragopt passes each arm an immutable copied `CandidateView`. The adapter
+materializes the locked orchestration prompt and answer schema plus that
+view's exact parent or child `search_description`, then loads it through
+RAG-TTC's strict `toolconfig` loader. Tests prove both views bind their declared
+bytes.
+
+Before provider spending, `validateI5Environment` recalculates evaluation,
+provider-profile, index-manifest, corpus, answer/embedding, judge, native
+runner, native adapter, and ragopt adapter identities. It also checks the suite
+split, evaluator contract, and tool-safety identity.
+
+The inaccurate pre-adapter Git revision dimension was replaced by a semantic
+evaluator version plus exact source digests. The new adapter digest is:
+
+```text
+sha256:d4746119aa919b780563f3a161045e0f908c4f5141f4bc9ec34d6ba00b8fe2b8
+```
+
+Strict candidate validation now reports:
+
+```text
+candidate sha256:0c460d0f5d41bfc991fd1907a22bcb2407cac2f33225eedd25a04aa6b2539f1c
+parent    sha256:aff0f3dcb658626ca00cf95384c80cc12f7ac83e9b4cb735b7c2f104584ea8c9
+child     sha256:e3f232d3f6f0a98c11f08d03b0fe0150e6534c538e640b4702941edbfa4f3485
+```
+
+The independently computed mutation remains only `search_description`.
+
+### Failures and corrections
+
+The first formatting attempt failed because RAG-TTC is outside this session's
+default writable root and `gofmt` creates a sibling temporary file:
+
+```text
+open cmd/rag-ttc/cmds/chat/tooleval/ragopt.go.<temporary>: read-only file system
+```
+
+I reran the narrowly scoped formatter with explicit write approval.
+
+The first asset-binding test incorrectly treated the loader's logical search
+path as absolute. Both arm subtests failed with:
+
+```text
+open search-description.yaml: no such file or directory
+```
+
+The assertion now resolves the logical path against the temporary repository
+root, matching `toolconfig` semantics; both arms pass.
+
+The first manual validation command guessed API-style flags and failed with
+`Error: unknown flag: --bundle-root`. I read command help and used the actual
+`--bundle` and `--format` flags; validation then passed.
+
+During final review, HEAD advanced through four unrelated chat-hardening
+commits in the shared worktree. One included the already-pinned module line. I
+re-read history and the diff, then staged exactly five adapter/snapshot files.
+The remaining profile, ticket, corpus, and chat work stayed unstaged.
+
+### Verification performed
+
+```bash
+go test ./cmd/rag-ttc/cmds/chat/tooleval ./cmd/rag-ttc \
+  ./internal/ragoptassets -count=1
+go test ./... -count=1
+go run ./cmd/rag-ttc tool-loop ragopt --help
+go run github.com/go-go-golems/ragopt/cmd/ragopt candidate validate \
+  --bundle configs/ragopt/i5-combined-comparison-v1 \
+  --manifest candidate.yaml --format json
+git diff --check
+```
+
+All focused tests and the complete RAG-TTC suite passed. A live feedback run
+has not yet been claimed; it is the next task and consumes real provider calls.
