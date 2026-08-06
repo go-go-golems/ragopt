@@ -104,3 +104,7 @@ Published ragopt main, pinned the portable module revision in RAG-TTC, and imple
 Verified the exact six-cell feedback command and tmux run procedure. The live start was rejected before execution because it would export evaluation questions and retrieved evidence to external answer/judge providers and may incur spend. No provider calls or run artifacts were created.
 
 Refreshed the eight-document reMarkable bundle at `/ai/2026/08/06/RAGOPT-001`; the dry run explicitly confirmed `layout=default` before replacement.
+
+## 2026-08-06 - First live feedback run rejected; budget bias corrected
+
+Completed and retained the first six-cell feedback run, then rejected it after native evidence showed that a one-embedding budget biased execution toward the combined-query candidate. RAG-TTC commit `90485d8` locks sufficient 3/4/2 per-cell budgets and excludes judge overhead from product cost accounting. Focused tests and strict one-mutation validation pass; a fresh proof run is required.
