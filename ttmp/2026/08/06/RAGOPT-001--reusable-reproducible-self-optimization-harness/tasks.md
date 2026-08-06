@@ -75,20 +75,20 @@ cells and produces the same canonical results as an uninterrupted fixture run.
 
 ## Phase 4: Paired comparison, gates, and promotion report
 
-- [ ] Join incumbent and candidate outcomes strictly by case ID and repeat index.
-- [ ] Reject missing, duplicate, cross-suite, cross-policy, or cross-snapshot cells.
-- [ ] Compute per-cell metric deltas without replacing native values.
-- [ ] Aggregate wins, ties, losses, failures, and deltas by metric and case group.
-- [ ] Keep completion, contract validity, and failure rates separate from quality means.
-- [ ] Define `ragopt-gate-policy/v1` with hard conditions, one declared target metric, regression limits, and ordered tie-breakers.
-- [ ] Require products to choose metrics and thresholds; ship no universal RAG quality threshold.
-- [ ] Evaluate hard gates before target improvement and cost tie-breakers.
-- [ ] Treat missing or invalid outcomes as failures, never as dropped samples.
-- [ ] Retain every rejected candidate and machine-readable rejection reason.
-- [ ] Generate a Markdown promotion report containing identities, hypothesis, asset diff, paired table, group aggregates, all regressions, and gate decisions.
-- [ ] Generate a machine-readable promotion plan that describes but does not apply the product change.
-- [ ] Add golden tests for pass, hard-gate fail, target fail, catastrophic regression, tie-break, and incomplete pairing.
-- [ ] Implement `ragopt compare` and `ragopt report` Glazed commands over existing artifacts.
+- [x] Join incumbent and candidate outcomes strictly by case ID and repeat index.
+- [x] Reject missing, duplicate, cross-suite, cross-policy, or cross-snapshot cells.
+- [x] Compute per-cell metric deltas without replacing native values.
+- [x] Aggregate wins, ties, losses, failures, and deltas by metric and case group.
+- [x] Keep completion, contract validity, and failure rates separate from quality means.
+- [x] Define `ragopt-gate-policy/v1` with hard conditions, one declared target metric, regression limits, and ordered tie-breakers.
+- [x] Require products to choose metrics and thresholds; ship no universal RAG quality threshold.
+- [x] Evaluate hard gates before target improvement and cost tie-breakers.
+- [x] Treat missing or invalid outcomes as failures, never as dropped samples.
+- [x] Retain every rejected candidate and machine-readable rejection reason.
+- [x] Generate a Markdown promotion report containing identities, hypothesis, asset diff, paired table, group aggregates, all regressions, and gate decisions.
+- [x] Generate a machine-readable promotion plan that describes but does not apply the product change.
+- [x] Add golden tests for pass, hard-gate fail, target fail, catastrophic regression, tie-break, and incomplete pairing.
+- [x] Implement `ragopt compare` and `ragopt report` Glazed commands over existing artifacts.
 
 Exit criterion: the fixture candidate yields a deterministic decision and a
 reviewable report; changing a failed cell into a missing cell cannot improve
