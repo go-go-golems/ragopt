@@ -137,6 +137,51 @@ remains conditional on feedback gates.
 Exit criterion: v0.1 is useful as a library and artifact CLI, with passing CI
 and evidence from at least two consumers.
 
+## Phase 7: Shared production refresh contracts (post-v0.1)
+
+Phase 7 implements the fixed control-plane lifecycle designed in
+`design-doc/02-production-index-build-scheduling-resumability-and-ragopt-integration.md`.
+It does not add a scheduler, daemon, generic workflow engine, indexer, or
+deployment mutator to `ragopt`.
+
+- [ ] Freeze TTC and GEC fixture snapshots and the cross-product responsibility matrix.
+- [ ] Define generic build-run, build-event, artifact-reference, and terminal-result v1 schemas.
+- [ ] Define semantic build identity and canonical serialization rules.
+- [ ] Define `ProductBuilder`, `ProductEvaluator`, `ProgressSink`, registry, and activation-plan interfaces.
+- [ ] Specify content-refresh challenger custody without weakening the one-mutation optimization candidate.
+- [ ] Implement a local event log and projection by reusing `pkg/runstore` durability mechanics.
+- [ ] Implement the fixed snapshot → build → verify → evaluate → gate → plan coordinator.
+- [ ] Implement local acquire/resume, heartbeats, verified artifact reuse, and cancellation.
+- [ ] Add fixture and filesystem registries plus conformance tests for production registry adapters.
+- [ ] Add Glazed `ragopt refresh run` and `ragopt refresh inspect` commands.
+- [ ] Prove interruption/replay equivalence with a deterministic fixture adapter.
+- [ ] Implement the CoinVault/GEC build and evaluation adapter after its P0 evaluation fixes.
+- [ ] Prove a local interrupted/resumed GEC build and a no-change cached rebuild.
+- [ ] Implement the shared TTC index adapter around the already benchmarked pipeline.
+- [ ] Implement and prove the Garden native evaluation adapter.
+- [ ] Implement the Admin live retrieval/tool evaluation adapter after its chat cutover stabilizes.
+- [ ] Require separate Garden and Admin gates when both consume one TTC bundle.
+- [ ] Document measured integration friction before moving or generalizing `flow`.
+
+Exit criterion: CoinVault/GEC and TTC use the same refresh lifecycle and event
+contracts while retaining native builders, query runtimes, evidence, and
+deployment ownership; interrupted refreshes replay safely and produce stable
+decisions.
+
+## Product deployment tracks (outside `ragopt`)
+
+- [ ] Package one digest-pinned refresh image per product.
+- [ ] Select AWS Batch by default, or River only where operational Postgres and an always-on Go worker already exist.
+- [ ] Configure EventBridge Scheduler, coarse retries, DLQ, leases, and least-privilege IAM.
+- [ ] Store private builds, verified bundles, native evidence, and channel pointers durably.
+- [ ] Implement conditional activation, health-checked rollout, and previous-bundle rollback in each product.
+- [ ] Add change-event reconciliation only after nightly full refresh is stable.
+- [ ] Run worker-death, corrupt-artifact, concurrent-activation, and rollback drills.
+
+These tasks belong to the consuming product/deployment repositories. They are
+tracked here to make the end-to-end dependency explicit, not to move AWS or
+deployment code into the `ragopt` module.
+
 ## Explicitly deferred and not part of v1
 
 - [ ] Do not implement a reflector or model proposer before Phase 5 evidence exists.

@@ -32,6 +32,7 @@ artifact path; product execution and candidate proposal remain outside it.
 ## Key Links
 
 - [Intern design and implementation guide](design-doc/01-ragopt-intern-guide-to-a-reusable-evidence-gated-optimization-harness.md)
+- [Shared production refresh, scheduling, and resumability design](design-doc/02-production-index-build-scheduling-resumability-and-ragopt-integration.md)
 - [Implementation diary](reference/01-implementation-diary.md)
 - [Runstore v1 contract](reference/02-runstore-v1-on-disk-contract-and-recovery-guarantees.md)
 - [Snapshot and candidate v1 contract](reference/03-snapshot-and-candidate-v1-bundle-contract.md)
@@ -53,6 +54,12 @@ The current RAG-TTC proof exercises the product-owned
 the canonical Admin Chat/sessionstream cutover, and it does not own the
 customer-facing TTC Garden Assistant. Those products may add their own
 product-owned adapters later if their exact serving runtimes need optimization.
+
+The post-v0.1 production-refresh design makes `ragopt` the shared fixed
+control-plane protocol for CoinVault/GEC, the TTC Garden Assistant, and the
+RAG-TTC Admin Chat. Product repositories retain extraction, indexing, serving,
+native evaluation, scheduling, and deployment. This design is documented and
+tasked, not implemented.
 
 ## Scope Boundary
 
