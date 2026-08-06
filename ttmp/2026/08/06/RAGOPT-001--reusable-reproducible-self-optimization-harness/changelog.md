@@ -117,3 +117,5 @@ Ran the corrected I5 candidate in an isolated worktree: 6/6 cells and all native
 
 - ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/06-first-rag-ttc-i5-feedback-proof-rejection-report.md — Identities, six cell outcomes, gates, commands, and decision
 - ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Isolated setup, failures, commands, and lessons
+
+Replaced the reMarkable bundle with the nine-document default-layout edition containing the formal rejection report.
