@@ -1671,3 +1671,24 @@ git diff --check
 
 All focused tests and the complete RAG-TTC suite passed. A live feedback run
 has not yet been claimed; it is the next task and consumes real provider calls.
+
+## Step 12: Live feedback-run approval boundary
+
+I inspected the long command help to confirm the Glazed profile and structured
+output flags, then attempted to start the locked six-cell feedback run in tmux:
+
+```bash
+go run ./cmd/rag-ttc tool-loop ragopt \
+  --split feedback \
+  --profile ttc-live-luna-low \
+  --format json \
+  --log-level info
+```
+
+The execution gate rejected the start because this command sends the three
+evaluation questions and retrieved TTC evidence to configured external answer
+and judge providers and may incur provider spend. The user's implementation
+request did not count as explicit approval for this specific external payload
+and spend. No tmux session, run directory, provider call, or partial artifact
+was created. The next action is to obtain explicit approval, then run the exact
+command above and capture/resume its immutable run rather than changing scope.

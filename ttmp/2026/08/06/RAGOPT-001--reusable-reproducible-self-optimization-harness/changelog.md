@@ -98,3 +98,7 @@ Published ragopt main, pinned the portable module revision in RAG-TTC, and imple
 - abs:///home/manuel/workspaces/2026-06-30/benchmark-cpu-inference/rag-ttc/cmd/rag-ttc/cmds/chat/tooleval/ragopt.go — Product-owned execution and native artifact adapter
 - abs:///home/manuel/workspaces/2026-06-30/benchmark-cpu-inference/rag-ttc/cmd/rag-ttc/cmds/chat/tooleval/ragopt_test.go — Locked environment and arm-binding tests
 - ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Publication, implementation, failure, and validation trail
+
+## 2026-08-06 - Feedback proof run awaiting explicit provider approval
+
+Verified the exact six-cell feedback command and tmux run procedure. The live start was rejected before execution because it would export evaluation questions and retrieved evidence to external answer/judge providers and may incur spend. No provider calls or run artifacts were created.
