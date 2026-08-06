@@ -22,8 +22,18 @@ RelatedFiles:
         Proven lifecycle ported narrowly in Phase 1
     - Path: abs:///home/manuel/workspaces/2026-06-30/benchmark-cpu-inference/rag-ttc/pkg/rag/tooleval/runner.go
       Note: Implemented small Arm and Outcome comparison boundary audited in Step 2
+    - Path: repo://cmd/ragopt/commands/candidate/validate.go
+      Note: Glazed candidate validation row command
+    - Path: repo://cmd/ragopt/main.go
+      Note: Root logging and narrow Glazed parser configuration
     - Path: repo://go.mod
       Note: Normalized ragopt module and dependency baseline
+    - Path: repo://pkg/candidate/candidate.go
+      Note: Exactly-one-mutation validation in commit d2329dd
+    - Path: repo://pkg/candidate/candidate_test.go
+      Note: Phase 2 rejection matrix and identity fixtures
+    - Path: repo://pkg/candidate/snapshot.go
+      Note: Strict snapshot and asset identity loading in commit d2329dd
     - Path: repo://pkg/runstore/read.go
       Note: Strict read-only run and copied-input integrity validator in commit 9f1ccb4
     - Path: repo://pkg/runstore/run.go
@@ -36,6 +46,7 @@ LastUpdated: 2026-08-06T10:05:00-04:00
 WhatFor: Preserve the exact reasoning, commands, failures, and review guidance behind the initial ragopt design.
 WhenToUse: Read when reviewing the design or resuming implementation from the phased task ledger.
 ---
+
 
 
 
@@ -690,4 +701,220 @@ Config identity: sha256(canonical JSON with UseNumber)
 Input identity: sha256(exact copied bytes) + byte count
 Reader authority: validation only; no mutation or resume
 Code checkpoint: 9f1ccb4
+```
+
+## Step 6: Implement strict snapshots, one-mutation candidates, and validation CLI
+
+This step implements the artifact that Phase 1 runs will evaluate. A snapshot
+now identifies a complete system through verified locked assets, mutable
+assets, and semantic dimensions. A candidate now identifies two snapshots, a
+human or product proposer, an explicit hypothesis, an expected target, known
+regression risks, and diagnostic provenance. Loading independently proves that
+exactly one mutable asset's bytes changed.
+
+The same checkpoint replaces the empty binary with its first real Glazed
+command: `ragopt candidate validate`. The command is intentionally thin. It
+calls the strict library, emits one structured identity row after success, and
+never edits the bundle. The root owns logging and exposes only domain flags,
+the three Glazed v1.4 output flags, and standard logging flags.
+
+**Commit (code):** `d2329dd` — "feat(candidate): validate one-mutation bundles"
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 5)
+
+**Assistant interpretation:** Continue the ticket phase by phase, implementing
+the accepted snapshot and candidate contracts with executable rejection tests
+and a current-convention Glazed command, then checkpoint and document it.
+
+**Inferred user intent:** Ensure a candidate cannot be presented as a valid
+self-optimization step unless the repository can prove its bytes, provenance,
+locked inputs, and isolated mutation before expensive evaluation begins.
+
+### What I did
+
+- Defined `ragopt-snapshot/v1` and `ragopt-candidate/v1` public types.
+- Implemented canonical snapshot identity with asset lists sorted by logical
+  name and deterministic JSON encoding.
+- Implemented a semantic candidate digest over verified parent/child snapshot
+  IDs, proposer, mutation declaration, hypothesis, risks, and evidence.
+- Implemented strict single-document YAML decoding with unknown-field
+  rejection.
+- Implemented bundle-relative canonical path checks, symlink resolution, and
+  post-resolution confinement to a regular file inside the bundle.
+- Recomputed every asset size and SHA-256 from exact bytes.
+- Enforced unique logical names across locked and mutable asset sets.
+- Enforced stable system, dimensions, locked assets, mutable-name set, and
+  media type across the parent and child.
+- Compared actual bytes and required exactly one mutable asset change.
+- Rejected a declaration whose `mutation.asset` disagrees with the independently
+  observed change.
+- Added tests for valid mutation, declaration order, two mutations, locked
+  mutation, dimension mutation, missing files, digest/size drift, symlink
+  escape, unknown fields, multiple YAML documents, declaration mismatch, and
+  snapshot ID mismatch.
+- Added `ragopt candidate validate` using `cmds.GlazeCommand`,
+  `values.Values`, structured rows, Cobra `RunE`, and root logging.
+- Added command tests for emitted rows, wrapped errors, required flag parsing,
+  logging, and exact help-visible output flags.
+- Ran `go mod tidy`, which correctly promoted Glazed, Cobra, `pkg/errors`, and
+  YAML to direct dependencies and added the logging backend checksum.
+
+### Why
+
+- A candidate manifest cannot be trusted to report its own mutation; validation
+  must compare verified parent and child bytes.
+- Locked evaluators, suites, safety policy, corpora, indexes, and model
+  identities must be outside candidate control or measured improvement is
+  ambiguous.
+- Complete replacement assets are reviewable and deterministic; a generic
+  patch applier would add an unproved mutation surface.
+- Strict decode and confinement fail early, before an evaluator spends model
+  calls or records misleading outcomes.
+- A thin artifact CLI exercises the library without inventing a subprocess or
+  plugin protocol for product runtimes.
+
+### What worked
+
+- `go test ./pkg/candidate -count=1` passed all candidate invariants.
+- Direct Glazed command tests loaded a real temporary bundle and emitted the
+  expected identity row.
+- `go generate ./...`, `go fmt ./...`, `go test ./...`, and `go build ./...`
+  passed.
+- `go test ./pkg/candidate ./cmd/ragopt/... -race -count=1` passed.
+- Generated help contains only `--bundle`, `--manifest`, `--format`,
+  `--output-fields`, and `--max-output-rows` locally, plus root logging flags.
+- Reversing asset declaration order preserves parent snapshot, child snapshot,
+  and candidate identities.
+
+### What didn't work
+
+- The first command compile used a removed Glazed helper from a nearby project
+  on a different Glazed version and exposed a previously unused logging
+  checksum:
+
+  ```text
+  ../../../../go/pkg/mod/github.com/go-go-golems/glazed@v1.4.1/pkg/cmds/logging/init.go:16:2: missing go.sum entry for module providing package gopkg.in/natefinch/lumberjack.v2
+  cmd/ragopt/commands/candidate/validate.go:35:33: undefined: settings.NewGlazedSchema
+  ```
+
+  I inspected the pinned v1.4.1 source, replaced the removed helper with the
+  current builder-owned structured-output contract, and ran `go mod tidy`.
+
+- The initial root command explicitly installed
+  `cli.CobraCommandDefaultMiddlewares`. Generated help then contained legacy
+  command settings and the focused test failed:
+
+  ```text
+  unexpected automatic flag --config-file
+  unexpected automatic flag --print-parsed-fields
+  unexpected automatic flag --print-schema
+  unexpected automatic flag --print-yaml
+  ```
+
+  Removing the explicit middleware and manually added output section was
+  necessary but not sufficient because Glazed adds its command-settings
+  section by default.
+
+- My first attempt to use `cli.WithSkipCommandSettingsSection()` still failed
+  with the same four flags. Source inspection showed that the following
+  `WithParserConfig(...)` option replaces the entire parser config and erased
+  the previously set skip bit. I stopped after the prescribed two consecutive
+  fix attempts and reported `I think I'm stuck, let's TOUCH GRASS` rather than
+  continuing to hack at flags.
+
+- On the resumed pass, I placed `SkipCommandSettingsSection: true` inside the
+  same `CobraParserConfig` as `ShortHelpSections`. Focused tests and generated
+  help then passed without custom middleware.
+
+### What I learned
+
+- The current Glazed builder injects the structured-output section for every
+  `GlazeCommand`; command constructors should not add it manually.
+- `WithParserConfig` replaces, rather than merges, parser configuration. Related
+  parser settings must be supplied atomically or later options can erase
+  earlier builder options.
+- A candidate bundle can reuse parent paths for unchanged assets. Only the
+  changed asset needs a complete candidate replacement file.
+- Path is intentionally part of snapshot identity. Moving an unchanged file,
+  even with identical bytes, is visible metadata drift.
+- The bundle validator is read-only. Evaluated immutability is achieved only
+  when Phase 3 binds these verified identities and files into an immutable run;
+  validation alone does not make a caller-owned directory unwritable.
+
+### What was tricky to build
+
+Snapshot identity and mutation detection need different normalization rules.
+Identity includes paths, media types, sizes, and digests after sorting asset
+records. Mutation detection compares actual bytes by logical name. If bytes are
+unchanged, the full asset reference must also remain unchanged; if bytes differ,
+the media type must remain stable. This prevents a metadata-only candidate from
+appearing as a content mutation and prevents two mutation surfaces from hiding
+under one asset name.
+
+The Glazed issue was not a domain bug. Three sources of flags were initially
+conflated: the command's domain schema, builder-injected structured output, and
+parser-injected command settings. Reading the exact pinned `cobra-parser.go`
+and option implementation revealed the overwrite behavior. The correct fix was
+one parser config, not flag deletion after command construction.
+
+### What warrants a second pair of eyes
+
+- Review whether including asset paths in snapshot identity is desirable for
+  both first product integrations. The current design and tests treat path drift
+  as semantic drift.
+- Review the decision to allow symlinks that resolve to a regular file inside
+  the bundle while rejecting every symlink that resolves outside it.
+- Review whether `Proposer.Kind` should remain an arbitrary bounded string or
+  become a v1 enum after real model-proposed candidates exist.
+- Review the `Candidate` value's exported maps and slices. Callers are expected
+  to treat it as immutable; Phase 3 should project only the fields arms need.
+- The task requiring the evaluated candidate transition remains tied to Phase
+  3 run custody. Do not claim source-directory immutability before that binding
+  exists.
+
+### What should be done in the future
+
+- Phase 3 must copy or digest-link the candidate manifest, both snapshots, and
+  referenced assets into the run before executing either arm.
+- The paired runner must accept a small immutable `CandidateView`, not the
+  writable source bundle or a generic product adapter.
+- Keep the candidate CLI read-only; no `fix`, `seal`, `apply`, or production
+  mutation command should be added without separate evidence and design.
+
+### Code review instructions
+
+- Start at `pkg/candidate/types.go`, then read `snapshot.go`, `candidate.go`,
+  `digest.go`, `path.go`, and `yaml.go` in that order.
+- Review `pkg/candidate/candidate_test.go` as the executable rejection matrix.
+- Review `cmd/ragopt/commands/candidate/validate.go` for the row boundary and
+  `cmd/ragopt/main.go` for parser/logging ownership.
+- Confirm the help contract with:
+
+  ```bash
+  go run ./cmd/ragopt candidate validate --help
+  ```
+
+- Validate behavior with:
+
+  ```bash
+  go test ./pkg/candidate ./cmd/ragopt/... -count=1
+  go test ./pkg/candidate ./cmd/ragopt/... -race -count=1
+  go test ./...
+  go build ./...
+  ```
+
+### Technical details
+
+```text
+Snapshot schema: ragopt-snapshot/v1
+Candidate schema: ragopt-candidate/v1
+Asset digest: sha256(exact bytes)
+Snapshot digest: sha256(canonical JSON; assets sorted by logical name)
+Candidate digest: sha256(parent ID + child ID + proposal semantics)
+Candidate mutation: exactly one mutable asset with different verified bytes
+Locked invariants: system + dimensions + locked refs/bytes + mutable name set
+CLI output: one row on success, no false validity row on error
+Code checkpoint: d2329dd
 ```

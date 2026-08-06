@@ -38,18 +38,18 @@ synced records plus copied inputs remain valid and inspectable.
 
 ## Phase 2: System snapshots and one-mutation candidate bundles
 
-- [ ] Define `ragopt-snapshot/v1` with system name, locked assets, mutable assets, and semantic dimensions.
-- [ ] Define one canonical `AssetRef` containing logical name, media type, copied path, SHA-256, and size.
-- [ ] Canonically sort logical maps before computing snapshot identity.
-- [ ] Define `ragopt-candidate/v1` with ID, parent snapshot, proposer identity, hypothesis, expected improvement, and regression risks.
-- [ ] Store complete replacement assets; do not support model-generated patch application.
-- [ ] Resolve every candidate path inside its bundle root and reject symlink/path escapes.
-- [ ] Strictly reject unknown YAML fields, multiple YAML documents, missing files, and digest mismatches.
-- [ ] Compare parent and candidate snapshots and require exactly one changed mutable asset.
-- [ ] Reject changes to locked assets or semantic dimensions.
+- [x] Define `ragopt-snapshot/v1` with system name, locked assets, mutable assets, and semantic dimensions.
+- [x] Define one canonical `AssetRef` containing logical name, media type, copied path, SHA-256, and size.
+- [x] Canonically sort logical maps before computing snapshot identity.
+- [x] Define `ragopt-candidate/v1` with ID, parent snapshot, proposer identity, hypothesis, expected improvement, and regression risks.
+- [x] Store complete replacement assets; do not support model-generated patch application.
+- [x] Resolve every candidate path inside its bundle root and reject symlink/path escapes.
+- [x] Strictly reject unknown YAML fields, multiple YAML documents, missing files, and digest mismatches.
+- [x] Compare parent and candidate snapshots and require exactly one changed mutable asset.
+- [x] Reject changes to locked assets or semantic dimensions.
 - [ ] Make evaluated candidate directories immutable by contract and status transition.
-- [ ] Add fixtures for valid text mutation, two mutations, locked mutation, missing asset, digest mismatch, and unsafe path.
-- [ ] Implement `ragopt candidate validate` as a Glazed structured-output command.
+- [x] Add fixtures for valid text mutation, two mutations, locked mutation, missing asset, digest mismatch, and unsafe path.
+- [x] Implement `ragopt candidate validate` as a Glazed structured-output command.
 
 Exit criterion: a human-authored asset replacement produces one deterministic
 candidate digest, and every multi-surface or locked-input mutation is rejected.
