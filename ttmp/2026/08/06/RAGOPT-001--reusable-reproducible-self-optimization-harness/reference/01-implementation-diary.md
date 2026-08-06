@@ -2346,3 +2346,187 @@ Policy semantic:      sha256:75c56ff46aab7bb2b281942514faf8a7de94fa1bb4c06e2e0df
 Suite bytes:          sha256:c22b6b186d5f4bd7c2a9177271bfa0005946474b67f78fc7ca85108b9106518d
 Suite semantic:       sha256:b009f9e913179007bf2da04cadb2e75200e22e1ab38689513015721ee76781b6
 ```
+
+## Step 18: Freeze the provider consent and spend envelope
+
+This step made the pending external action reviewable instead of asking for a
+vague “provider run” approval. I traced every provider seam in the product
+adapter and native runtime, enumerated the exact benchmark questions and data
+classes sent externally, calculated hard per-stage call ceilings, documented
+local artifact retention, and wrote a narrow approval statement that excludes
+validation and retries as new runs.
+
+The inspection corrected an important initial suspicion. Reusing the shared
+cache does not turn task 67 into a byte-identical answer replay: the Admin-era
+tool loop sends answer iterations through a direct, budgeted Geppetto engine,
+while only query embeddings and judge generations use the content-addressed
+provider cache. The second run therefore produces fresh answer-model behavior
+while safely reusing exact embedding/judge work when possible.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 15)
+
+**Assistant interpretation:** Continue useful RAGOPT-001 work while explicit
+provider approval is absent, preserving the external-action boundary and
+making the eventual authorization exact, bounded, and auditable.
+
+**Inferred user intent:** Keep progressing toward a real two-run product proof
+without accidental spend, data export, validation expansion, or a fake cached
+repetition that does not exercise the product runtime.
+
+**Commit (documentation):** `c71db2c` — "docs(proof): freeze provider consent envelope"
+
+### What I did
+
+- Read the diary skill and full reference again for this continuation.
+- Read the three-case feedback suite, runtime lock, judge lock, adapter cell
+  executor, materialized tool configuration, and two-step judge implementation.
+- Inspected one prior native session config and judge summary to verify resolved
+  provider/model identities without reading credentials or environment values.
+- Traced `pkg/app/chat/tool_runtime.go` to distinguish direct answer-engine
+  calls from cached query embeddings.
+- Traced `pkg/rag/generation` and the judge code to confirm exact cache keys,
+  cache-hit behavior, and invalid-answer judge skipping.
+- Aggregated the first corrected run's native sessions: six cells, 22 answer
+  iterations, 17 search-tool invocations, and two uncached judge operations.
+- Added the external execution consent envelope to reference 07: exact
+  questions, payload classes, provider identities, hard ceilings, local
+  retention, exclusions, and reusable approval text.
+- Did not launch a tmux proof session or contact any provider.
+
+### Why
+
+- External approval should name what data leaves the machine and the maximum
+  operations it authorizes.
+- “Use the same cache directory” has different meanings at different runtime
+  layers; assuming all generation is cached would produce the wrong proof claim.
+- A call ceiling is not a cost ceiling when the adapter explicitly allows
+  unpriced operations and supplies no dollar estimates.
+- Validation is 28 cells and must remain excluded after the feedback candidate
+  failed its hard gates.
+
+### What worked
+
+- The frozen feedback suite contains only three public product-comparison
+  questions, not customer conversations.
+- Scoped SQL is disabled in the materialized tool configuration, so orders,
+  customers, private logistics facts, and live database results are excluded.
+- Provider identity is explicit in retained artifacts:
+  `openai/text-embedding-3-small` for queries,
+  `openai-responses/gpt-5.6-luna` for answers, and
+  `openai/gpt-5.6-luna` for both judge stages.
+- The hard six-cell ceilings are 18 embedding operations, 24 fresh answer
+  generations, and 12 judge generations; cells may terminate or hit caches
+  below those limits.
+- The first corrected run's observed 22/17/2 answer/search/judge counts agree
+  with the locked budgets and invalid-answer judge policy.
+
+### What didn't work
+
+- My first cache search was too broad and matched large native session
+  transcripts containing full evidence payloads. Tool output was truncated:
+
+  ```text
+  Warning: truncated output (original token count: 30028)
+  Warning: truncated output (original token count: 80769)
+  ```
+
+  I stopped using the broad result and switched to targeted source ranges and
+  narrow `jq` projections. No files changed and no provider was contacted.
+
+- The shared cache initially suggested that the second run might be a pure
+  deterministic replay. Source inspection disproved that assumption: the tool
+  answer runtime wraps `providers.Engine` with `limitedEngine`, not a cached
+  generator. I corrected the protocol before requesting authorization.
+
+- `docmgr changelog update` again appended an extra blank line, so
+  `git diff --check` reported:
+
+  ```text
+  ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/changelog.md:156: new blank line at EOF.
+  ```
+
+  I removed that single line before committing the diary bookkeeping.
+
+- The first combined cleanup patch used an incomplete diary context and failed
+  safely with `apply_patch verification failed: Failed to find expected lines`.
+  I inspected the actual paragraph and reapplied the focused patch; no partial
+  edit occurred.
+
+### What I learned
+
+- The product has three different cache/budget semantics in one cell: cached
+  query embeddings, fresh answer-engine iterations, and cached/skippable judge
+  generations.
+- Remote provider cached-input tokens shown in answer usage are billing/runtime
+  behavior and must not be confused with the local content cache.
+- The judge sees less data in stage one (question + answer) than stage two
+  (question + admitted evidence + extracted statements).
+- Because `same_family_verdicts=true`, decision stability must be interpreted
+  with the known same-family judge risk; changing the judge now would break
+  reproduction identity.
+
+### What was tricky to build
+
+The adapter passes one `cache-directory` into the runtime and judge, which
+looks like a uniform replay switch. It is not. The tool runtime creates a
+cached embedder but executes answer turns through a direct Geppetto engine with
+only a limiter. The judge separately uses cached generation steps. Establishing
+the actual consent envelope required tracing those concrete call sites rather
+than inferring behavior from CLI flags or directory names.
+
+The second sharp edge is vocabulary: “provider calls” in the common outcome
+counts product answer iterations only and deliberately excludes judge overhead.
+The consent ceiling therefore lists heterogeneous answer, embedding, and judge
+operations separately before showing the combined maximum of 54.
+
+### What warrants a second pair of eyes
+
+- Confirm that the three benchmark questions and public corpus evidence are
+  acceptable for export to the named providers.
+- Confirm that approval of bounded operation counts is acceptable despite the
+  absence of a configured USD ceiling.
+- Review whether future product adapters should require priced preflight or an
+  explicit `--max-estimated-usd` before external execution.
+- Verify after the run that local cache hits and remote cached-input tokens are
+  reported separately.
+
+### What should be done in the future
+
+- Obtain the explicit six-cell-only approval recorded in reference 07.
+- Launch exactly one fresh run in tmux; resume that same active run after a
+  transport interruption rather than creating another run.
+- Preserve the feedback-before-validation gate regardless of the operational
+  outcome.
+- Consider a priced-preflight requirement after the proof; do not change the
+  locked adapter between the two reproduction runs.
+
+### Code review instructions
+
+- Read “External Execution Consent Envelope” in reference 07.
+- Verify call topology in
+  `/tmp/rag-ttc-ragopt-proof/pkg/app/chat/tool_runtime.go` and judge payloads in
+  `cmd/rag-ttc/cmds/experiments/answerquality/judge.go`.
+- Recompute first-run observed counts with:
+
+  ```bash
+  find experiments/ragopt-runs/20260806T180004.824520651Z-ttc-i5-feedback-a1781d11159f/native \
+    -name turns.jsonl -print0 | xargs -0 jq -s \
+    '{cells:length,answer_provider_calls:(map(.agent.iterations|length)|add),tool_calls:(map(.agent.tool_calls|length)|add)}'
+  ```
+
+### Technical details
+
+```text
+Authorized split:              feedback only
+Coordinates:                   3 cases x 2 arms x 1 repeat = 6 cells
+Max query embedding work:      18 provider operations (cache misses only)
+Max answer generation work:    24 provider operations (fresh iterations)
+Max judge generation work:     12 provider operations (valid answers/cache misses only)
+Combined heterogeneous ceiling: 54 provider operations
+Configured USD ceiling:        none; AllowUnpriced=true
+Scoped SQL:                     disabled
+Validation authorization:      none
+New proof run created:          no
+```

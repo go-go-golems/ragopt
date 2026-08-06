@@ -145,3 +145,11 @@ Step 17: completed no-provider readiness checks for the second RAG-TTC proof, di
 
 - /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/06-first-rag-ttc-i5-feedback-proof-rejection-report.md — Corrected first-run policy and suite identity layers
 - /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/07-rag-ttc-i5-fresh-root-reproducibility-protocol.md — Authoritative task 67 identities, readiness evidence, and comparison criteria
+
+## 2026-08-06
+
+Step 18: froze the six-cell provider consent envelope, including exact questions, payload classes, cache behavior, provider identities, 18/24/12 operation ceilings, local retention, and the validation exclusion (commit c71db2c); no provider run was launched.
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/07-rag-ttc-i5-fresh-root-reproducibility-protocol.md — Auditable external execution authorization scope for task 67
