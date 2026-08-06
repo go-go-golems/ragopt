@@ -1306,3 +1306,109 @@ frontmatter --doc ...` form, which passed.
 - Read `pkg/gate/testdata/*.golden` as the compact decision specification.
 - Use `reference/05-paired-comparison-gate-and-promotion-report-v1-contract.md`
   for the complete intern-facing API and review guide.
+
+## Step 9: Re-deliver the implementation bundle and scope the RAG-TTC proof cycle
+
+After Phase 4, I re-uploaded the ticket because the earlier reMarkable PDF was
+the design-only checkpoint. The new bundle contains eight documents: ticket
+index, primary design, task ledger, diary, and all four implemented API
+contracts. The required dry run reported `layout=default`; no editor layout
+flag was used.
+
+```text
+DRY: layout=default
+DRY: bundle name=RAGOPT 001 Reusable Evidence Gated Optimization Harness
+DRY: remote-dir=/ai/2026/08/06/RAGOPT-001
+...
+OK: uploaded RAGOPT 001 Reusable Evidence Gated Optimization Harness.pdf
+    -> /ai/2026/08/06/RAGOPT-001
+```
+
+The `--force` replacement was intentional and authorized by the user's
+“reupload” request. It replaces the earlier same-named design bundle, so any
+annotations on that earlier remote document are not recoverable through the
+uploader.
+
+### RAG-TTC integration reconnaissance
+
+I then began Phase 5 read-only in
+`/home/manuel/workspaces/2026-06-30/benchmark-cpu-inference/rag-ttc`. The
+umbrella workspace is not itself a Git repository; `rag-ttc` is a Git worktree
+whose actual Git directory lives under `/home/manuel/code/ttc/rag-ttc`.
+
+The product repository already has unrelated user changes:
+
+```text
+ M pkg/app/chatserver/server.go
+ M profiles.yaml
+ M ttmp/.../RAG-TTC-TOOLLOOP-001.../tasks.md
+?? pkg/app/chatserver/websocket_test.go
+?? scripts/parc-corpus/
+?? several ticket source/analysis directories
+```
+
+I did not modify, stage, or clean any of them.
+
+The proven integration seam is smaller than the answer-quality batch runner:
+
+- `pkg/rag/tooleval.Arm` is already per-query and preserves native artifacts;
+- `cmd/rag-ttc/cmds/chat/tooleval/adapter.go` owns the application chat
+  runtime, satisfying the requirement that product execution stays in the
+  product repository;
+- `answerquality.JudgeToolLoop` is the existing two-stage judge and produces
+  per-cell faithfulness and answer-relevance evidence;
+- the incumbent text asset is
+  `tool-descriptions/tool-qa/search-v1.yaml`;
+- the human-authored candidate is
+  `tool-descriptions/tool-qa/search-combined-comparison-i5-v1.yaml`;
+- their corresponding complete runtime configurations are
+  `configs/tool-qa/production-product-fact-v1.yaml` and
+  `configs/tool-qa/production-product-fact-i5-combined-comparison-v1.yaml`.
+
+The candidate changes search guidance from separate named-product searches to
+one combined comparison query followed by a specific gap-filling query. This
+is exactly one human-authored text mutation and does not alter model, corpus,
+index, answer schema, safety ceilings, dataset, or judge.
+
+### Dependency publication boundary
+
+RAG-TTC cannot yet commit a clean import of `github.com/go-go-golems/ragopt`.
+The ragopt repository has a real GitHub origin, but local `main` is twelve
+commits ahead of `origin/main`:
+
+```text
+## main...origin/main [ahead 12]
+origin/main = 0a319399eaa8621580047fbdf6e7b950c11c1e9e
+local Phase 4 docs = 8cf376e
+```
+
+A machine-specific absolute `replace` directive would make RAG-TTC's committed
+module non-portable, while requiring an unpublished pseudo-version would break
+CI. Pushing is an external state change not implied by local commit authority,
+so I stopped before editing RAG-TTC and will request explicit publication
+authority.
+
+### Commands run
+
+```bash
+git status --short
+find . -maxdepth 3 -type d -name .git -print
+git -C rag-ttc status --short
+rg --files rag-ttc
+go env GOWORK
+git status -sb
+git ls-remote origin refs/heads/main
+remarquee upload bundle <eight explicit Markdown paths> \
+  --name "RAGOPT 001 Reusable Evidence Gated Optimization Harness" \
+  --remote-dir /ai/2026/08/06/RAGOPT-001 --dry-run --non-interactive
+remarquee upload bundle <same paths> \
+  --name "RAGOPT 001 Reusable Evidence Gated Optimization Harness" \
+  --remote-dir /ai/2026/08/06/RAGOPT-001 --force --non-interactive
+```
+
+### Next action after approval
+
+Push ragopt `main`, add the resulting real module revision to RAG-TTC, and
+implement the product-owned adapter by composing the existing chat runtime and
+judge. Do not introduce a generic subprocess protocol. Start with deterministic
+adapter tests and a cached/replayable fixture before spending provider budget.
