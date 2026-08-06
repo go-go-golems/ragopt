@@ -40,3 +40,13 @@ Implemented and exercised ragopt-run/v1 creation, copied inputs, atomic artifact
 - /home/manuel/code/wesen/go-go-golems/ragopt/pkg/runstore/read.go — Strict run integrity validation
 - /home/manuel/code/wesen/go-go-golems/ragopt/pkg/runstore/run.go — Phase 1 lifecycle checkpoint
 - /home/manuel/code/wesen/go-go-golems/ragopt/pkg/runstore/run_test.go — Recovery and invariant tests
+
+## 2026-08-06 - Phase 2 snapshot and candidate validation
+
+Implemented and exercised strict ragopt-snapshot/v1 identity, ragopt-candidate/v1 exactly-one-mutation validation, safe bundle resolution, and the narrow Glazed candidate validate command (commit d2329dd).
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/ragopt/cmd/ragopt/commands/candidate/validate.go — Artifact CLI checkpoint
+- /home/manuel/code/wesen/go-go-golems/ragopt/pkg/candidate/candidate.go — Phase 2 validation checkpoint
+- /home/manuel/code/wesen/go-go-golems/ragopt/pkg/candidate/candidate_test.go — Mutation and corruption fixtures
