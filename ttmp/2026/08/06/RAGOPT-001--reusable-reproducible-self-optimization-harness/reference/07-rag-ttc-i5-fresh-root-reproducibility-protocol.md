@@ -14,8 +14,12 @@ Owners: []
 RelatedFiles:
     - Path: abs:///tmp/rag-ttc-ragopt-proof/cmd/rag-ttc/cmds/chat/tooleval/ragopt.go
       Note: Locked product adapter, budgets, index default, and environment validation for task 67
+    - Path: abs:///tmp/rag-ttc-ragopt-proof/cmd/rag-ttc/cmds/experiments/answerquality/judge.go
+      Note: Exact two-stage judge payloads, cache behavior, and invalid-answer skipping
     - Path: abs:///tmp/rag-ttc-ragopt-proof/configs/ragopt/i5-combined-comparison-v1/shared/gate-policy.yaml
       Note: Exact frozen policy bytes for both proof runs
+    - Path: abs:///tmp/rag-ttc-ragopt-proof/pkg/app/chat/tool_runtime.go
+      Note: Direct answer-engine calls, cached query embeddings, budgets, and disabled SQL runtime behavior
     - Path: repo://pkg/eval/runner.go
       Note: Evaluation run policy byte-digest custody and semantic run identity
     - Path: repo://pkg/gate/evaluate.go
@@ -28,6 +32,7 @@ LastUpdated: 2026-08-06T15:07:51.868218493-04:00
 WhatFor: Prevent post-hoc definitions of reproducibility when completing RAGOPT-001 task 67.
 WhenToUse: Read before authorizing, running, comparing, or reviewing the second provider-backed I5 feedback proof.
 ---
+
 
 
 # RAG-TTC I5 Fresh-Root Reproducibility Protocol
@@ -56,7 +61,9 @@ fresh run root before GEC integration begins.
 
 The second run sends the same three evaluation questions and retrieved evidence
 to configured external answer and judge providers. It requires explicit
-approval for the additional export and spend.
+approval for the additional export and spend. Answer-generation calls are
+intentionally fresh; query embeddings and judge calls use the shared
+content-addressed cache and call providers only on misses.
 
 ## Quick Reference
 
@@ -139,6 +146,87 @@ had poor contract-valid coverage. If the second decision differs, do not call
 the harness non-reproducible automatically and do not promote. Inspect the
 paired native evidence and judge coverage, document stochastic instability,
 and decide whether the three-case feedback suite is sufficiently stable.
+
+## External Execution Consent Envelope
+
+Approval for task 67 is deliberately narrow. It authorizes **only** one new
+feedback run: three cases, two arms, one repeat, six cells. It does not authorize
+the seven-case validation split, its two repeats, a different candidate, a
+different model, retries after a terminal run, or any production mutation.
+
+### Questions exported
+
+| Case | Question |
+|---|---|
+| `ttc-y-005` | Compare Blue Ice and Carolina Sapphire Arizona Cypress for site requirements. |
+| `ttc-y-007` | How do Thuja Green Giant and Leyland Cypress differ as privacy screens? |
+| `ttc-expand-056` | Compare Pink Pearl Black Diamond and Dynamite Crape Myrtle by flower color and mature size. |
+
+These are product benchmark questions, not customer conversations. The search
+runtime reads only the frozen TTC customer-facing corpus. Scoped SQL is disabled,
+so the run does not send orders, customer records, private logistics facts,
+credentials, or live database results.
+
+### Provider payloads
+
+| Stage | Resolved provider/model | What leaves the machine | Cache behavior |
+|---|---|---|---|
+| Query embedding | `openai` / `text-embedding-3-small` / 1536 | model-generated search query strings | content-addressed; exact hits cause no provider call |
+| Answer/tool loop | `openai-responses` / `gpt-5.6-luna` through profile `ttc-live-luna-low` | question, orchestration/tool instructions, conversation state, and admitted public corpus evidence/tool results | intentionally not served from the generation cache; each admitted iteration is a fresh provider call |
+| Judge statement extraction | `openai` / `gpt-5.6-luna` through `ttc-judge-statements` | question and completed answer; no evidence | content-addressed; skipped for invalid answers |
+| Judge verdict | `openai` / `gpt-5.6-luna` through `ttc-judge-verdicts` | question, admitted evidence passages, and extracted answer statements | content-addressed; skipped for invalid answers |
+
+The verdict judge is the same model family as the answer model; the native
+judge record preserves `same_family_verdicts=true`. That is an evaluation risk
+already locked into both runs, not a reason to change the judge between them.
+
+### Hard call ceiling
+
+| Operation | Per cell | Six-cell maximum | When provider work is skipped |
+|---|---:|---:|---|
+| query embeddings | 3 | 18 | exact content-cache hit |
+| answer generations | 4 | 24 | never by local content cache; a cell may terminate earlier |
+| judge generations | 2 | 12 | invalid/abstained answer or exact content-cache hit |
+| **combined heterogeneous operations** | **9** | **54** | according to the rules above |
+
+These are operation ceilings, not a USD ceiling. The adapter sets
+`AllowUnpriced: true` and does not configure per-operation dollar estimates or
+`MaxEstimatedUSD`, so the command cannot honestly promise a monetary maximum.
+Do not infer “free” from a cache hit: the answer loop remains fresh, and remote
+provider-side cached-input billing is separate from the local content cache.
+
+For scale, the first corrected run executed 22 fresh answer-model iterations,
+recorded 17 search-tool invocations, and performed two uncached judge calls.
+Only one of six cells reached the judge because four answers were invalid and
+one arm failed. Those observations do not lower the second run's hard ceiling.
+
+### Local retention
+
+The run writes a new immutable directory under `experiments/ragopt-runs/` with:
+
+- copied candidate, suite, policy, prompt, schema, runtime, and judge inputs;
+- one cell for every arm/case coordinate, including failures;
+- full native chat sessions containing answer text, reasoning text/summary,
+  tool payloads, admitted evidence, citations, provider usage, and errors;
+- judge statements, verdicts, metrics, cache outcomes, and provider identities;
+- artifact digests, terminal status, comparison evidence, and a non-applying
+  promotion plan.
+
+Encrypted reasoning is omitted. Transcript limits remain the frozen contract:
+12,000 runes per tool payload, 24,000 reasoning runes, at most ten distinct
+evidence chunks, and at most 18,000 evidence runes per search configuration.
+
+### Approval text
+
+An unambiguous authorization can be as short as:
+
+> I approve one second RAG-TTC I5 feedback run: six cells only, with ceilings
+> of 24 answer calls, 18 embedding calls, and 12 judge calls. Do not run
+> validation.
+
+After that approval, launch exactly one new run. A transport failure may be
+resumed through the same active run directory; do not silently create another
+fresh run or expand the cell count.
 
 ## Usage Examples
 
