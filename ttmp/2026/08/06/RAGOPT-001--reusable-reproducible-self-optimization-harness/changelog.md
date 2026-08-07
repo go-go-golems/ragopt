@@ -302,3 +302,18 @@ unauthorized and unrun.
 
 - /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Exact approval scope and launch constraints.
 - /tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/candidate.yaml — Approved frozen feedback candidate.
+
+## 2026-08-07
+
+Steps 39–40 traced the first GEC proof from corpus construction through the
+promotion gate, separated comparison coverage from route-metric and contract
+defects, and registered a bounded follow-up investigation of Nomic's required
+`search_document:` and `search_query:` retrieval prefixes. The prefix candidate
+must rebuild both sides of the vector space, keep BM25 unchanged, and pass
+frozen retrieval and document-coverage gates before chatbot/provider spending.
+
+### Related Files
+
+- design-doc/03-nomic-retrieval-prefix-optimization-investigation.md — Prefix hypothesis, identity contract, evaluation sequence, pseudocode, and authoritative resources.
+- tasks.md — Product-owned GEC prefix investigation checklist under Phase 5.
+- reference/01-implementation-diary.md — Evidence trace and exact documentation actions.

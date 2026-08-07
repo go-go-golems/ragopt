@@ -5981,3 +5981,350 @@ Provider calls:            0
 Validation cells:          0
 Resume condition:          explicit second-run data-flow approval
 ```
+
+## Step 39: Trace the First GEC Proof End to End and Separate Failure Classes
+
+This step began the requested deep investigation of the first CoinVault/GEC
+feedback proof. I traced the same three cases through source extraction,
+chunking, representation construction, hybrid retrieval, evidence admission,
+tool-loop execution, projection, answer judging, RAGOPT outcome projection,
+and gate evaluation. The main result is narrower and more useful than “the RAG
+system fails badly”: schema lookup and exact-product handling worked well, while
+the comparison case exposed document-coverage, grounding, and evaluator-contract
+defects that the current three-case suite cannot reliably distinguish.
+
+### Prompt Context
+
+**User prompt (verbatim):** “Ok, do that investigation and keep a detailed
+diary but then also write a detailed report of your inestigation, along with all
+the necessary information for a new intern to understand the whole system end
+to end.
+
+Create a detailed analysis / design / investigation report that is for a new
+intern, explaining all the parts of the system needed to understand what it is,
+with prose paragraphs and bullet point sand pseudocode and diagrams and api
+references and file references. It should be very clear and technical. Store in
+the ticket and the nupload to remarkable.”
+
+**Assistant interpretation:** Investigate the observed GEC feedback failure
+using preserved native evidence; distinguish corpus, retrieval, routing,
+generation, contract, and evaluation causes; document the entire system and a
+pragmatic recovery design in the existing RAGOPT ticket; do not implement the
+proposed fixes during this review.
+
+**Inferred user intent:** Replace a vague “bad RAG” diagnosis with a reviewable
+causal account that an intern can use to understand, reproduce, and improve the
+system without repeating ad-hoc optimization work.
+
+### What I did
+
+- Froze the investigation boundary at the first completed six-cell feedback
+  run. I made no provider calls, SQL calls, embedding requests, or validation
+  runs.
+- Read the GEC source connectors and build pipeline to verify which facts enter
+  the corpus and which remain live SQL data.
+- Read the Markdown chunker call sites, raw and breadcrumb representation
+  generation, embedding-cache path, lexical/vector index construction, hybrid
+  search, reciprocal-rank fusion, optional reranking, authorization filtering,
+  chunk collapse, and evidence-ledger admission.
+- Read the `knowledge_search`, `sql_doc`, and `sql_query` tool composition and
+  the shared Geppetto tool-loop configuration.
+- Read the CoinVault answer contract prompt, evidence citation projection,
+  projection-error path, answer observer, native trace writer, decomposed
+  statement judge, RAGOPT metric projection, and trace-validation function.
+- Traced all three feedback cases by arm:
+  - the orders-table case used SQL documentation and SQL query tools;
+  - the exact-product case combined SQL facts with explanatory knowledge;
+  - the Morgan-versus-Peace comparison used knowledge search and exposed the
+    decisive evidence-coverage failure.
+- Located the specific Morgan and Peace guide documents in the frozen corpus
+  and verified that the missing facts were present in the source corpus even
+  though they were absent from the admitted top-five evidence.
+- Compared the incumbent and challenger search queries, requested roles,
+  returned document identities, tool-call counts, token counts, judge scores,
+  projection errors, and final RAGOPT metrics.
+- Re-read the prior GEC optimization handoff and design documents to compare
+  these observed failures with already documented weaknesses and rejected
+  optimization tracks.
+
+### Why
+
+The failed candidate changed only prose in the `knowledge_search` description.
+That is too small a surface to justify conclusions about the corpus, vector
+model, rank fusion, reranker, tool loop, or whole chat system. A useful diagnosis
+has to follow each result across the full data path and identify exactly where
+the necessary evidence existed, where it was lost, and whether the evaluator
+measured the loss correctly.
+
+### What worked
+
+- The immutable bundle contained the authoritative Morgan and Peace guide
+  documents with the relevant designers, dates, imagery, and historical facts.
+- The schema case achieved perfect relevance and faithfulness in both arms.
+- The challenger exact-product path was operationally efficient: it avoided
+  one failed SQL attempt, used fewer calls and tokens, and slightly improved
+  faithfulness while preserving exact live product facts through SQL.
+- The native trace preserved enough tool calls, evidence IDs, answers,
+  projection events, operation counts, and identities to reconstruct the
+  failure without another provider run.
+- RAGOPT correctly rejected the challenger on the hard faithfulness floor and
+  retained the rejected evidence rather than promoting a metric story.
+- The prior handoff accurately warned that a source-role-description mutation
+  was cheap, likely low-value, and should be killed if it did not move quality.
+
+### What didn't work
+
+- The comparison challenger returned five chunks but only two documents; four
+  chunks came from one broad guide. Correct specific Morgan and Peace guides
+  existed but did not reach the admitted evidence.
+- Evidence admission deduplicates by chunk, not document, so one long general
+  document can occupy most of a small top-k result.
+- Several admitted chunks begin mid-sentence. That removes the local subject
+  required to make a fragment independently useful to the answer model or
+  statement judge.
+- The answer model filled missing evidence with plausible general knowledge.
+  The comparison challenger produced twenty judged factual statements, of
+  which only nine were supported by admitted evidence.
+- `source_role_match` examines only `knowledge_search` roles. It scored the
+  SQL-only schema case as zero and penalized the exact-product challenger even
+  though SQL had already established the product facts. The metric therefore
+  confuses tool-route correctness with knowledge-role selection.
+- The multi-document retrieval case counts any one expected document as a hit.
+  The broad category guide therefore satisfies retrieval success even when the
+  two specific comparison documents are missing.
+- Native `contract_valid` checks only terminal completion, session identity,
+  non-empty answer text, and the presence of a provider call. It ignores
+  projection errors, invalid evidence citations, malformed required blocks,
+  tool errors, and answer-protocol violations.
+- The incumbent schema answer cited `[E1]` without any knowledge evidence. The
+  runtime emitted a projection error, yet the cell remained contract-valid.
+- The challenger schema answer contained a malformed pills closing tag, yet no
+  contract failure was recorded.
+- Judge artifacts projected into RAGOPT retain aggregate statement counts and
+  scores but not the per-statement verdicts and reasons needed for efficient
+  diagnosis.
+
+Two attempts to run the local retrieval evaluator did not produce new data.
+The first command used a nonexistent flag:
+
+```text
+unknown flag: --with-glaze-output
+```
+
+The corrected command then could not reach local Ollama inside the sandbox:
+
+```text
+dial tcp 127.0.0.1:11434: socket: operation not permitted
+```
+
+The one requested escalated retry was not approved before the automatic review
+deadline. I stopped instead of retrying again. The preserved bundle and native
+feedback artifacts were sufficient for the investigation.
+
+### What I learned
+
+- The current failure is not evidence that lexical/vector hybrid retrieval is
+  globally broken. It is direct evidence that multi-document comparison
+  coverage and answer grounding are weak under the current top-k and prompt.
+- Product routing has at least three independent dimensions: which tool class
+  is appropriate, which knowledge roles are appropriate given prior tool
+  evidence, and whether the returned documents cover every evidence need.
+- Retrieval hit-at-k can look healthy while a comparison answer fails because
+  “any expected document” does not measure breadth.
+- A production answer contract must consume projection and citation errors;
+  merely recording them makes debugging possible but does not make evaluation
+  trustworthy.
+- Model-authored self-grades are useful telemetry, not an authoritative gate.
+- The next optimization should first repair observability and evaluator
+  semantics. Changing RRF weights, embeddings, or rerankers before that would
+  optimize against an ambiguous signal.
+
+### What was tricky to build
+
+The hardest distinction was between a true retrieval failure and an evaluation
+failure. The comparison retrieval did find a relevant broad guide, so the
+current retrieval metric reports success. The answer still lacked the specific
+documents needed to support all requested contrasts, so faithfulness failed.
+Both observations are true. The missing concept is document-level evidence
+coverage, not another undifferentiated relevance number.
+
+The exact-product case was similarly subtle. A static expected `product` role
+looks reasonable in isolation, but the runtime had already queried the live SQL
+product row. Requiring another product document can add redundant context and
+cost. The correct metric has to evaluate the complete tool route and evidence
+ledger, not one tool call independently.
+
+### What warrants a second pair of eyes
+
+- Confirm the proposed split between tool-route correctness, knowledge-role
+  correctness, document coverage, citation validity, and answer faithfulness.
+- Review whether product-level document diversity should be implemented before
+  a more expensive reranker experiment.
+- Review whether multi-entity comparisons should use two focused searches or
+  one search with a document-diversity constraint.
+- Confirm which required UI answer blocks are contractual per query type before
+  making malformed blocks fatal.
+- Review private artifact retention for per-statement judge verdicts because
+  they may contain SQL-derived or customer-visible business data.
+
+### What should be done in the future
+
+- Add statement-level judge verdicts and retrieval-stage traces to private
+  native artifacts before launching another candidate.
+- Strengthen product-owned trace validation to include projection errors,
+  citation resolution, required answer blocks, and tool failures.
+- Replace the single source-role score with route-aware and coverage-aware
+  metrics.
+- Grow feedback from three cases to a small stratified suite containing SQL-only,
+  exact entity, retrieval-only, mixed SQL-plus-knowledge, multi-document
+  comparison, ambiguity, abstention, and authorization cases.
+- Test one mutation at a time. The first retrieval candidate should be a small
+  document-diversity rule or per-document chunk cap for comparison evidence,
+  not a new workflow engine or autonomous optimizer.
+- Keep these semantics in GEC until the same mechanism is proven necessary in
+  TTC. RAGOPT should continue to own paired execution, custody, budgets, gates,
+  and reporting rather than product query behavior.
+
+### Code review instructions
+
+- Start with the forthcoming investigation report, then inspect these paths:
+  - `internal/knowledgebuild/connectors.go`
+  - `internal/knowledgebuild/build.go`
+  - `internal/knowledge/service.go`
+  - `internal/knowledge/tool.go`
+  - `internal/knowledge/evidence.go`
+  - `internal/webchat/runtime_prompts.go`
+  - `internal/webchat/coinvault_projection_feature.go`
+  - `internal/knowledge/judge.go`
+  - `cmd/coinvault/cmds/knowledge_ragopt.go`
+  - `cmd/coinvault/cmds/knowledge_ragopt_trace.go`
+- Review the frozen candidate and suite under
+  `/tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1`.
+- Review aggregate outcomes with `ragopt compare`; inspect raw prompts, SQL
+  context, and answers only in the approved private artifact location.
+- Do not infer bundle or runtime defects solely from the rejected candidate's
+  aggregate score.
+
+### Technical details
+
+```text
+Investigation source:      first completed GEC feedback proof only
+Feedback cases:            3
+Paired cells:              6
+New provider calls:        0
+New SQL calls:             0
+Validation cells:          0
+Bundle documents:          16032
+Bundle chunks:             44175
+Representations:           88350 raw + breadcrumb
+Comparison returned docs:  incumbent 5 chunks / 5 docs
+                            challenger 5 chunks / 2 docs
+Comparison support:        incumbent 11 / 17 statements
+                            challenger 9 / 20 statements
+Primary proven defect:     comparison evidence coverage
+Primary metric defect:     route/role/coverage conflation
+Primary contract defect:   projection errors do not invalidate cells
+Immediate action:          repair measurement before tuning retrieval
+```
+
+## Step 40: Register the Nomic Retrieval-Prefix Investigation
+
+This step converted the newly identified embedding-prefix question into a
+bounded follow-up track and a concise design document. It records a plausible
+defect without prematurely calling it the cause of the GEC comparison failure.
+
+### Prompt Context
+
+**User prompt (verbatim):** “ok, make a follow up optimization investigation
+task, so we don't forget it. Write a concise design document with resource
+links about the prefix optimization.”
+
+**Assistant interpretation:** Add a durable task group and technical design to
+RAGOPT-001 for testing Nomic's asymmetric retrieval prefixes in GEC.
+
+**Inferred user intent:** Preserve a promising, model-specific experiment while
+keeping the ongoing diagnosis disciplined and reproducible.
+
+### What I did
+
+- Created `design-doc/03-nomic-retrieval-prefix-optimization-investigation.md`
+  through docmgr with related GEC source paths and authoritative external
+  resources.
+- Documented the incumbent raw-text policy and challenger
+  `search_document:`/`search_query:` policy as one embedding-transform mutation.
+- Added an end-to-end diagram, Go-like pseudocode, bundle-identity requirements,
+  experiment gates, alternatives, open questions, and five implementation
+  tracks.
+- Added a dedicated GEC follow-up checklist to `tasks.md`.
+- Required frozen retrieval evaluation and multi-document coverage measurement
+  before any answer or judge calls.
+
+### Why
+
+Nomic's upstream model card explicitly requires task instruction prefixes for
+retrieval, while the current GEC application passes raw text. The hypothesis is
+strong enough to preserve, but it changes every vector and must be evaluated as
+an immutable candidate rather than patched into the live query path.
+
+### What worked
+
+- The track is isolated from RRF, reranking, chunking, document diversity, and
+  chatbot prompt changes.
+- Both document and query transforms are locked together.
+- BM25 remains unchanged, preserving a valid hybrid comparison.
+- The design prevents answer-provider spending when retrieval gates already
+  reject the candidate.
+
+### What didn't work
+
+- The installed Ollama model digest and Modelfile have not yet been inspected,
+  so application responsibility for the prefix still needs a preflight.
+- No candidate bundle or benchmark was built in this documentation step.
+
+### What I learned
+
+- Provider, model, and dimensions are not a complete embedding identity for an
+  instruction-tuned model; the input transform is semantic configuration.
+- Embedding-cache keys must include that transform or a rebuild can silently
+  reuse vectors from the wrong policy.
+
+### What was tricky to build
+
+The key scope choice was keeping the mechanism product-owned. RAGOPT can freeze
+and compare the mutation, but it should not know Nomic prompt strings. ragkit
+should receive a generic transform only after more than one consumer proves the
+need.
+
+### What warrants a second pair of eyes
+
+- Verify the installed Ollama model's actual upstream revision and Modelfile.
+- Review the document-coverage gate before freezing the evaluation suite.
+- Confirm whether a later ragkit extraction has a second proven consumer.
+
+### What should be done in the future
+
+- Execute Tracks P1–P4 in order.
+- Stop before chatbot feedback if retrieval gates fail.
+- Test document diversity separately if prefixes improve similarity without
+  restoring comparison breadth.
+
+### Code review instructions
+
+- Read `design-doc/03-nomic-retrieval-prefix-optimization-investigation.md`.
+- Review the new task group under Phase 5 in `tasks.md`.
+- Compare build-time `internal/knowledgebuild/build.go:170` with query-time
+  `internal/knowledge/service.go:47` in the GEC repository.
+
+### Technical details
+
+```text
+Design document:           design-doc/03
+Candidate mutation:        embedding input transform
+Document prefix:           `search_document: `
+Query prefix:              `search_query: `
+Dimensions:                768 unchanged
+Lexical input:             unchanged
+Provider calls this step:  0
+Bundle built:              no
+First gate:                frozen retrieval evaluation
+```

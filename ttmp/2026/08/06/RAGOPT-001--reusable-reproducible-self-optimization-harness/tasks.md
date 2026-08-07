@@ -117,6 +117,34 @@ correctly rejected; candidate promotion is not a phase-exit requirement.
 - [ ] Run one GEC-RAG human-authored candidate twice with a frozen suite and policy.
 - [x] Document integration friction before adding any generic API to `ragopt`.
 
+### GEC follow-up optimization investigation: Nomic retrieval prefixes
+
+This is a product-owned investigation recorded here so it is not lost after
+the first source-role candidate rejection. It does not block RAGOPT v0.1 unless
+the GEC proof chooses it as the next candidate.
+
+- [x] Document the Nomic `search_document:` / `search_query:` hypothesis and
+  authoritative resources in
+  `design-doc/03-nomic-retrieval-prefix-optimization-investigation.md`.
+- [ ] Record the installed Ollama `nomic-embed-text` digest, upstream revision,
+  and Modelfile; verify whether the server already transforms raw input.
+- [ ] Add document-coverage expectations for frozen multi-document retrieval
+  cases before inspecting candidate results.
+- [ ] Freeze one embedding-transform candidate with both prefixes; do not
+  combine it with RRF, reranking, chunking, or document-diversity changes.
+- [ ] Include transform version and exact document/query prefixes in the GEC
+  bundle's semantic identity and embedding-cache namespace.
+- [ ] Apply the document prefix only on embedding input and the query prefix
+  only on vector-query input; keep lexical BM25 input unchanged.
+- [ ] Build and verify fresh incumbent and challenger vector bundles.
+- [ ] Run frozen lexical/vector/fused retrieval evaluation and compare overall,
+  group, and multi-document coverage metrics plus latency.
+- [ ] Reject without answer/judge calls if retrieval gates fail.
+- [ ] If retrieval gates pass, run bounded paired feedback twice; keep
+  validation closed until feedback passes.
+- [ ] Record whether the mechanism remains GEC-owned or has evidence for later
+  extraction into ragkit; do not generalize it into RAGOPT.
+
 Exit criterion: two product repositories use the library without a generic
 subprocess/plugin protocol, and one human candidate completes the path twice in
 each repository with explainable identities and paired outcomes. A stable,
