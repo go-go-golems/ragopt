@@ -317,3 +317,18 @@ frozen retrieval and document-coverage gates before chatbot/provider spending.
 - design-doc/03-nomic-retrieval-prefix-optimization-investigation.md — Prefix hypothesis, identity contract, evaluation sequence, pseudocode, and authoritative resources.
 - tasks.md — Product-owned GEC prefix investigation checklist under Phase 5.
 - reference/01-implementation-diary.md — Evidence trace and exact documentation actions.
+
+## 2026-08-07
+
+Step 41 added the intern-facing end-to-end GEC CoinVault investigation and
+pragmatic recovery guide. It reconstructs the corpus, bundle, hybrid retrieval,
+tool loop, evidence and answer contracts, judge, RAGOPT boundary, and every
+feedback case; separates proven failures from hypotheses; and adds product-owned
+measurement, suite, retrieval, grounding, and proof tasks to the ticket ledger.
+No product code, provider run, SQL read, or validation run was performed.
+
+### Related Files
+
+- reference/10-gec-coinvault-rag-end-to-end-failure-investigation-and-pragmatic-recovery-guide.md — Complete system investigation and recovery design.
+- tasks.md — Trackable GEC recovery phases A–E.
+- reference/01-implementation-diary.md — Investigation authorship, evidence boundaries, and review instructions.

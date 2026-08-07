@@ -145,6 +145,64 @@ the GEC proof chooses it as the next candidate.
 - [ ] Record whether the mechanism remains GEC-owned or has evidence for later
   extraction into ragkit; do not generalize it into RAGOPT.
 
+### GEC recovery track after the first feedback investigation
+
+These are product-owned follow-up tasks derived from
+`reference/10-gec-coinvault-rag-end-to-end-failure-investigation-and-pragmatic-recovery-guide.md`.
+They are recorded in this integration ticket for continuity; implementation
+belongs in GEC unless a mechanism is independently proven generic.
+
+#### A. Measurement correctness
+
+- [ ] Preserve statement-level judge verdicts, evidence IDs, and reasons in the
+  private GEC native artifact.
+- [ ] Record lexical, vector, fused, authorized, reranked, and returned hit IDs,
+  ranks, document IDs, roles, and scores.
+- [ ] Make unresolved citation and projection errors fail the final answer
+  contract.
+- [ ] Validate required final-answer blocks by query type.
+- [ ] Distinguish recovered intermediate tool errors from unresolved final
+  failures.
+- [ ] Replace `source_role_match` with tool-route, knowledge-role,
+  document-coverage, and citation metrics.
+
+#### B. Feedback-suite coverage
+
+- [ ] Freeze 15–25 stratified feedback cases covering SQL-only, exact entity,
+  retrieval-only, mixed SQL/knowledge, comparison, jargon, ambiguity,
+  abstention, and authorization.
+- [ ] Declare evidence needs and allowed tools per case.
+- [ ] Add required document groups and complete coverage@k for comparisons.
+- [ ] Freeze a separate held-out validation suite before candidate results are
+  inspected.
+
+#### C. Targeted retrieval candidates
+
+- [ ] Execute the Nomic prefix track above as its own one-mutation candidate.
+- [ ] If evidence still concentrates by document, freeze a separate simple
+  per-document chunk-cap/diversity candidate.
+- [ ] Protect exact-product, schema, and single-guide groups from regression.
+- [ ] Do not combine prefix, diversity, chunking, RRF, reranker, or synonym
+  changes in one candidate.
+
+#### D. Answer grounding
+
+- [ ] After retrieval evidence is adequate, freeze one prompt candidate that
+  forbids filling missing material facts from model memory.
+- [ ] Require adjacent citations for material knowledge claims and explicit
+  qualification when evidence is insufficient.
+- [ ] Measure unsupported-claim rate and citation coverage separately from
+  relevance.
+
+#### E. Proof and release boundary
+
+- [ ] Run a passing candidate twice from fresh feedback roots with declared
+  provider and token ceilings.
+- [ ] Inspect all failures and protected-group regressions.
+- [ ] Keep validation closed unless feedback passes.
+- [ ] Produce a non-applying promotion plan and leave bundle activation and
+  rollback to the GEC deployment path.
+
 Exit criterion: two product repositories use the library without a generic
 subprocess/plugin protocol, and one human candidate completes the path twice in
 each repository with explainable identities and paired outcomes. A stable,
