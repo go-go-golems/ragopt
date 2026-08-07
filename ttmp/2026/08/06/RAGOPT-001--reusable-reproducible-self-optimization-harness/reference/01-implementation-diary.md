@@ -5581,3 +5581,98 @@ Validation cells:           0
 Resume path A:              approve current data surface
 Resume path B:              choose sanitized/allowlisted data and refreeze
 ```
+
+## Step 36: Receive Explicit Approval for the Frozen GEC Data Flow
+
+This step resolves the three-turn execution blocker. After the consent request
+explicitly described the answer and judge destinations, the selectable SQL
+surface, sensitive data classes, local embedding path, provider ceilings, and
+validation exclusion, the user approved the run without requesting a narrower
+database or table allowlist.
+
+The approval authorizes only the already frozen six-cell feedback proof. It
+does not authorize validation, a different candidate, higher ceilings,
+deployment, or unrelated database exploration. The next action is to launch
+the prepared command unchanged in tmux and preserve every native artifact.
+
+### Prompt Context
+
+**User prompt (verbatim):** "i approve"
+
+**Assistant interpretation:** Approve the immediately preceding explicit
+consent envelope for the six GEC feedback cells, including possible sensitive
+`gec_dev` and readable production-snapshot SQL results sent to the configured
+OpenAI answer and judge providers.
+
+**Inferred user intent:** Unblock the real production-shaped GEC RAGOPT proof
+under the frozen cost, token, data-flow, and split constraints.
+
+### What I did
+
+- Treated the approval as acceptance of the full consent text immediately
+  preceding it.
+- Reactivated the RAGOPT-001 goal from its formally blocked state.
+- Preserved the existing candidate, snapshots, source lock, bundle copy,
+  judge-cache copy, profiles, and operation ceilings unchanged.
+- Kept `split=feedback`; validation remains excluded.
+
+### Why
+
+- The approval is meaningful only when bound to the exact disclosed payload,
+  destinations, and ceilings.
+- Reusing the preflight-proven inputs avoids invalidating the authorization or
+  introducing an unreviewed experiment identity.
+
+### What worked
+
+- The data-flow blocker is resolved explicitly by the user.
+- No refreeze or product-policy change is required.
+- No provider call occurred while recording consent.
+
+### What didn't work
+
+- N/A
+
+### What I learned
+
+- Cost authorization and sensitive-data authorization should be captured
+  together before future administrative-agent evaluation runs.
+
+### What was tricky to build
+
+The user response is short, so its scope depends on conversational adjacency.
+The accepted envelope is the immediately preceding detailed request, not a
+general approval for future providers, candidates, databases, or validation.
+
+### What warrants a second pair of eyes
+
+- Confirm the resulting run command exactly matches the approved profiles,
+  data sources, six-cell feedback split, and ceilings.
+- Confirm no validation case is created or executed.
+
+### What should be done in the future
+
+- Store this consent evidence beside the resulting run identities and usage.
+- Require a new approval if any provider, data surface, split, candidate, or
+  ceiling changes.
+
+### Code review instructions
+
+- Read Steps 33–36 as one consent record.
+- Compare the launch command to the Step 36 technical details before trusting
+  any resulting artifacts.
+
+### Technical details
+
+```text
+Approved split:             feedback only
+Approved cells:             6
+Approved answer calls:      24 maximum
+Approved embedding calls:   18 maximum, local Ollama
+Approved judge calls:       12 maximum
+Approved answer tokens:     500000 maximum
+Approved SQL surface:       gec_dev plus readable gec_prod_20260805
+Approved destinations:      configured OpenAI answer and judge providers
+Validation authorized:      no
+Provider calls at consent:  0
+```
