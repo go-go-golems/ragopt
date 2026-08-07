@@ -5852,3 +5852,132 @@ Validation cells:          0
 Raw artifacts committed:   no
 Next gate:                 fresh-root feedback repeat
 ```
+
+## Step 38: Preserve the Rejected Repeat Launch Boundary
+
+This step prepared the separately approved fresh-root repeat and attempted to
+start it unchanged. The execution gate rejected the launch because it did not
+bind the user's short approval to a second external disclosure. I stopped
+without retrying or changing the execution surface. No tmux session, run root,
+database query, embedding request, answer call, judge call, or validation cell
+was created.
+
+### Prompt Context
+
+**User prompt (verbatim):** "i approve"
+
+**Assistant interpretation:** Approve one second identical six-cell GEC
+feedback repeat with the same candidate, database surface, configured OpenAI
+answer and judge destinations, local Ollama embeddings, and frozen ceilings.
+Validation remains unauthorized.
+
+**Inferred user intent:** Complete Phase 5's fresh-root reproducibility proof
+without altering or validating the already rejected candidate.
+
+### What I did
+
+- Committed the first-run report, Step 37 diary, tasks, changelog, and printed
+  work-slip source as RAGOPT commit `88a9325`.
+- Copied the untouched 242-entry product judge cache into
+  `/tmp/ragopt-gec-feedback-judge-cache-2`, rather than reusing the first
+  run's cache with 12 newly written verdicts.
+- Verified `/tmp/gec-ragopt-feedback-proof-2` and tmux session
+  `ragopt-gec-feedback-2` did not exist, and that the isolated GEC worktree
+  remained clean at `e2d1997`.
+- Requested the same feedback-only command with a fresh run root and cache and
+  the same `24/18/12/500000` ceilings.
+- Stopped immediately when the launch gate rejected the authorization scope.
+
+### Why
+
+- A repeat is a new set of possible SQL-derived disclosures even when every
+  experiment identity and ceiling is unchanged.
+- Reusing the first run's newly populated judge cache would reduce provider
+  operations and make operation-level repeat evidence less comparable.
+- A rejected authorization cannot be solved by changing shells, invoking the
+  command indirectly, or weakening the real production tool surface.
+
+### What worked
+
+- The fresh cache copy contains exactly the original 242 files.
+- Candidate, source, profile, bundle, suite, policy, and ceilings remain
+  unchanged and ready.
+- The authorization gate stopped execution before any external or application
+  data operation.
+- Validation remains unrun.
+
+### What didn't work
+
+The execution request was rejected with this exact reason:
+
+```text
+This starts a second provider-backed GEC run that may export sensitive
+SQL-derived data, but the user's approval covered the first six-cell run and
+did not explicitly authorize this repeat; validation is excluded but the
+repeat itself is a new external data disclosure.
+```
+
+The user approval was intended as second-run approval in the conversation,
+but the execution reviewer did not accept that binding. The repeat therefore
+did not start.
+
+### What I learned
+
+- Approval text for repeated sensitive evaluations should explicitly say
+  "second run" and restate the destinations and data class, even when the
+  preceding request already contains that scope.
+- Provider budget approval, first-run disclosure approval, and repeat-run
+  disclosure approval remain distinct operational records.
+
+### What was tricky to build
+
+The only ambiguity is conversational reference, not experiment construction.
+The reply "i approve" immediately followed the repeat consent request and was
+interpreted as authorizing it, but enforcement treated it as inherited from
+the first run. Retrying the same command after that rejection would violate
+the boundary rather than clarify it.
+
+### What warrants a second pair of eyes
+
+- Confirm that the next approval explicitly names the second six-cell repeat,
+  possible `gec_dev` and readable production-snapshot SQL-derived context, and
+  the configured OpenAI answer and judge providers.
+- Confirm the repeat command still uses the 242-entry fresh cache copy and a
+  new empty run root before launch.
+
+### What should be done in the future
+
+- Resume only after an explicit second-run data-flow approval.
+- Launch the prepared command once; do not run validation.
+- Compare semantic identities and the final decision, then document and print
+  the reproducibility result.
+
+### Code review instructions
+
+- Confirm the absence of execution artifacts:
+
+  ```bash
+  tmux has-session -t ragopt-gec-feedback-2
+  test -e /tmp/gec-ragopt-feedback-proof-2
+  ```
+
+- Confirm the fresh cache has 242 files and the first-run cache has 254 files.
+- Resume from this consent boundary; do not rebuild the candidate.
+
+### Technical details
+
+```text
+Requested execution:       second identical six-cell feedback repeat
+Run root:                  /tmp/gec-ragopt-feedback-proof-2
+Judge cache:               /tmp/ragopt-gec-feedback-judge-cache-2
+Fresh cache entries:       242
+Answer call ceiling:       24
+Embedding call ceiling:    18, local Ollama
+Judge call ceiling:        12
+Answer token ceiling:      500000
+Run directory created:     no
+Tmux session created:      no
+Provider calls:            0
+Validation cells:          0
+Resume condition:          explicit second-run data-flow approval
+```
