@@ -364,3 +364,16 @@ expected, validation remains closed, and no RAGOPT generic API changed.
 
 - /tmp/gec-rag-depth8-proof/configs/ragopt/default-results-8-v1/candidate.yaml — GEC-owned candidate consumed opaquely by RAGOPT
 - /tmp/gec-rag-depth8-proof/ttmp/2026/08/07/GEC-RAG-EVAL-001--broader-retrieval-and-full-chat-evaluation-corpus/reference/07-depth-8-candidate-provider-free-preflight-receipt.md — Product identity and zero-call receipt
+
+## 2026-08-07
+
+Step 45 applied generic compare/report to the complete eight-cell GEC proof and
+preserved the truthful `fail` decision. Product-native review found every
+knowledge call explicitly requested limit five, so the configured 5-to-8
+fallback was not exercised. The conditional repeat and validation remain
+closed; no generic API changed.
+
+### Related Files
+
+- /tmp/gec-rag-depth8-proof/ttmp/2026/08/07/GEC-RAG-EVAL-001--broader-retrieval-and-full-chat-evaluation-corpus/reference/08-depth-8-feedback-proof-investigation-and-mechanism-exercise-report.md — Product-owned causal diagnosis and follow-up design
+- /tmp/ragopt-gec-eval-proof/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/tasks.md — First-run rejection and closed repeat ledger

@@ -6810,3 +6810,105 @@ Provider calls:      0
 Validation:          closed
 Next gate:           first feedback run
 ```
+
+## Step 45: Gate the GEC Depth-8 Proof and Preserve the Product Defect
+
+RAGOPT consumed the completed eight-cell GEC run without any generic API
+change. `compare` reconstructed all four pairs and returned `fail`; `report`
+produced the required non-applying review plan. GEC native review then showed
+the candidate's configured fallback was never exercised: every knowledge call
+explicitly requested limit five.
+
+### Prompt Context
+
+**User prompt (verbatim):** “I approve the eight-cell GEC feedback run and the
+described SQL-derived data flow to the configured answer and judge providers;
+no validation.”
+
+**Assistant interpretation:** Execute the product-owned run, then use RAGOPT's
+generic custody, comparison, policy, and report contracts exactly as designed.
+
+**Inferred user intent:** Reject fake or ineffective optimization evidence even
+when a candidate is mechanically valid and the product run completes.
+
+### What I did
+
+- Loaded the private completed GEC run through generic `ragopt compare`.
+- Verified four complete pairs, eight contract-valid cells, and zero failures.
+- Applied the byte-frozen gate and preserved decision `fail`.
+- Ran `ragopt report` to create a Markdown review and `review_required`,
+  human-apply-required JSON plan.
+- Cross-referenced the GEC native diagnosis that all six knowledge calls sent
+  explicit limit five and the schema pair made no knowledge call.
+- Closed the conditional repeat for this candidate.
+- Updated the RAGOPT ledger without adding GEC knowledge fields or semantics.
+
+### Why
+
+- RAGOPT should enforce custody and policy while the product explains whether
+  its own mutation was exercised.
+- A fresh-root repeat is allowed only after a passing, contract-sound first
+  proof; neither condition holds.
+
+### What worked
+
+- Generic comparison and reporting consumed the product outcomes unchanged.
+- Identity, pairing, completion, contract, and failure-rate checks passed.
+- The non-applying boundary held.
+- GEC native artifacts retained the detail needed to invalidate a misleading
+  causal interpretation.
+
+### What didn't work
+
+- Candidate minimum faithfulness was `0.384615`, below the `0.80` floor.
+- Mean answer relevance delta was `-0.015`.
+- The attempted 5-to-8 fallback change had no effective retrieval treatment.
+
+### What I learned
+
+- Product-native mechanism exercise is a required complement to generic
+  exactly-one-mutation validation.
+- RAGOPT does not need a `knowledge_search.limit` field. An opaque,
+  product-supplied contract failure is sufficient if later generalized.
+- First-run rejection is successful harness behavior, not an incomplete proof.
+
+### What was tricky to build
+
+The harness must preserve both truths: the generic gate legitimately failed
+the observed outcomes, and the product cannot causally attribute those outcomes
+to depth eight. Encoding GEC-specific requested limits in RAGOPT would solve the
+wrong problem and violate repository ownership.
+
+### What warrants a second pair of eyes
+
+- Confirm the generic report and plan are non-applying.
+- Confirm the next mechanism assertion remains product-owned.
+- Confirm no validation or repeat was run.
+
+### What should be done in the future
+
+- Let GEC add effective-limit observation and exercise assertions.
+- Accept a new candidate only after product preflight can prove its deterministic
+  portions and feedback traces can prove its dynamic treatment.
+- Consider only an opaque generic mechanism check if a second product proves the
+  same contract shape.
+
+### Code review instructions
+
+- Read GEC `reference/08-depth-8-feedback-proof-investigation-and-mechanism-exercise-report.md`.
+- Review the generic decision rows and non-applying plan in the private run.
+- No RAGOPT executable code changed in this step.
+
+### Technical details
+
+```text
+Run cells:                    8 / 8
+Complete pairs:               4 / 4
+Generic decision:             fail
+Minimum candidate faithfulness: 0.384615 / 0.80
+Mean relevance delta:         -0.015
+Product mechanism exercised:  no
+Fresh-root repeat:            no
+Validation:                   no
+New generic APIs:             0
+```

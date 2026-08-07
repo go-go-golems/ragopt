@@ -123,11 +123,18 @@ correctly rejected; candidate promotion is not a phase-exit requirement.
   record candidate digest `44828f73...`.
 - [x] Pass the GEC provider-free preflight for four feedback cases, eight cells,
   and zero provider/SQL/embedding/judge execution.
-- [ ] Run the first eight-cell GEC feedback proof and apply the frozen gate.
-- [ ] Repeat from a fresh root only if the first proof passes and native review
+- [x] Run the first eight-cell GEC feedback proof and apply the frozen gate;
+  decision `fail`, eight of eight cells complete.
+- [x] Do not repeat from a fresh root because the first proof failed and native
+  review found the treatment was not exercised.
+- [ ] Repeat from a fresh root only if a future first proof passes and native review
   finds no contract defect.
-- [ ] Run one GEC-RAG human-authored candidate twice with a frozen suite and
-  policy, or retain a first-run rejection as the truthful terminal result.
+- [x] Retain the first-run GEC rejection as the truthful terminal result for
+  this candidate; do not seek a favorable repeat.
+- [x] Record that all six knowledge calls explicitly requested limit five, so
+  `DefaultResults: 5 -> 8` was configured but not exercised.
+- [ ] Accept future product metrics only after GEC supplies a product-owned
+  treatment-exercise assertion; keep the generic outcome opaque.
 - [x] Document integration friction before adding any generic API to `ragopt`.
 
 ### GEC follow-up optimization investigation: Nomic retrieval prefixes
