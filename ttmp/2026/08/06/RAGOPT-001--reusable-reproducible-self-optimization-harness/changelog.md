@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-08-06 - First GEC production-loop feedback proof
+
+Executed the frozen GEC source-role candidate through six production-shaped
+Admin Chat feedback cells. All cells, identities, native links, and budgets
+were valid, proving the RAGOPT integration path; the candidate itself was
+rejected after relevance and source-role match decreased and one answer fell
+below the 0.8 faithfulness floor. Validation remained closed. Recorded the
+measured product integration friction without adding a generic adapter API.
+
+### Related Files
+
+- ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/09-first-gec-feedback-proof-and-source-role-candidate-rejection.md — Sanitized identities, budgets, routes, metrics, gate decision, and repeat protocol
+- ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Exact execution narrative and review instructions
+- ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/tasks.md — Phase 5 GEC integration and friction checkpoints
+
 ## 2026-08-06
 
 - Initial workspace created

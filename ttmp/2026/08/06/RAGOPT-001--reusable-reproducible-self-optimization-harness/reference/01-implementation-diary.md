@@ -5676,3 +5676,179 @@ Approved destinations:      configured OpenAI answer and judge providers
 Validation authorized:      no
 Provider calls at consent:  0
 ```
+
+## Step 37: Execute and Reject the First GEC Feedback Candidate
+
+This step crossed the approved provider boundary and exercised the first real
+GEC consumer of RAGOPT. The six-cell feedback run completed normally: all
+three cases ran on both arms, every common outcome was contract-valid, native
+artifacts were digest-linked, operation ceilings held, and the deterministic
+promotion comparison rejected the challenger. Validation remained unrun.
+
+The result separates two claims that must not be conflated. The RAGOPT harness
+and GEC adapter passed their integration proof. The source-role description
+candidate failed its product-quality gate and must not be promoted.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 36)
+
+**Assistant interpretation:** Execute exactly the frozen first six-cell GEC
+feedback proof under the approved SQL-to-provider data-flow boundary and
+operation ceilings, then inspect and retain the result without running
+validation unless feedback passes.
+
+**Inferred user intent:** Obtain honest evidence from the real Admin Chat tool
+loop and use RAGOPT to reject a plausible but ineffective optimization rather
+than mistaking configuration-shaped activity for improvement.
+
+### What I did
+
+- Launched `coinvault knowledge ragopt` in the dedicated tmux session
+  `ragopt-gec-feedback-1` with `split=feedback`, the frozen candidate, isolated
+  byte-identical knowledge bundle, development database, answer and judge
+  profiles, and `24/18/12/500000` ceilings.
+- Retained the completed run under
+  `/tmp/gec-ragopt-feedback-proof-1/20260807T012544.623563776Z-gec-source-role-routing-feedback-9aaf797db8c0`.
+- Verified 6/6 completed, contract-valid cells; zero failures; zero
+  abstentions; 19 answer-provider calls; 4 local query embeddings; 12 judge
+  calls; 192,407 answer tokens; 13 tool results; and zero validation cells.
+- Ran `ragopt compare` and `ragopt report` only over completed artifacts.
+- Inspected every paired route and score. The challenger changed behavior in
+  the two knowledge-search cases but did not improve the declared target.
+- Recorded the sanitized run identities, paired metrics, rejection analysis,
+  native custody hashes, and measured GEC integration friction in
+  `reference/09-first-gec-feedback-proof-and-source-role-candidate-rejection.md`.
+- Kept raw native SQL, retrieved evidence, answers, and judge payloads out of
+  the public RAGOPT repository.
+- Checked the Phase 5 GEC integration and friction-documentation tasks. The
+  twice-run reproducibility task remains open.
+
+### Why
+
+- A reusable optimization package is valuable only if it can preserve a
+  product's real execution path and produce an evidence-backed rejection.
+- Feedback must gate validation spending; the failed faithfulness floor makes
+  any validation run both unauthorized and analytically unnecessary.
+- Raw administrative-agent artifacts may contain business-sensitive context,
+  so the library ticket should retain hashes and conclusions, not payloads.
+
+### What worked
+
+- The product-owned adapter reused GEC's Geppetto tool loop, SQL tools,
+  ragkit retrieval, answer provider, and decomposed judge rather than
+  substituting a canned evaluator.
+- All identity, pairing, completeness, contract, and budget checks passed.
+- The answer budget had margin: 19 of 24 calls and 192,407 of 500,000 tokens.
+- RAGOPT retained a clear `fail` decision and a non-applying promotion plan.
+- The run exposed meaningful product behavior: tool-description prose can be
+  ignored through alternate tool choice, and narrower role retrieval can
+  still reduce evidence coverage and final-answer faithfulness.
+
+### What didn't work
+
+- The challenger failed the candidate faithfulness floor with a minimum of
+  `0.45` against the required `0.8`.
+- Mean answer relevance fell from `0.953333` to `0.866667`.
+- Mean source-role match fell from `0.666667` to `0.333333`.
+- The judge used exactly all 12 allowed calls, leaving no ceiling margin.
+- An initial inspection command looked for `summary.json` at the run root and
+  returned `No such file or directory`; the canonical path is
+  `results/summary.json`.
+- A later tmux capture reported that the pane no longer existed because the
+  command had completed and the session exited. Terminal status and artifacts
+  confirmed normal completion rather than a crash.
+
+### What I learned
+
+- Prose-only routing instructions are a weak control surface in a multi-tool
+  agent. The model may use SQL instead of retrieval, or combine tools so that
+  the correct retrieval role depends on evidence already obtained.
+- A case-level expected knowledge role is a useful diagnostic but too coarse
+  to be the sole planner-quality metric when SQL and retrieval cooperate.
+- Role correctness, evidence coverage, and answer faithfulness are separate
+  phenomena. The guide-only challenger selected the expected role in the
+  comparison case yet generated less faithful claims.
+- A failed candidate with perfect artifact custody is positive evidence for
+  RAGOPT: it demonstrates that the package prevents promotion theater.
+
+### What was tricky to build
+
+The central review challenge was interpreting route changes without rewarding
+the metric mechanically. In the exact-product case, the challenger retrieved
+only the guide role but had already obtained exact product facts from SQL. It
+saved a call and tokens and marginally improved faithfulness, yet violated the
+candidate's own explicit product-role hypothesis. Conversely, the guide case
+selected the requested role but lost evidence coverage and generated
+unsupported historical detail. The correct decision therefore had to preserve
+both native route evidence and final-answer gates.
+
+The other sharp edge was artifact custody. The run contains provider prompts,
+SQL-derived context, retrieval chunks, answers, and judge evidence. A useful
+public report had to be technically complete without copying those payloads.
+The report records semantic identities, aggregate and paired scores, operation
+counts, route summaries, and SHA-256 hashes while leaving raw artifacts in the
+controlled temporary product location.
+
+### What warrants a second pair of eyes
+
+- Review whether future GEC suites should score product-tool route separately
+  from `knowledge_search` source-role route.
+- Review whether the guide-comparison prompt or evidence admission needs a
+  coverage constraint before attempting another description mutation.
+- Confirm that the judge ceiling should gain explicit margin in future suites
+  even though the frozen repeat must preserve 12 calls for comparability.
+- Confirm raw native run storage and retention policy before moving this proof
+  from temporary storage into durable private product storage.
+
+### What should be done in the future
+
+- Run the same feedback candidate once from a fresh root under a separately
+  approved but otherwise identical data-flow envelope.
+- Compare semantic identities, cell completeness, routes, metric direction,
+  budget usage, and the final gate decision. Do not require stochastic answers
+  or scores to be byte-identical.
+- Keep validation closed regardless of the repeat because the first feedback
+  gate failed.
+- Do not add a generic tool-loop adapter to RAGOPT. Preserve the measured
+  product-owned boundary until a second consumer demonstrates the same need.
+
+### Code review instructions
+
+- Read `reference/09-first-gec-feedback-proof-and-source-role-candidate-rejection.md`
+  for the sanitized paired analysis and artifact hashes.
+- Recompute the decision without providers:
+
+  ```bash
+  cd /home/manuel/code/wesen/go-go-golems/ragopt
+  go run ./cmd/ragopt compare \
+    --run /tmp/gec-ragopt-feedback-proof-1/20260807T012544.623563776Z-gec-source-role-routing-feedback-9aaf797db8c0 \
+    --format json
+  ```
+
+- Inspect `results/cells.jsonl` and native links only in an approved private
+  environment; do not commit raw records to this repository.
+- Confirm `status.json` is terminal complete and that no validation run exists.
+
+### Technical details
+
+```text
+Run ID:                    20260807T012544.623563776Z-gec-source-role-routing-feedback-9aaf797db8c0
+Started:                   2026-08-07T01:25:44.623563776Z
+Finished:                  2026-08-07T01:28:01.763745026Z
+Wall time:                 137.140 seconds
+Feedback cells:            6/6 complete and contract-valid
+Answer calls:              19 / 24
+Embedding requests:        4 / 18, local Ollama
+Judge calls:               12 / 12
+Answer tokens:             192407 / 500000
+Tool results:              13
+Candidate faithfulness:    minimum 0.45; floor 0.80
+Relevance delta:           -0.086667
+Faithfulness delta:        -0.062745
+Source-role-match delta:   -0.333333
+Decision:                  fail
+Validation cells:          0
+Raw artifacts committed:   no
+Next gate:                 fresh-root feedback repeat
+```
