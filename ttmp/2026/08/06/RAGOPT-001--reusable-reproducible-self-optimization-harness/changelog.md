@@ -274,3 +274,16 @@ sanitized/allowlisted replacement followed by refreezing.
 
 - /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Three-turn blocked audit, preserved state, and exact resume choices.
 - /tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/candidate.yaml — Frozen candidate that remains ready but unexecuted.
+
+## 2026-08-06
+
+Step 36: received explicit user approval for the previously disclosed
+six-cell GEC feedback data flow, including possible sensitive SQL results sent
+to the configured OpenAI answer and judge providers under the frozen
+24/18/12/500000 ceilings. The goal is active again; validation remains
+unauthorized and unrun.
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Exact approval scope and launch constraints.
+- /tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/candidate.yaml — Approved frozen feedback candidate.
