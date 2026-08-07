@@ -6586,3 +6586,107 @@ Product code changes:      0
 Provider calls:            0
 Validation cells:          0
 ```
+
+## Step 43: Link the GEC Diagnostic to the Repeated Product Proof
+
+The missing GEC RAGOPT proof now has an explicit upstream evidence contract.
+GEC will measure required-document ranks across lexical, vector, fused, and
+authorized candidate pools before choosing one mutation. RAGOPT will consume
+the resulting frozen candidate, but it will not learn GEC retrieval-stage or
+document-group semantics.
+
+This step adds only the cross-ticket dependency to the generic ledger. The
+implementation design remains in `GEC-RAG-EVAL-001`, beside the evaluator and
+corpus it governs, and RAGOPT's next executable task remains the repeated
+product proof after GEC selects one candidate.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok, create a design document for these with the detailed tsaks, since we are starting to cross tickets.
+
+Then implement it, keeping a detailed diary as you work, and committing at appropriate intervals"
+
+**Assistant interpretation:** Make both ticket ledgers express the dependency
+before implementing the GEC diagnostic and RAGOPT proof.
+
+**Inferred user intent:** Keep cross-repository progress honest and reviewable,
+with generic versus product ownership visible from either ticket.
+
+### What I did
+
+- Created isolated worktree `/tmp/ragopt-gec-eval-proof` at RAGOPT revision
+  `3bc11df` on branch `codex/ragopt-gec-eval-proof`.
+- Added a completed Phase 5 cross-reference to the GEC-owned diagnostic design.
+- Added an unchecked task requiring RAGOPT to consume—but not choose—the one
+  candidate selected by GEC evidence.
+- Left all RAGOPT packages and schemas unchanged.
+
+### Why
+
+- RAGOPT's generic proof is downstream of product-owned candidate selection.
+- Recording the dependency only in the GEC ticket would make RAGOPT Phase 5
+  appear ready to run before its input exists.
+
+### What worked
+
+- The existing Phase 5 ownership language already supports the boundary.
+- No generic API, compatibility adapter, or retrieval abstraction was needed.
+
+### What didn't work
+
+The first two combined patch attempts tried to anchor the diary addition on a
+short repeated technical-detail fragment and failed safely before changing the
+diary:
+
+```text
+apply_patch verification failed: Failed to find expected lines in .../reference/01-implementation-diary.md
+```
+
+The tasks patch was applied separately, the actual diary tail was inspected,
+and this entry was appended using its complete final three-line context.
+
+`docmgr doctor` then reproduced the ticket's three previously recorded
+warnings: unknown topic `rag-ttc` in `reference/08`, plus stale related paths
+`pkg/compare/compare.go` and `pkg/report/report.go` in `reference/09`. This step
+introduced no new warning, so those older records were not rewritten. The
+first `git diff --check` also caught the blank line docmgr appended after the
+new changelog entry; it was removed before commit.
+
+### What I learned
+
+- The generic harness is already sufficient for the next proof; current missing
+  work is evidence and product integration, not a new RAGOPT feature.
+
+### What was tricky to build
+
+- The RAGOPT ledger tracks product work for continuity while insisting that the
+  implementation remains in GEC. The new tasks therefore name the dependency
+  and ownership explicitly rather than duplicating the GEC phase checklist.
+
+### What warrants a second pair of eyes
+
+- Confirm that no candidate mechanism is implied by the RAGOPT task order.
+- Confirm the GEC diagnostic decision record is frozen before the RAGOPT
+  candidate bundle is validated.
+
+### What should be done in the future
+
+- Consume the selected GEC candidate only after Phase 2.5 evidence is committed.
+- Run the same candidate from two fresh roots and compare identities and deltas.
+
+### Code review instructions
+
+- Review the two new Phase 5 tasks in `tasks.md`.
+- Read the cross-ticket design at GEC commit `065e883`.
+- No Go test is necessary because no executable file changed.
+
+### Technical details
+
+```text
+RAGOPT starting revision: 3bc11dfd89285a8e223a069dea482dc19c852d3d
+GEC design commit:        065e883
+RAGOPT code changes:      0
+New generic APIs:         0
+Provider calls:           0
+Next dependency:          GEC candidate-pool trace mechanics
+```

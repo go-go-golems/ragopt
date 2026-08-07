@@ -114,6 +114,11 @@ correctly rejected; candidate promotion is not a phase-exit requirement.
 - [x] Repeat the same candidate from a fresh run root and verify semantic identities and canonical deltas.
 - [x] Integrate GEC-RAG only after the RAG-TTC integration proof reproduces; the I5 candidate does not need to pass promotion gates.
 - [x] In GEC-RAG, fix authorization and judge-accounting P0 findings before using results for promotion.
+- [x] Cross-reference the GEC-owned candidate-pool diagnosis and candidate
+  selection contract in `GEC-RAG-EVAL-001` without adding retrieval-stage or
+  document-group semantics to RAGOPT.
+- [ ] Consume the single candidate selected by the frozen GEC diagnostic; do
+  not preselect prefixes, diversity, fusion, or reranking in RAGOPT.
 - [ ] Run one GEC-RAG human-authored candidate twice with a frozen suite and policy.
 - [x] Document integration friction before adding any generic API to `ragopt`.
 

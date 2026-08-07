@@ -344,3 +344,11 @@ remarquee's default non-editor layout in a dry run, and uploaded
 
 - reference/10-gec-coinvault-rag-end-to-end-failure-investigation-and-pragmatic-recovery-guide.md — Delivered source report.
 - reference/01-implementation-diary.md — Validation, commit, and upload receipt.
+
+## 2026-08-07
+
+Step 43 linked the GEC-owned candidate-pool diagnosis and one-candidate selection contract to the remaining repeated RAGOPT Phase 5 proof without adding product retrieval semantics to RAGOPT.
+
+### Related Files
+
+- /tmp/ragopt-gec-eval-proof/pkg/eval/runner.go — Existing generic paired runner remains unchanged and downstream of product candidate selection
