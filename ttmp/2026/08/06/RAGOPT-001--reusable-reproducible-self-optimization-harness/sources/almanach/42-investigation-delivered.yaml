@@ -1,0 +1,97 @@
+almanach_studio_version: 1
+theme: brutalist
+paperWidth: 384
+bodyScale: 1
+feedLines: 8
+blocks:
+- id: head
+  type: row
+  data:
+    cols:
+    - w: 1fr
+      text: RAGOPT-001
+      preset: micro
+    - w: 1fr
+      text: STEP 42
+      preset: micro
+      align: right
+- id: r1
+  type: rule
+  data:
+    weight: heavy
+- id: gap1
+  type: space
+  data:
+    size: s
+- id: title
+  type: text
+  data:
+    text: Investigation Delivered
+    preset: h1
+    lines: 3
+- id: gap2
+  type: space
+  data:
+    size: s
+- id: summary
+  type: text
+  data:
+    text: The committed GEC recovery guide passed ticket checks and reached reMarkable with the default non-editor layout.
+    preset: body
+- id: gap3
+  type: space
+  data:
+    size: m
+- id: did
+  type: list
+  data:
+    marker: —
+    lines: 2
+    items:
+    - committed report de2a855
+    - confirmed default PDF layout
+    - uploaded to RAGOPT folder
+    - kept raw artifacts private
+- id: gap4
+  type: space
+  data:
+    size: s
+- id: tricky
+  type: list
+  data:
+    marker: '!'
+    lines: 2
+    items:
+    - isolated three older doc warnings
+- id: r2
+  type: rule
+  data:
+    weight: hair
+- id: facts
+  type: kv
+  data:
+    items:
+    - - COMMIT
+      - de2a855
+    - - NEXT
+      - review report then repair metrics
+    - - UPLOAD
+      - OK
+- id: r3
+  type: rule
+  data:
+    weight: hair
+- id: decide
+  type: row
+  data:
+    cols:
+    - w: 1fr
+      text: SCAN FOR COMMIT
+      preset: caption
+    - w: 120
+      blocks:
+      - id: qr
+        type: qr
+        data:
+          value: https://github.com/go-go-golems/ragopt/commit/de2a855
+          size: 110

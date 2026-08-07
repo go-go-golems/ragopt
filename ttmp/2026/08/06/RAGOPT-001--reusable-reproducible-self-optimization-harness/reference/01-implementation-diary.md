@@ -6490,3 +6490,99 @@ New SQL calls:              0
 Validation cells:           0
 Next documentation action:  doctor, commit, default-layout reMarkable upload
 ```
+
+## Step 42: Validate, Commit, and Deliver the Investigation Report
+
+This step closed the documentation delivery loop. The complete report and task
+ledger were validated and committed, then the report was dry-run and uploaded
+to reMarkable using the default layout explicitly requested by the user.
+
+### Prompt Context
+
+**User prompt (verbatim):** “Store in the ticket and the nupload to remarkable.”
+
+**Assistant interpretation:** Commit the report in RAGOPT-001 and deliver its
+PDF to the ticket-specific reMarkable folder without editor layout.
+
+**Inferred user intent:** Make the investigation durable in Git and immediately
+readable away from the workstation.
+
+### What I did
+
+- Ran `docmgr doctor --ticket RAGOPT-001 --fail-on error`.
+- Ran `git diff --check` and reviewed the staged documentation scope.
+- Committed the report, recovery tasks, diary, changelog, and Step 41 printed
+  slip as commit `de2a855`.
+- Ran a remarquee dry run. It explicitly reported `layout=default`, one report
+  input, the ticket remote directory, and the intended PDF name.
+- Uploaded the report as
+  `RAGOPT 001 GEC End to End Failure Investigation.pdf` to
+  `/ai/2026/08/07/RAGOPT-001`.
+- Did not request editor layout, force overwrite, cloud listing, or a redundant
+  post-upload verification call.
+
+### Why
+
+The dry run catches path, title, source, and layout errors without rendering or
+uploading. The upload command's explicit success response is the authoritative
+delivery receipt.
+
+### What worked
+
+- The report and ticket changes committed cleanly.
+- The dry run confirmed the default non-editor layout.
+- Pandoc rendering and cloud upload completed successfully.
+- Remarquee reported the exact destination and filename.
+
+### What didn't work
+
+- Docmgr still reports three pre-existing warnings: the `rag-ttc` topic is not
+  in the current vocabulary, and two older `reference/09` related-file paths use
+  stale `pkg/compare/compare.go` and `pkg/report/report.go` names. The new report
+  introduced no doctor errors or warnings.
+
+### What I learned
+
+- Default layout is visible and auditable in remarquee dry-run output; no layout
+  override is needed.
+- Upload success does not require a subsequent cloud listing.
+
+### What was tricky to build
+
+The only custody distinction was separating new-document correctness from older
+ticket metadata warnings. Automatically fixing unrelated references would have
+expanded this documentation task and risked touching established records.
+
+### What warrants a second pair of eyes
+
+- Open the PDF on reMarkable and review the executive summary, architecture,
+  case reconstruction, and recovery phases.
+- Decide separately whether to clean the three older docmgr warnings.
+
+### What should be done in the future
+
+- Collect review notes against `reference/10`.
+- Begin measurement-correctness task group A only after review.
+- Keep the Nomic prefix experiment frozen as its own later candidate.
+
+### Code review instructions
+
+- Inspect RAGOPT commit `de2a855`.
+- Read the source Markdown in `reference/10` or the uploaded PDF.
+- Confirm no product source or raw GEC run artifacts are part of the commit.
+
+### Technical details
+
+```text
+Report commit:             de2a855
+Dry-run layout:            default
+Editor layout requested:   no
+Remote directory:          /ai/2026/08/07/RAGOPT-001
+Remote document:           RAGOPT 001 GEC End to End Failure Investigation.pdf
+Upload result:             OK
+Doctor errors:             0
+New doctor warnings:       0
+Product code changes:      0
+Provider calls:            0
+Validation cells:          0
+```
