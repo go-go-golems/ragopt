@@ -6328,3 +6328,165 @@ Provider calls this step:  0
 Bundle built:              no
 First gate:                frozen retrieval evaluation
 ```
+
+## Step 41: Write the End-to-End GEC Failure Investigation and Recovery Guide
+
+This step converted the source trace and three native feedback cases into the
+requested intern-facing report. The report teaches the complete system before
+presenting the diagnosis, then turns each proven defect into a small ordered
+implementation and evaluation task.
+
+### Prompt Context
+
+**User prompt (verbatim):** “Ok, do that investigation and keep a detailed
+diary but then also write a detailed report of your inestigation, along with all
+the necessary information for a new intern to understand the whole system end
+to end.
+
+Create a detailed analysis / design / investigation report that is for a new
+intern, explaining all the parts of the system needed to understand what it is,
+with prose paragraphs and bullet point sand pseudocode and diagrams and api
+references and file references. It should be very clear and technical. Store in
+the ticket and the nupload to remarkable.”
+
+**Assistant interpretation:** Produce a durable, evidence-backed system and
+failure report in RAGOPT-001, followed by ticket validation, commit, and default
+layout reMarkable delivery.
+
+**Inferred user intent:** Give a new engineer a trustworthy map of both the
+working architecture and the precise recovery path, without collapsing every
+weak result into “RAG is bad” or proposing an overengineered replacement.
+
+### What I did
+
+- Created
+  `reference/10-gec-coinvault-rag-end-to-end-failure-investigation-and-pragmatic-recovery-guide.md`
+  through docmgr.
+- Wrote a 1,500-line, 7,300-word report covering:
+  - system and product scope;
+  - source extraction and intentional SQL/knowledge fact separation;
+  - heading chunking, raw/breadcrumb representations, embeddings, and bundle
+    identity;
+  - lexical/vector retrieval, RRF, authorization, chunk collapse, and evidence
+    admission;
+  - the three-tool Geppetto loop and structured answer projection;
+  - statement decomposition, entailment judging, GEC native artifacts, and the
+    generic RAGOPT boundary;
+  - all three paired feedback cases with routes, scores, evidence breadth, and
+    causal chains;
+  - confirmed findings, strong hypotheses, and unsupported root-cause claims;
+  - proposed route, role, coverage, citation, contract, statement, and retrieval
+    trace APIs;
+  - five pragmatic recovery phases, testing strategy, operational context,
+    ownership matrix, decisions, and intern review path.
+- Corrected source line anchors against the frozen GEC worktree rather than
+  retaining approximate references from the initial evidence notes.
+- Added the report-derived A–E product recovery checklist to `tasks.md` while
+  keeping its implementation ownership in GEC.
+- Kept the Nomic prefix and document-diversity candidates separate and ordered
+  after measurement repair.
+
+### Why
+
+The first proof contains both genuine system weaknesses and misleading metrics.
+An intern needs to understand where durable facts, live facts, chunks, tool
+results, evidence IDs, projection events, judge verdicts, and RAGOPT outcomes
+come from before changing any one component. Otherwise a local symptom can lead
+to a global rewrite or another prose-only “optimization.”
+
+### What worked
+
+- The native run and frozen corpus were sufficient to prove a comparison
+  coverage failure without another SQL, embedding, answer, or judge call.
+- The report explains why schema and exact-product behavior should not be called
+  failed simply because `source_role_match` reports zero.
+- The recovery design starts with observability and evaluator correctness,
+  followed by small one-mutation retrieval candidates and only then answer
+  grounding.
+- The ownership matrix preserves product semantics in GEC, generic retrieval
+  mechanisms in ragkit, and experiment custody in RAGOPT.
+- The task ledger now exposes precise implementation units rather than only a
+  narrative recommendation.
+
+### What didn't work
+
+- The local retrieval evaluator was not rerun. Earlier attempts were blocked by
+  a nonexistent CLI flag and sandbox access to Ollama, and preserved evidence
+  already answered the investigation question.
+- No product code was changed; the report is a review and design deliverable.
+- No second GEC feedback run or validation run occurred.
+
+### What I learned
+
+- “Five chunks” is not “five documents.” Representation collapse and evidence
+  deduplication can both be correct while multi-document coverage still fails.
+- A static expected source role cannot grade an agent whose earlier SQL tool
+  results change what retrieval must supply.
+- The existing projection layer detects useful protocol errors, but the adapter
+  fails to consume them as contract evidence.
+- The cheapest next change is not necessarily the first implementation task;
+  measurement must be capable of attributing its effect first.
+
+### What was tricky to build
+
+The report had to preserve causal precision while remaining useful as a system
+introduction. The comparison answer contained facts that were true somewhere in
+the corpus but unsupported by the admitted evidence. Calling them false would
+misstate the judge; calling retrieval successful because one broad document hit
+would misstate answerability. The report therefore separates corpus presence,
+retrieval relevance, document breadth, admitted evidence, claim support, and
+answer relevance.
+
+The second scope challenge was avoiding generic extraction too early. Document
+diversity may eventually belong in ragkit and embedding transforms may become a
+generic bundle contract, but the report requires GEC proof before moving either.
+
+### What warrants a second pair of eyes
+
+- Review the route-expectation schema for cases where multiple tool sequences
+  are equally authoritative.
+- Review which projection errors are fatal and which intermediate tool errors
+  count as recovered.
+- Review the proposed 15–25 case strata and comparison document groups before
+  freezing the next feedback suite.
+- Verify private retention and redaction policy for statement-level judge
+  verdicts and retrieval traces.
+- Confirm the first retrieval candidate order: Nomic prefixes versus document
+  diversity, each evaluated separately.
+
+### What should be done in the future
+
+- Complete task group A, measurement correctness, in the GEC product worktree.
+- Freeze task group B before viewing any new candidate results.
+- Execute one task group C candidate at a time and stop before provider-backed
+  feedback when retrieval gates fail.
+- Tighten answer grounding only after the system retrieves adequate evidence.
+- Run paired feedback twice and validation conditionally through the existing
+  RAGOPT gate.
+
+### Code review instructions
+
+- Begin with the report executive summary, architecture diagram, case
+  reconstruction, findings-by-confidence, and recovery plan.
+- Follow the report's Section 23 intern review path through GEC build, service,
+  evidence, projection, judge, adapter, and RAGOPT packages.
+- Check all report anchors against GEC revision `e2d1997`.
+- Use the native first-run directory only in the approved private environment.
+- Confirm that `tasks.md` labels every recovery task product-owned.
+
+### Technical details
+
+```text
+Report:                     reference/10
+Report lines:               1500+
+Report words:               7300+
+Architecture diagrams:      offline build, runtime, evaluation, causal path
+Feedback cases reconstructed: 3
+Proven defects separated:   7
+Recovery phases:            A-E
+Product code changes:       0
+New provider calls:         0
+New SQL calls:              0
+Validation cells:           0
+Next documentation action:  doctor, commit, default-layout reMarkable upload
+```
