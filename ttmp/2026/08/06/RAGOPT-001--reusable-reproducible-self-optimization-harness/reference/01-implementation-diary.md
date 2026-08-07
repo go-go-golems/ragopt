@@ -6690,3 +6690,123 @@ New generic APIs:         0
 Provider calls:           0
 Next dependency:          GEC candidate-pool trace mechanics
 ```
+
+## Step 44: Consume and Preflight the GEC Depth-8 Candidate
+
+RAGOPT now has its first executable GEC input selected by the broader product
+diagnostic. GEC froze `knowledge.ToolConfig.DefaultResults: 5 -> 8` as one
+opaque mutable asset; the generic RAGOPT validator independently proved it is
+the only snapshot change. No retrieval-stage or document-group semantics were
+added to RAGOPT.
+
+The product-owned zero-call preflight also passes. It resolves the real answer
+and judge profiles, opens the exact hybrid bundle, verifies physical index and
+source identities, checks the 5/8/8 result contract, and reports eight expected
+feedback cells without entering paired execution.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 43)
+
+**Assistant interpretation:** Continue the cross-ticket implementation by
+consuming the GEC-selected candidate through generic validation and the
+product-owned provider-free gate.
+
+**Inferred user intent:** Ensure RAGOPT operates on measured, immutable product
+input rather than selecting or simulating a GEC optimization itself.
+
+### What I did
+
+- Cross-referenced the 855-line GEC D0-D6 execution plan at GEC commit
+  `2cd6daa`.
+- Validated candidate `gec-default-knowledge-results-8-v1` through
+  `ragopt candidate validate`.
+- Recorded generic candidate digest `44828f739c7f...`, parent snapshot
+  `87a5f7137f30...`, challenger snapshot `ee37fc2907f4...`, and changed asset
+  `knowledge_tool_default_results`.
+- Recorded GEC runtime/config commits `04a5a13`, `e2d2d0a`, and `2b54b21`.
+- Ran the real GEC preflight against the byte-verified 16,032-document hybrid
+  bundle snapshot.
+- Confirmed four feedback cases, one repeat, two arms, eight expected cells,
+  zero provider calls, and validation closed.
+- Split the RAGOPT Phase 5 ledger into first feedback and conditional fresh-root
+  repetition tasks.
+
+### Why
+
+- The generic harness must consume a product-selected mutation, not choose a
+  retrieval mechanism.
+- Candidate validation and product preflight prove different invariants and
+  both must pass before spending.
+- A first-run rejection is valid and must not be repeated merely to seek a more
+  favorable sample.
+
+### What worked
+
+- RAGOPT verified exactly one mutable asset byte change.
+- GEC verified current source, bundle, index, profile, runtime, suite, and
+  budget identities.
+- The preflight returned before `eval.Run`, the local chat runner, SQL tools,
+  query embeddings, answer generation, or judge generation.
+- No RAGOPT package or generic schema needed modification.
+
+### What didn't work
+
+Two operator-registry selections failed before any provider boundary. The
+isolated public registry had no concrete `default` entry, and the ignored GEC
+local registry used the removed `inference_settings.api_keys` wrapper. After
+the required debugging pause, the already-current authoritative Pinocchio
+registry was selected explicitly; no secret file was edited or copied and no
+compatibility parser was added.
+
+### What I learned
+
+- The current generic RAGOPT API was sufficient for a scalar product candidate.
+- Configuration ownership is part of reproducibility: a worktree-local public
+  placeholder must not be confused with the operator-owned concrete registry.
+- The compiled RAGOPT module identity remains `4d410c57`; later ticket-only
+  commits do not change executable dependency semantics.
+
+### What was tricky to build
+
+The preflight had to resolve provider runtimes deeply enough to verify their
+identity without invoking them. It also had to open the exact bundle deeply
+enough to verify physical indexes without running retrieval. The early return
+in the GEC adapter is the boundary that makes both checks zero-call.
+
+### What warrants a second pair of eyes
+
+- Review the GEC gate thresholds before the first feedback run.
+- Confirm the operator registry selected at execution resolves the same
+  profiles and engines recorded here.
+- Inspect all eight native artifacts before deciding whether a passing run may
+  be repeated.
+
+### What should be done in the future
+
+- Execute the first eight-cell feedback proof under the frozen ceilings.
+- Compare, gate, report, and review every native artifact.
+- Repeat from a fresh root only on a clean pass.
+- Keep validation and deployment closed.
+
+### Code review instructions
+
+- Read the GEC design at
+  `GEC-RAG-EVAL-001/design-doc/03-depth-8-cross-ticket-integration-and-evidence-gated-execution-plan.md`.
+- Read the GEC preflight receipt at `GEC-RAG-EVAL-001/reference/07`.
+- Run generic candidate validation from this repository.
+- No RAGOPT Go test is required because no RAGOPT executable file changed.
+
+### Technical details
+
+```text
+Candidate:           gec-default-knowledge-results-8-v1
+Candidate digest:    sha256:44828f739c7f120964558cc0d7a3dba55f45d4bc5e55b86d1701c51437efcc9c
+Mutation:            knowledge_tool_default_results
+Parent/challenger:   5 / 8
+Existing maximum:    8
+Feedback cells:      8
+Provider calls:      0
+Validation:          closed
+Next gate:           first feedback run
+```

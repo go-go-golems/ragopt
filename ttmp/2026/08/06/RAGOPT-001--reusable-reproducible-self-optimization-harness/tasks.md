@@ -117,9 +117,17 @@ correctly rejected; candidate promotion is not a phase-exit requirement.
 - [x] Cross-reference the GEC-owned candidate-pool diagnosis and candidate
   selection contract in `GEC-RAG-EVAL-001` without adding retrieval-stage or
   document-group semantics to RAGOPT.
-- [ ] Consume the single candidate selected by the frozen GEC diagnostic; do
+- [x] Consume the single candidate selected by the frozen GEC diagnostic; do
   not preselect prefixes, diversity, fusion, or reranking in RAGOPT.
-- [ ] Run one GEC-RAG human-authored candidate twice with a frozen suite and policy.
+- [x] Validate the GEC `DefaultResults: 5 -> 8` exactly-one-mutation bundle and
+  record candidate digest `44828f73...`.
+- [x] Pass the GEC provider-free preflight for four feedback cases, eight cells,
+  and zero provider/SQL/embedding/judge execution.
+- [ ] Run the first eight-cell GEC feedback proof and apply the frozen gate.
+- [ ] Repeat from a fresh root only if the first proof passes and native review
+  finds no contract defect.
+- [ ] Run one GEC-RAG human-authored candidate twice with a frozen suite and
+  policy, or retain a first-run rejection as the truthful terminal result.
 - [x] Document integration friction before adding any generic API to `ragopt`.
 
 ### GEC follow-up optimization investigation: Nomic retrieval prefixes

@@ -352,3 +352,15 @@ Step 43 linked the GEC-owned candidate-pool diagnosis and one-candidate selectio
 ### Related Files
 
 - /tmp/ragopt-gec-eval-proof/pkg/eval/runner.go — Existing generic paired runner remains unchanged and downstream of product candidate selection
+
+## 2026-08-07
+
+Step 44 consumed the GEC-selected depth-eight result-budget candidate through
+generic exactly-one-mutation validation and the product-owned zero-provider
+preflight. The candidate digest is `44828f73...`; eight feedback cells are
+expected, validation remains closed, and no RAGOPT generic API changed.
+
+### Related Files
+
+- /tmp/gec-rag-depth8-proof/configs/ragopt/default-results-8-v1/candidate.yaml — GEC-owned candidate consumed opaquely by RAGOPT
+- /tmp/gec-rag-depth8-proof/ttmp/2026/08/07/GEC-RAG-EVAL-001--broader-retrieval-and-full-chat-evaluation-corpus/reference/07-depth-8-candidate-provider-free-preflight-receipt.md — Product identity and zero-call receipt
