@@ -289,6 +289,9 @@ func executeCell(ctx context.Context, run *runstore.Run, prepared *preparedReque
 	if err != nil {
 		return Cell{}, errors.Wrap(err, "resolve native artifact directory")
 	}
+	if err := os.RemoveAll(nativeDirectory); err != nil {
+		return Cell{}, errors.Wrap(err, "clear uncommitted native artifact directory")
+	}
 	if err := os.MkdirAll(nativeDirectory, 0o700); err != nil {
 		return Cell{}, errors.Wrap(err, "create native artifact directory")
 	}
@@ -301,8 +304,14 @@ func executeCell(ctx context.Context, run *runstore.Run, prepared *preparedReque
 		Candidate:       cloneView(item.view),
 	})
 	finishedAt := time.Now().UTC()
+	if err := verifyBoundInputs(run, prepared.config.InputDigests); err != nil {
+		return Cell{}, errors.Wrap(err, "arm mutated immutable run inputs")
+	}
 	if armErr != nil {
-		if errors.Is(armErr, context.Canceled) || errors.Is(armErr, context.DeadlineExceeded) || ctx.Err() != nil {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return Cell{}, ctxErr
+		}
+		if errors.Is(armErr, context.Canceled) || errors.Is(armErr, context.DeadlineExceeded) {
 			return Cell{}, armErr
 		}
 		outcome, err = recordArmFailure(ctx, run, nativeRelative, armErr, finishedAt.Sub(startedAt))
@@ -407,6 +416,26 @@ func validateOutcome(runDirectory, nativeDirectory string, outcome *Outcome) err
 		return errors.Errorf("native artifact size mismatch: outcome=%d actual=%d", outcome.NativeArtifact.SizeBytes, identified.SizeBytes)
 	}
 	outcome.NativeArtifact = identified
+	return nil
+}
+
+func validateStoredOutcome(runDirectory, nativeDirectory string, outcome *Outcome) error {
+	if outcome == nil {
+		return errors.New("stored outcome is nil")
+	}
+	claimed := outcome.NativeArtifact
+	if !strings.HasPrefix(claimed.SHA256, "sha256:") || len(claimed.SHA256) != len("sha256:")+64 {
+		return errors.New("stored native artifact digest is required")
+	}
+	if claimed.SizeBytes < 0 {
+		return errors.New("stored native artifact size is invalid")
+	}
+	if err := validateOutcome(runDirectory, nativeDirectory, outcome); err != nil {
+		return err
+	}
+	if claimed.SHA256 != outcome.NativeArtifact.SHA256 || claimed.SizeBytes != outcome.NativeArtifact.SizeBytes {
+		return errors.New("stored native artifact identity differs from file")
+	}
 	return nil
 }
 

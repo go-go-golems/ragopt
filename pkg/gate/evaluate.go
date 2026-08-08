@@ -45,6 +45,13 @@ func Evaluate(ctx context.Context, policy *PolicyDocument, report *compare.Repor
 	if policy == nil || report == nil {
 		return Decision{}, errors.New("gate policy and comparison report are required")
 	}
+	semanticDigest, err := policyDigest(policy.Policy)
+	if err != nil {
+		return Decision{}, errors.Wrap(err, "validate gate policy semantics")
+	}
+	if semanticDigest != policy.Digest {
+		return Decision{}, errors.Errorf("gate policy semantic digest mismatch: document=%s actual=%s", policy.Digest, semanticDigest)
+	}
 	decision := Decision{
 		APIVersion: DecisionAPIVersion, PolicyName: policy.Policy.Name,
 		PolicyDigest: policy.Digest, Status: DecisionPass,

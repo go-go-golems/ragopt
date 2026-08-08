@@ -2,6 +2,7 @@ package eval
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -112,6 +113,17 @@ func verifyBoundInputs(run *runstore.Run, expected map[string]string) error {
 		if input.SHA256 != digest {
 			return errors.Errorf("bound input %q digest mismatch: run=%s expected=%s", role, input.SHA256, digest)
 		}
+		path, err := run.Path(input.CopiedPath)
+		if err != nil {
+			return errors.Wrapf(err, "resolve bound input %q", role)
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return errors.Wrapf(err, "read bound input %q", role)
+		}
+		if actual := digestBytes(data); actual != digest || int64(len(data)) != input.SizeBytes {
+			return errors.Errorf("bound input %q content changed: manifest=%s actual=%s", role, digest, actual)
+		}
 	}
 	return nil
 }
@@ -211,7 +223,7 @@ func assetRole(side string, ref candidate.AssetRef, locked bool) string {
 	if locked {
 		class = "locked"
 	}
-	name := strings.NewReplacer(".", "-dot-", "_", "-underscore-").Replace(ref.Name)
+	name := hex.EncodeToString([]byte(ref.Name))
 	digestSuffix := strings.TrimPrefix(ref.SHA256, "sha256:")
 	if len(digestSuffix) > 12 {
 		digestSuffix = digestSuffix[:12]

@@ -21,7 +21,18 @@ func Build(ctx context.Context, run *eval.ArtifactRun, comparison *compare.Repor
 	if run == nil || comparison == nil || policy == nil {
 		return nil, errors.New("artifact run, comparison, and policy are required")
 	}
-	if decision.APIVersion != gate.DecisionAPIVersion || decision.PolicyDigest != policy.Digest || comparison.RunID != run.Manifest.RunID {
+	if decision.APIVersion != gate.DecisionAPIVersion ||
+		decision.PolicyDigest != policy.Digest ||
+		policy.ByteDigest != run.Config.PolicyDigest ||
+		comparison.RunID != run.Manifest.RunID ||
+		comparison.SuiteDigest != run.Config.SuiteDigest ||
+		comparison.PolicyDigest != run.Config.PolicyDigest ||
+		comparison.CandidateID != run.Config.CandidateID ||
+		comparison.CandidateDigest != run.Config.CandidateDigest ||
+		comparison.ParentSnapshot != run.Config.ParentSnapshot ||
+		comparison.ChildSnapshot != run.Config.ChildSnapshot ||
+		comparison.IncumbentArm != run.Config.IncumbentArm ||
+		comparison.ChallengerArm != run.Config.ChallengerArm {
 		return nil, errors.New("report inputs have inconsistent identities")
 	}
 	plan := PromotionPlan{

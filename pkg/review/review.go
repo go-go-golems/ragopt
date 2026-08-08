@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"io"
 	"os"
 	"sort"
 	"strings"
@@ -137,6 +138,13 @@ func LoadAnnotations(path string, keys []KeyEntry, dimensions []Dimension) ([]An
 		var annotation Annotation
 		if err := decoder.Decode(&annotation); err != nil {
 			return nil, errors.Wrapf(err, "decode annotation line %d", line)
+		}
+		var trailing any
+		if err := decoder.Decode(&trailing); err != io.EOF {
+			if err == nil {
+				return nil, errors.Errorf("decode annotation line %d: trailing JSON value", line)
+			}
+			return nil, errors.Wrapf(err, "check annotation line %d trailing data", line)
 		}
 		if err := ValidateAnnotation(annotation, known, dimensions); err != nil {
 			return nil, errors.Wrapf(err, "validate annotation line %d", line)

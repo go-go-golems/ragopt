@@ -1,6 +1,7 @@
 package eval
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -296,6 +297,92 @@ func TestRunRequestValidation(t *testing.T) {
 	}
 }
 
+func TestAssetRoleEncodingIsInjective(t *testing.T) {
+	digest := byteDigest([]byte("same"))
+	dotted := assetRole("parent", candidate.AssetRef{Name: "a.b", SHA256: digest}, false)
+	escapedWord := assetRole("parent", candidate.AssetRef{Name: "a-dot-b", SHA256: digest}, false)
+	if dotted == escapedWord {
+		t.Fatalf("asset roles collide: %q", dotted)
+	}
+}
+
+func TestArmCannotMutateBoundInputs(t *testing.T) {
+	fixture := newEvaluationFixture(t)
+	request := fixture.request(t.TempDir(), &mutatingInputArm{name: "incumbent"}, &scriptedArm{name: "challenger", control: &scriptControl{}})
+	result, err := Run(t.Context(), request)
+	if err == nil || !strings.Contains(err.Error(), "arm mutated immutable run inputs") {
+		t.Fatalf("expected bound-input mutation rejection, got %v", err)
+	}
+	statusData, readErr := os.ReadFile(filepath.Join(result.RunDirectory, "status.json"))
+	mustNoError(t, readErr)
+	var status runstore.Status
+	mustNoError(t, json.Unmarshal(statusData, &status))
+	if status.State != runstore.StateFailed {
+		t.Fatalf("input mutation did not fail run: %q", status.State)
+	}
+}
+
+func TestCancellationReturnsContextErrorFromGenericArmError(t *testing.T) {
+	fixture := newEvaluationFixture(t)
+	ctx, cancel := context.WithCancel(t.Context())
+	request := fixture.request(t.TempDir(), &cancelingErrorArm{name: "incumbent", cancel: cancel}, &scriptedArm{name: "challenger", control: &scriptControl{}})
+	result, err := Run(ctx, request)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context cancellation, got %v", err)
+	}
+	reader, openErr := runstore.Open(result.RunDirectory)
+	mustNoError(t, openErr)
+	if reader.Status().State != runstore.StateActive {
+		t.Fatalf("canceled run became terminal: %q", reader.Status().State)
+	}
+}
+
+func TestResumeClearsInterruptedNativeDirectory(t *testing.T) {
+	fixture := newEvaluationFixture(t)
+	ctx, cancel := context.WithCancel(t.Context())
+	request := fixture.request(t.TempDir(), &partialCancelArm{name: "incumbent", cancel: cancel}, &scriptedArm{name: "challenger", control: &scriptControl{}})
+	result, err := Run(ctx, request)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected interruption, got %v", err)
+	}
+	control := &scriptControl{}
+	checker := &emptyDirectoryArm{delegate: &scriptedArm{name: "incumbent", control: control}}
+	request.Incumbent = checker
+	request.Challenger = &scriptedArm{name: "challenger", control: control}
+	resumed, err := Resume(t.Context(), result.RunDirectory, request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !checker.called || resumed.Completed != resumed.Expected {
+		t.Fatalf("resume did not execute cleanly: called=%t result=%#v", checker.called, resumed)
+	}
+}
+
+func TestLoadRejectsStoredCellWithoutArtifactIdentity(t *testing.T) {
+	fixture := newEvaluationFixture(t)
+	control := &scriptControl{}
+	request := fixture.request(t.TempDir(), &scriptedArm{name: "incumbent", control: control}, &scriptedArm{name: "challenger", control: control})
+	result, err := Run(t.Context(), request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(result.RunDirectory, "results", "cells.jsonl")
+	data, err := os.ReadFile(path)
+	mustNoError(t, err)
+	lines := bytes.Split(data, []byte{'\n'})
+	var cell Cell
+	mustNoError(t, json.Unmarshal(lines[0], &cell))
+	cell.Outcome.NativeArtifact.SHA256 = ""
+	cell.Outcome.NativeArtifact.SizeBytes = 0
+	lines[0], err = json.Marshal(cell)
+	mustNoError(t, err)
+	writeFile(t, path, bytes.Join(lines, []byte{'\n'}))
+	_, err = LoadArtifactRun(t.Context(), result.RunDirectory)
+	if err == nil || !strings.Contains(err.Error(), "artifact digest is required") {
+		t.Fatalf("expected missing stored identity rejection, got %v", err)
+	}
+}
+
 type evaluationFixture struct {
 	suite     *SuiteDocument
 	policy    string
@@ -385,6 +472,56 @@ func (control *scriptControl) viewsSnapshot() []viewObservation {
 type scriptedArm struct {
 	name    string
 	control *scriptControl
+}
+
+type mutatingInputArm struct{ name string }
+
+func (arm *mutatingInputArm) Name() string { return arm.name }
+func (arm *mutatingInputArm) Run(_ context.Context, request Request) (Outcome, error) {
+	return Outcome{}, os.WriteFile(request.Candidate.Assets["prompt"].Path, []byte("tampered"), 0o600)
+}
+
+type cancelingErrorArm struct {
+	name   string
+	cancel context.CancelFunc
+}
+
+func (arm *cancelingErrorArm) Name() string { return arm.name }
+func (arm *cancelingErrorArm) Run(_ context.Context, _ Request) (Outcome, error) {
+	arm.cancel()
+	return Outcome{}, errors.New("request aborted")
+}
+
+type partialCancelArm struct {
+	name   string
+	cancel context.CancelFunc
+}
+
+func (arm *partialCancelArm) Name() string { return arm.name }
+func (arm *partialCancelArm) Run(ctx context.Context, request Request) (Outcome, error) {
+	if err := os.WriteFile(filepath.Join(request.NativeDirectory, "partial.tmp"), []byte("partial"), 0o600); err != nil {
+		return Outcome{}, err
+	}
+	arm.cancel()
+	return Outcome{}, ctx.Err()
+}
+
+type emptyDirectoryArm struct {
+	delegate Arm
+	called   bool
+}
+
+func (arm *emptyDirectoryArm) Name() string { return arm.delegate.Name() }
+func (arm *emptyDirectoryArm) Run(ctx context.Context, request Request) (Outcome, error) {
+	entries, err := os.ReadDir(request.NativeDirectory)
+	if err != nil {
+		return Outcome{}, err
+	}
+	if len(entries) != 0 {
+		return Outcome{}, fmt.Errorf("native directory was not cleared: %v", entries)
+	}
+	arm.called = true
+	return arm.delegate.Run(ctx, request)
 }
 
 var _ Arm = (*scriptedArm)(nil)

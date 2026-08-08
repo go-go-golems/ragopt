@@ -73,6 +73,9 @@ func (command *Command) RunIntoGlazeProcessor(ctx context.Context, vals *values.
 	if err != nil {
 		return errors.Wrap(err, "build promotion report")
 	}
+	if err := reportlib.ValidateOutputsOutsideRun(run.Directory, configuration.OutputPath, configuration.PlanPath); err != nil {
+		return err
+	}
 	if err := reportlib.Write(ctx, document, configuration.OutputPath, configuration.PlanPath); err != nil {
 		return err
 	}
