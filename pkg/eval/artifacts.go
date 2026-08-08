@@ -226,7 +226,7 @@ func loadArtifactCells(reader *runstore.Reader, config RunConfig, suite *SuiteDo
 		if err != nil {
 			return nil, err
 		}
-		if err := validateOutcome(reader.Dir(), nativeDirectory, &cell.Outcome); err != nil {
+		if err := validateStoredOutcome(reader.Dir(), nativeDirectory, &cell.Outcome); err != nil {
 			return nil, errors.Wrapf(err, "validate evaluation cell line %d outcome", index+1)
 		}
 		cells = append(cells, cell)

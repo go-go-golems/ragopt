@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -18,7 +19,15 @@ func Write(ctx context.Context, document *Document, markdownPath, planPath strin
 	if markdownPath == "" || planPath == "" {
 		return errors.New("markdown and plan output paths are required")
 	}
-	if filepath.Clean(markdownPath) == filepath.Clean(planPath) {
+	markdownAbsolute, err := filepath.Abs(markdownPath)
+	if err != nil {
+		return errors.Wrap(err, "resolve markdown output path")
+	}
+	planAbsolute, err := filepath.Abs(planPath)
+	if err != nil {
+		return errors.Wrap(err, "resolve plan output path")
+	}
+	if markdownAbsolute == planAbsolute {
 		return errors.New("markdown and plan output paths must differ")
 	}
 	plan, err := json.MarshalIndent(document.Plan, "", "  ")
@@ -26,11 +35,34 @@ func Write(ctx context.Context, document *Document, markdownPath, planPath strin
 		return errors.Wrap(err, "marshal promotion plan")
 	}
 	plan = append(plan, '\n')
-	if err := atomicWrite(ctx, markdownPath, []byte(document.Markdown)); err != nil {
+	if err := atomicWrite(ctx, markdownAbsolute, []byte(document.Markdown)); err != nil {
 		return errors.Wrap(err, "write promotion report")
 	}
-	if err := atomicWrite(ctx, planPath, plan); err != nil {
+	if err := atomicWrite(ctx, planAbsolute, plan); err != nil {
 		return errors.Wrap(err, "write promotion plan")
+	}
+	return nil
+}
+
+// ValidateOutputsOutsideRun rejects report destinations that would overwrite
+// any file in the immutable evaluated run.
+func ValidateOutputsOutsideRun(runDirectory string, paths ...string) error {
+	runAbsolute, err := filepath.Abs(runDirectory)
+	if err != nil {
+		return errors.Wrap(err, "resolve evaluated run directory")
+	}
+	for _, path := range paths {
+		outputAbsolute, err := filepath.Abs(path)
+		if err != nil {
+			return errors.Wrap(err, "resolve report output path")
+		}
+		relative, err := filepath.Rel(runAbsolute, outputAbsolute)
+		if err != nil {
+			return errors.Wrap(err, "compare report output with evaluated run")
+		}
+		if relative == "." || (relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator))) {
+			return errors.Errorf("report output path %q is inside evaluated run %q", outputAbsolute, runAbsolute)
+		}
 	}
 	return nil
 }

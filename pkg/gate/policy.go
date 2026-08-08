@@ -89,13 +89,24 @@ func LoadPolicy(ctx context.Context, path string) (*PolicyDocument, error) {
 	if err := validatePolicy(policy); err != nil {
 		return nil, err
 	}
-	semantic, err := json.Marshal(policy)
+	semanticDigest, err := policyDigest(policy)
 	if err != nil {
-		return nil, errors.Wrap(err, "marshal semantic gate policy")
+		return nil, err
 	}
 	return &PolicyDocument{
-		Policy: policy, Digest: digestBytes(semantic), ByteDigest: digestBytes(data), Path: absolute,
+		Policy: policy, Digest: semanticDigest, ByteDigest: digestBytes(data), Path: absolute,
 	}, nil
+}
+
+func policyDigest(policy Policy) (string, error) {
+	if err := validatePolicy(policy); err != nil {
+		return "", err
+	}
+	semantic, err := json.Marshal(policy)
+	if err != nil {
+		return "", errors.Wrap(err, "marshal semantic gate policy")
+	}
+	return digestBytes(semantic), nil
 }
 
 func validatePolicy(policy Policy) error {
@@ -185,6 +196,9 @@ func digestBytes(data []byte) string {
 
 func containsGroup(groups []string, selected map[string]struct{}) bool {
 	if len(selected) == 0 {
+		return true
+	}
+	if _, all := selected["all"]; all {
 		return true
 	}
 	for _, group := range groups {

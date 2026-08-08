@@ -46,6 +46,7 @@ func TestGateDecisionGoldens(t *testing.T) {
 			if test.mutate != nil {
 				test.mutate(run, policy)
 			}
+			policy.Digest = mustPolicyDigest(policy.Policy)
 			report, err := compare.Build(t.Context(), run)
 			if err != nil {
 				t.Fatal(err)
@@ -63,6 +64,37 @@ func TestGateDecisionGoldens(t *testing.T) {
 				t.Fatalf("decision mismatch\n--- actual ---\n%s--- expected ---\n%s", actual, expected)
 			}
 		})
+	}
+}
+
+func TestEvaluateRejectsMutatedPolicyDocument(t *testing.T) {
+	run := gateFixture()
+	policy := gatePolicy(run.Config.PolicyDigest)
+	report, err := compare.Build(t.Context(), run)
+	if err != nil {
+		t.Fatal(err)
+	}
+	policy.Policy.Target.MinimumMeanDelta = -100
+	if _, err := Evaluate(t.Context(), policy, report); err == nil || !strings.Contains(err.Error(), "semantic digest mismatch") {
+		t.Fatalf("expected mutated policy rejection, got %v", err)
+	}
+}
+
+func TestTargetAllSelectsEveryPair(t *testing.T) {
+	run := gateFixture()
+	policy := gatePolicy(run.Config.PolicyDigest)
+	policy.Policy.Target.Groups = []string{"all"}
+	policy.Digest = mustPolicyDigest(policy.Policy)
+	report, err := compare.Build(t.Context(), run)
+	if err != nil {
+		t.Fatal(err)
+	}
+	decision, err := Evaluate(t.Context(), policy, report)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if decision.Status != DecisionPass {
+		t.Fatalf("target all did not select the complete report: %#v", decision)
 	}
 }
 
@@ -144,8 +176,8 @@ func gateCell(config eval.RunConfig, caseID, arm, snapshot string, quality float
 
 func gatePolicy(byteDigest string) *PolicyDocument {
 	maximumFailure := 0.0
-	return &PolicyDocument{
-		Digest: testDigest('d'), ByteDigest: byteDigest,
+	document := &PolicyDocument{
+		ByteDigest: byteDigest,
 		Policy: Policy{
 			APIVersion: PolicyAPIVersion, Name: "fixture-policy",
 			HardGates:   HardGates{RequireAllCells: true, RequireCompleted: true, RequireContractValid: true, MaxFailureRate: &maximumFailure, MetricFloors: map[string]float64{"safety": 0.6}},
@@ -154,6 +186,16 @@ func gatePolicy(byteDigest string) *PolicyDocument {
 			TieBreakers: []string{"provider_calls", "total_tokens"},
 		},
 	}
+	document.Digest = mustPolicyDigest(document.Policy)
+	return document
+}
+
+func mustPolicyDigest(policy Policy) string {
+	digest, err := policyDigest(policy)
+	if err != nil {
+		panic(err)
+	}
+	return digest
 }
 
 func decisionSummary(decision Decision) string {

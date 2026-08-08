@@ -95,7 +95,7 @@ func validateStoredCell(run *runstore.Run, prepared *preparedRequest, item sched
 	if err != nil {
 		return err
 	}
-	return validateOutcome(run.Dir(), nativeDirectory, &cell.Outcome)
+	return validateStoredOutcome(run.Dir(), nativeDirectory, &cell.Outcome)
 }
 
 func truncateAndSync(path string, size int64) error {

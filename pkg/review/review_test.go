@@ -34,6 +34,16 @@ func TestLoadAnnotationsValidatesKnownIDsRangesAndDuplicates(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestLoadAnnotationsRejectsTrailingJSONValue(t *testing.T) {
+	keys := []KeyEntry{{ReviewID: "r1", SubjectID: "q1", Variant: "v1"}}
+	dimensions := []Dimension{{Name: "quality", Min: 0, Max: 3}}
+	path := filepath.Join(t.TempDir(), "annotations.jsonl")
+	line := `{"review_id":"r1","reviewer":"alice","scores":{"quality":3}} {"ignored":true}` + "\n"
+	require.NoError(t, os.WriteFile(path, []byte(line), 0o600))
+	_, err := LoadAnnotations(path, keys, dimensions)
+	require.ErrorContains(t, err, "trailing JSON value")
+}
+
 func TestAggregatePairsVariantsAndReviewerOverlap(t *testing.T) {
 	dimensions := []Dimension{{Name: "quality", Min: 0, Max: 3}}
 	keys := []KeyEntry{{ReviewID: "a", SubjectID: "q1", Variant: "control"}, {ReviewID: "b", SubjectID: "q1", Variant: "candidate"}}
@@ -45,4 +55,22 @@ func TestAggregatePairsVariantsAndReviewerOverlap(t *testing.T) {
 	require.Equal(t, 1, report.OverlappingItems)
 	require.Len(t, report.ReviewerOverlaps, 1)
 	require.Equal(t, 1, report.ReviewerOverlaps[0].Dimensions["quality"].Count)
+}
+
+func TestAggregatePreservesDuplicateSubjectVariantItems(t *testing.T) {
+	dimensions := []Dimension{{Name: "quality", Min: 0, Max: 4}}
+	keys := []KeyEntry{
+		{ReviewID: "a1", SubjectID: "q1", Variant: "a"},
+		{ReviewID: "a2", SubjectID: "q1", Variant: "a"},
+		{ReviewID: "b1", SubjectID: "q1", Variant: "b"},
+	}
+	annotations := []Annotation{
+		{ReviewID: "a1", Reviewer: "alice", Scores: map[string]int{"quality": 2}},
+		{ReviewID: "a2", Reviewer: "alice", Scores: map[string]int{"quality": 4}},
+		{ReviewID: "b1", Reviewer: "alice", Scores: map[string]int{"quality": 1}},
+	}
+	report := Aggregate(keys, annotations, dimensions)
+	require.Len(t, report.Comparisons, 1)
+	require.Equal(t, 1, report.Comparisons[0].ReviewedPairs)
+	require.Equal(t, 2.0, report.Comparisons[0].MeanDelta, "mean(a items)=3 minus b=1")
 }
