@@ -33,3 +33,16 @@ func TestLoadAnnotationsValidatesKnownIDsRangesAndDuplicates(t *testing.T) {
 	_, err = LoadAnnotations(path, keys, dimensions)
 	require.Error(t, err)
 }
+
+func TestAggregatePairsVariantsAndReviewerOverlap(t *testing.T) {
+	dimensions := []Dimension{{Name: "quality", Min: 0, Max: 3}}
+	keys := []KeyEntry{{ReviewID: "a", SubjectID: "q1", Variant: "control"}, {ReviewID: "b", SubjectID: "q1", Variant: "candidate"}}
+	annotations := []Annotation{{ReviewID: "a", Reviewer: "alice", Scores: map[string]int{"quality": 3}}, {ReviewID: "a", Reviewer: "bob", Scores: map[string]int{"quality": 2}}, {ReviewID: "b", Reviewer: "alice", Scores: map[string]int{"quality": 1}}}
+	report := Aggregate(keys, annotations, dimensions)
+	require.Len(t, report.Variants, 2)
+	require.Len(t, report.Comparisons, 1)
+	require.Equal(t, 1, report.Comparisons[0].ReviewedPairs)
+	require.Equal(t, 1, report.OverlappingItems)
+	require.Len(t, report.ReviewerOverlaps, 1)
+	require.Equal(t, 1, report.ReviewerOverlaps[0].Dimensions["quality"].Count)
+}
