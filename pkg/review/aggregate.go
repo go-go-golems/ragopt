@@ -194,7 +194,10 @@ func summarizeReviewerOverlap(keys map[string]KeyEntry, annotations []Annotation
 		ids = append(ids, id)
 	}
 	sort.Strings(ids)
-	type accumulator struct{ count, exact, totalDelta, maxDelta int }
+	type accumulator struct {
+		count, exact, maxDelta int
+		totalDelta             float64
+	}
 	type pair struct {
 		a, b          string
 		items         int
@@ -233,7 +236,7 @@ func summarizeReviewerOverlap(keys map[string]KeyEntry, annotations []Annotation
 						current.dimensions[dimension.Name] = metric
 					}
 					metric.count++
-					metric.totalDelta += delta
+					metric.totalDelta += float64(delta)
 					metric.maxDelta = max(metric.maxDelta, delta)
 					if delta == 0 {
 						metric.exact++

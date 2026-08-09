@@ -144,7 +144,11 @@ func TestDurableSnapshotReloadsAllMutableRunEvidence(t *testing.T) {
 	loaded.Status.State = runstore.StateFailed
 	loaded.Cells[0].Outcome.Metrics["quality"] = -100
 	loaded.Suite.Suite.Cases[0].Groups[0] = "mutated"
-	durable, err := loaded.DurableSnapshot(t.Context())
+	serialized, err := json.Marshal(loaded)
+	mustNoError(t, err)
+	var roundTripped ArtifactRun
+	mustNoError(t, json.Unmarshal(serialized, &roundTripped))
+	durable, err := roundTripped.DurableSnapshot(t.Context())
 	mustNoError(t, err)
 	if durable.Manifest.RunID != wantRunID || durable.Status.State != runstore.StateComplete || durable.Cells[0].Outcome.Metrics["quality"] != wantMetric || durable.Suite.Suite.Cases[0].Groups[0] != wantGroup {
 		t.Fatalf("durable snapshot trusted mutable fields: %#v", durable)
@@ -454,6 +458,23 @@ func TestResolveNativeArtifactAcceptsSymlinkedRunRoot(t *testing.T) {
 	}
 }
 
+func TestIdentifyArtifactPersistsPathRelativeToResolvedRunRoot(t *testing.T) {
+	realRoot := t.TempDir()
+	artifact := filepath.Join(realRoot, "native", "artifact.json")
+	mustNoError(t, os.MkdirAll(filepath.Dir(artifact), 0o700))
+	writeFile(t, artifact, []byte(`{"ok":true}`))
+	linkedRoot := filepath.Join(t.TempDir(), "deep", "run-link")
+	mustNoError(t, os.MkdirAll(filepath.Dir(linkedRoot), 0o700))
+	if err := os.Symlink(realRoot, linkedRoot); err != nil {
+		t.Skipf("symlink unavailable: %v", err)
+	}
+	identified, err := identifyArtifact(linkedRoot, filepath.Join(linkedRoot, "native", "artifact.json"))
+	mustNoError(t, err)
+	if identified.Path != filepath.Join("native", "artifact.json") {
+		t.Fatalf("artifact path = %q", identified.Path)
+	}
+}
+
 func TestSuiteBytesRemainBoundToLoadedSemantics(t *testing.T) {
 	fixture := newEvaluationFixture(t)
 	control := &scriptControl{}
@@ -541,7 +562,7 @@ func TestNativeArtifactHardLinkedOutsideRunBecomesOwnedCopy(t *testing.T) {
 	mustNoError(t, err)
 }
 
-func TestEvidenceSnapshotDoesNotGrowWithCommittedResults(t *testing.T) {
+func TestEvidenceSnapshotAuthenticatesCommittedCellJournal(t *testing.T) {
 	run := mustCreateEvidenceRun(t)
 	before, err := snapshotRunEvidence(run)
 	mustNoError(t, err)
@@ -549,8 +570,12 @@ func TestEvidenceSnapshotDoesNotGrowWithCommittedResults(t *testing.T) {
 	mustNoError(t, run.AppendJSONL(t.Context(), "results/cells.jsonl", map[string]string{"cell": "old"}))
 	after, err := snapshotRunEvidence(run)
 	mustNoError(t, err)
-	if !reflect.DeepEqual(before, after) {
-		t.Fatalf("bounded evidence snapshot grew with results: before=%v after=%v", before, after)
+	if len(after) != len(before)+1 || after[filepath.Join("results", "cells.jsonl")] == "" {
+		t.Fatalf("committed cell journal is not authenticated: before=%v after=%v", before, after)
+	}
+	writeFile(t, filepath.Join(run.Dir(), "results", "cells.jsonl"), []byte(`{"cell":"changed"}`+"\n"))
+	if err := verifyRunEvidence(run, after); err == nil || !strings.Contains(err.Error(), "cells.jsonl") {
+		t.Fatalf("changed cell journal was not rejected: %v", err)
 	}
 }
 

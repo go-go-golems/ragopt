@@ -616,7 +616,15 @@ func identifyArtifact(runDirectory, path string) (ArtifactRef, error) {
 	if err != nil {
 		return ArtifactRef{}, errors.Wrap(err, "read native artifact")
 	}
-	relative, err := filepath.Rel(runDirectory, path)
+	resolvedRunDirectory, err := filepath.EvalSymlinks(runDirectory)
+	if err != nil {
+		return ArtifactRef{}, errors.Wrap(err, "resolve run directory for native artifact identity")
+	}
+	resolvedPath, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		return ArtifactRef{}, errors.Wrap(err, "resolve native artifact identity")
+	}
+	relative, err := filepath.Rel(resolvedRunDirectory, resolvedPath)
 	if err != nil {
 		return ArtifactRef{}, errors.Wrap(err, "make native artifact path relative")
 	}

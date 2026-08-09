@@ -11,13 +11,25 @@ import (
 
 type runEvidenceSnapshot map[string]string
 
-// snapshotRunEvidence hashes the fixed trust roots exposed to every arm. The
-// set is bounded by configuration plus copied inputs; committed cells and
-// native artifacts are audited once as a whole before run completion.
+// snapshotRunEvidence hashes the fixed trust roots exposed to every arm plus
+// the committed cell journal when present. Each cell authenticates its native
+// artifact digest, so protecting the bounded journal identity prevents an arm
+// from rewriting both an earlier cell and its artifact; artifact-only changes
+// are rejected by the final audit.
 func snapshotRunEvidence(run *runstore.Run) (runEvidenceSnapshot, error) {
 	paths := []string{"manifest.json", "config.json", "status.json", filepath.Join("inputs", "manifest.json")}
 	for _, input := range run.Inputs() {
 		paths = append(paths, input.CopiedPath)
+	}
+	cellsPath := filepath.Join("results", "cells.jsonl")
+	absoluteCells, err := run.Path(cellsPath)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := os.Lstat(absoluteCells); err == nil {
+		paths = append(paths, cellsPath)
+	} else if !os.IsNotExist(err) {
+		return nil, errors.Wrap(err, "inspect committed cell journal")
 	}
 	snapshot := make(runEvidenceSnapshot, len(paths))
 	for _, relative := range paths {
