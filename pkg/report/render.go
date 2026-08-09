@@ -22,7 +22,14 @@ func Build(ctx context.Context, run *eval.ArtifactRun, comparison *compare.Repor
 	if run == nil || comparison == nil || policy == nil {
 		return nil, errors.New("artifact run, comparison, and policy are required")
 	}
-	recomputed, err := gate.Evaluate(ctx, policy, comparison)
+	rebuiltComparison, err := compare.Build(ctx, run)
+	if err != nil {
+		return nil, errors.Wrap(err, "rebuild comparison from artifact run")
+	}
+	if !reflect.DeepEqual(comparison, rebuiltComparison) {
+		return nil, errors.New("supplied comparison differs from artifact run evidence")
+	}
+	recomputed, err := gate.Evaluate(ctx, policy, rebuiltComparison)
 	if err != nil {
 		return nil, errors.Wrap(err, "recompute gate decision")
 	}

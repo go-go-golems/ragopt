@@ -98,6 +98,27 @@ func TestTargetAllSelectsEveryPair(t *testing.T) {
 	}
 }
 
+func TestEvaluateRejectsIncompleteRunStateBeforePromotionChecks(t *testing.T) {
+	for _, state := range []string{runstore.StateActive, runstore.StateFailed} {
+		t.Run(string(state), func(t *testing.T) {
+			run := gateFixture()
+			run.Status.State = state
+			policy := gatePolicy(run.Config.PolicyDigest)
+			report, err := compare.Build(t.Context(), run)
+			if err != nil {
+				t.Fatal(err)
+			}
+			decision, err := Evaluate(t.Context(), policy, report)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if decision.Status != DecisionFail || len(decision.Checks) < 2 || decision.Checks[1].Name != "run_complete" || decision.Checks[1].Passed {
+				t.Fatalf("incomplete run was not rejected: %#v", decision)
+			}
+		})
+	}
+}
+
 func TestLoadPolicyIsStrictAndHasNoThresholdDefaults(t *testing.T) {
 	directory := t.TempDir()
 	valid := `api_version: ragopt-gate-policy/v1
@@ -153,7 +174,11 @@ func gateFixture() *eval.ArtifactRun {
 			{ID: "case-b", Groups: []string{"factual"}, Input: []byte(`{"id":"b"}`)},
 		},
 	}}
-	run := &eval.ArtifactRun{Manifest: runstore.Manifest{RunID: "run-1"}, Config: config, Suite: suite}
+	run := &eval.ArtifactRun{
+		Manifest: runstore.Manifest{RunID: "run-1"},
+		Status:   runstore.Status{State: runstore.StateComplete},
+		Config:   config, Suite: suite,
+	}
 	for index, caseValue := range suite.Suite.Cases {
 		incumbentQuality := 0.5 + float64(index)*0.1
 		candidateQuality := incumbentQuality + 0.1

@@ -61,6 +61,7 @@ func Build(ctx context.Context, run *eval.ArtifactRun) (*Report, error) {
 	report := &Report{
 		APIVersion:      ReportAPIVersion,
 		RunID:           run.Manifest.RunID,
+		RunState:        run.Status.State,
 		SuiteDigest:     config.SuiteDigest,
 		PolicyDigest:    config.PolicyDigest,
 		CandidateID:     config.CandidateID,

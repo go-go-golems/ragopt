@@ -43,14 +43,26 @@ func bindInputs(
 		return CandidateView{}, CandidateView{}, errors.Errorf("gate policy changed during binding: expected=%s copied=%s", prepared.config.PolicyDigest, policyRef.SHA256)
 	}
 	candidateValue := prepared.candidate
-	if _, err := run.CopyInput(ctx, roleCandidateManifest, filepath.Join(candidateValue.Root, candidateValue.ManifestPath)); err != nil {
+	candidateRef, err := run.CopyInput(ctx, roleCandidateManifest, filepath.Join(candidateValue.Root, candidateValue.ManifestPath))
+	if err != nil {
 		return CandidateView{}, CandidateView{}, errors.Wrap(err, "copy candidate manifest")
 	}
-	if _, err := run.CopyInput(ctx, roleParentSnapshot, filepath.Join(candidateValue.Root, candidateValue.Manifest.ParentSnapshot)); err != nil {
+	if candidateRef.SHA256 != candidateValue.ManifestByteDigest {
+		return CandidateView{}, CandidateView{}, errors.Errorf("candidate manifest changed during binding: expected=%s copied=%s", candidateValue.ManifestByteDigest, candidateRef.SHA256)
+	}
+	parentRef, err := run.CopyInput(ctx, roleParentSnapshot, filepath.Join(candidateValue.Root, candidateValue.Manifest.ParentSnapshot))
+	if err != nil {
 		return CandidateView{}, CandidateView{}, errors.Wrap(err, "copy parent snapshot")
 	}
-	if _, err := run.CopyInput(ctx, roleChildSnapshot, filepath.Join(candidateValue.Root, candidateValue.Manifest.CandidateSnapshot)); err != nil {
+	if parentRef.SHA256 != candidateValue.Parent.ByteDigest {
+		return CandidateView{}, CandidateView{}, errors.Errorf("parent snapshot changed during binding: expected=%s copied=%s", candidateValue.Parent.ByteDigest, parentRef.SHA256)
+	}
+	childRef, err := run.CopyInput(ctx, roleChildSnapshot, filepath.Join(candidateValue.Root, candidateValue.Manifest.CandidateSnapshot))
+	if err != nil {
 		return CandidateView{}, CandidateView{}, errors.Wrap(err, "copy candidate snapshot")
+	}
+	if childRef.SHA256 != candidateValue.Child.ByteDigest {
+		return CandidateView{}, CandidateView{}, errors.Errorf("candidate snapshot changed during binding: expected=%s copied=%s", candidateValue.Child.ByteDigest, childRef.SHA256)
 	}
 	if err := copySnapshotAssets(ctx, run, candidateValue.Root, "parent", candidateValue.Parent); err != nil {
 		return CandidateView{}, CandidateView{}, err
@@ -64,12 +76,16 @@ func bindInputs(
 	return viewsFromInputs(run, candidateValue)
 }
 
-func expectedInputDigests(suite *SuiteDocument, policyPath string, candidateValue *candidate.Candidate) (map[string]string, error) {
-	paths := map[string]string{
-		rolePolicy:            policyPath,
-		roleCandidateManifest: filepath.Join(candidateValue.Root, candidateValue.ManifestPath),
-		roleParentSnapshot:    filepath.Join(candidateValue.Root, candidateValue.Manifest.ParentSnapshot),
-		roleChildSnapshot:     filepath.Join(candidateValue.Root, candidateValue.Manifest.CandidateSnapshot),
+func expectedInputDigests(suite *SuiteDocument, policyDigest string, candidateValue *candidate.Candidate) (map[string]string, error) {
+	if suite == nil || candidateValue == nil {
+		return nil, errors.New("suite and candidate are required")
+	}
+	result := map[string]string{
+		roleSuite:             suite.ByteDigest,
+		rolePolicy:            policyDigest,
+		roleCandidateManifest: candidateValue.ManifestByteDigest,
+		roleParentSnapshot:    candidateValue.Parent.ByteDigest,
+		roleChildSnapshot:     candidateValue.Child.ByteDigest,
 	}
 	for _, side := range []struct {
 		name     string
@@ -80,23 +96,16 @@ func expectedInputDigests(suite *SuiteDocument, policyPath string, candidateValu
 	} {
 		for _, item := range snapshotAssets(side.snapshot) {
 			role := assetRole(side.name, item.ref, item.locked)
-			if _, exists := paths[role]; exists {
+			if _, exists := result[role]; exists {
 				return nil, errors.Errorf("duplicate expected input role %q", role)
 			}
-			paths[role] = filepath.Join(candidateValue.Root, item.ref.Path)
+			result[role] = item.ref.SHA256
 		}
 	}
-	if strings.TrimSpace(suite.ByteDigest) == "" {
-		return nil, errors.New("suite byte digest is required")
-	}
-	result := make(map[string]string, len(paths)+1)
-	result[roleSuite] = suite.ByteDigest
-	for role, path := range paths {
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return nil, errors.Wrapf(err, "read expected input role %q", role)
+	for role, digest := range result {
+		if strings.TrimSpace(digest) == "" {
+			return nil, errors.Errorf("expected input role %q has no captured byte digest", role)
 		}
-		result[role] = digestBytes(data)
 	}
 	return result, nil
 }

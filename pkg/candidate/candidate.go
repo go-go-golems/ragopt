@@ -24,7 +24,8 @@ func LoadCandidate(ctx context.Context, bundleRoot, manifestPath string) (*Candi
 		return nil, errors.Wrap(err, "resolve candidate manifest")
 	}
 	var manifest CandidateManifest
-	if err := readStrictYAML(path, &manifest); err != nil {
+	manifestByteDigest, err := readStrictYAMLWithDigest(path, &manifest)
+	if err != nil {
 		return nil, errors.Wrap(err, "read candidate manifest")
 	}
 	if err := validateManifest(manifest); err != nil {
@@ -47,13 +48,14 @@ func LoadCandidate(ctx context.Context, bundleRoot, manifestPath string) (*Candi
 		return nil, err
 	}
 	return &Candidate{
-		Manifest:     manifest,
-		Parent:       *parent,
-		Child:        *child,
-		Mutation:     mutation,
-		Digest:       digest,
-		Root:         root,
-		ManifestPath: manifestPath,
+		Manifest:           manifest,
+		Parent:             *parent,
+		Child:              *child,
+		Mutation:           mutation,
+		Digest:             digest,
+		Root:               root,
+		ManifestPath:       manifestPath,
+		ManifestByteDigest: manifestByteDigest,
 	}, nil
 }
 
