@@ -246,6 +246,12 @@ func (run *Run) AppendJSONL(ctx context.Context, relative string, value any) err
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return errors.Wrap(err, "create JSONL parent directory")
 	}
+	created := false
+	if _, err := os.Lstat(path); os.IsNotExist(err) {
+		created = true
+	} else if err != nil {
+		return errors.Wrap(err, "inspect JSONL artifact")
+	}
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
 	if err != nil {
 		return errors.Wrap(err, "open JSONL artifact")
@@ -258,7 +264,13 @@ func (run *Run) AppendJSONL(ctx context.Context, relative string, value any) err
 		_ = file.Close()
 		return errors.Wrap(err, "sync JSONL artifact")
 	}
-	return errors.Wrap(file.Close(), "close JSONL artifact")
+	if err := file.Close(); err != nil {
+		return errors.Wrap(err, "close JSONL artifact")
+	}
+	if created {
+		return errors.Wrap(syncDirectory(filepath.Dir(path)), "sync new JSONL directory entry")
+	}
+	return nil
 }
 
 func newRunID(startedAt time.Time, name string) (string, error) {
@@ -266,7 +278,10 @@ func newRunID(startedAt time.Time, name string) (string, error) {
 	if _, err := rand.Read(random); err != nil {
 		return "", errors.Wrap(err, "generate run ID")
 	}
-	return startedAt.Format("20060102T150405.000000000Z") + "-" + name + "-" + hex.EncodeToString(random), nil
+	prefix := startedAt.Format("20060102T150405.000000000Z") + "-"
+	suffix := "-" + hex.EncodeToString(random)
+	name = boundedSafeName(name, maximumFileComponentBytes-len(prefix)-len(suffix))
+	return prefix + name + suffix, nil
 }
 
 func validateDimensions(dimensions map[string]string) (map[string]string, error) {

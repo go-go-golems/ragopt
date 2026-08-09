@@ -118,6 +118,23 @@ func TestReviewBoundariesRejectUnsafeRangesAndDuplicateKeys(t *testing.T) {
 	}
 }
 
+func TestValidateKeysRejectsMalformedIdentities(t *testing.T) {
+	for name, key := range map[string]KeyEntry{
+		"empty review ID":         {SubjectID: "q1", Variant: "control"},
+		"spaced review ID":        {ReviewID: " r1", SubjectID: "q1", Variant: "control"},
+		"empty subject ID":        {ReviewID: "r1", Variant: "control"},
+		"spaced subject ID":       {ReviewID: "r1", SubjectID: "q1 ", Variant: "control"},
+		"empty variant":           {ReviewID: "r1", SubjectID: "q1"},
+		"whitespace-only variant": {ReviewID: "r1", SubjectID: "q1", Variant: " "},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if err := ValidateKeys([]KeyEntry{key}); err == nil {
+				t.Fatalf("ValidateKeys accepted %+v", key)
+			}
+		})
+	}
+}
+
 func TestAggregatePairsVariantsAndReviewerOverlap(t *testing.T) {
 	dimensions := []Dimension{{Name: "quality", Min: 0, Max: 3}}
 	keys := []KeyEntry{{ReviewID: "a", SubjectID: "q1", Variant: "control"}, {ReviewID: "b", SubjectID: "q1", Variant: "candidate"}}

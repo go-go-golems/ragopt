@@ -438,6 +438,24 @@ func TestCancellationAfterSuccessfulArmLeavesRunResumable(t *testing.T) {
 	}
 }
 
+func TestCanceledInputBindingLeavesRunResumable(t *testing.T) {
+	run, err := runstore.Create(t.Context(), runstore.Options{Root: t.TempDir(), Name: "binding-cancel"}, map[string]any{"x": 1})
+	mustNoError(t, err)
+	result := &RunResult{RunDirectory: run.Dir(), RunID: run.Manifest().RunID}
+	returned, err := bindingFailure(t.Context(), run, result, context.Canceled)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("binding failure = %v, want context cancellation", err)
+	}
+	if returned != result {
+		t.Fatal("binding failure replaced the partial run result")
+	}
+	reader, err := runstore.Open(run.Dir())
+	mustNoError(t, err)
+	if reader.Status().State != runstore.StateActive {
+		t.Fatalf("canceled binding made run terminal: %q", reader.Status().State)
+	}
+}
+
 func TestNativeCellPathsAreCaseIndependent(t *testing.T) {
 	first := nativeCellPath("Arm", "Case", 0)
 	second := nativeCellPath("arm", "case", 0)

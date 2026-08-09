@@ -94,6 +94,35 @@ func TestCopyInputRejectsReservedManifestPath(t *testing.T) {
 	}
 }
 
+func TestCopyInputBoundsCompleteDestinationComponent(t *testing.T) {
+	run := mustCreateRun(t, map[string]any{"x": 1})
+	extension := "." + strings.Repeat("e", 240)
+	source := filepath.Join(t.TempDir(), "s"+extension)
+	mustWriteFile(t, source, []byte("bounded"))
+	ref, err := run.CopyInput(t.Context(), strings.Repeat("role", 60), source)
+	mustNoError(t, err)
+	if got := len(filepath.Base(ref.CopiedPath)); got > maximumFileComponentBytes {
+		t.Fatalf("copied input component has %d bytes", got)
+	}
+	data, err := os.ReadFile(filepath.Join(run.Dir(), ref.CopiedPath))
+	mustNoError(t, err)
+	if string(data) != "bounded" {
+		t.Fatalf("copied input = %q", data)
+	}
+}
+
+func TestCreateBoundsRunDirectoryComponentAndRetainsName(t *testing.T) {
+	name := strings.Repeat("descriptive-name-", 40)
+	run, err := Create(t.Context(), Options{Root: t.TempDir(), Name: name}, map[string]any{"x": 1})
+	mustNoError(t, err)
+	if got := len(filepath.Base(run.Dir())); got > maximumFileComponentBytes {
+		t.Fatalf("run directory component has %d bytes", got)
+	}
+	if run.Manifest().Name != name {
+		t.Fatal("manifest name was changed")
+	}
+}
+
 func TestOpenDoesNotRecoverPendingInputTransactions(t *testing.T) {
 	t.Run("committed manifest remains pending", func(t *testing.T) {
 		run := mustCreateRun(t, map[string]any{})
