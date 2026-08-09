@@ -12,28 +12,42 @@ import (
 	"github.com/go-go-golems/ragopt/pkg/compare"
 	"github.com/go-go-golems/ragopt/pkg/eval"
 	"github.com/go-go-golems/ragopt/pkg/gate"
+	"github.com/go-go-golems/ragopt/pkg/policy"
 )
 
 // Build creates deterministic report content without writing any files.
-func Build(ctx context.Context, run *eval.ArtifactRun, comparison *compare.Report, policy *gate.PolicyDocument, decision gate.Decision) (*Document, error) {
+func Build(ctx context.Context, run *eval.ArtifactRun, comparison *compare.Report, policyDocument *policy.Document, decision gate.Decision) (*Document, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	if run == nil || comparison == nil || policy == nil {
+	if run == nil || comparison == nil || policyDocument == nil {
 		return nil, errors.New("artifact run, comparison, and policy are required")
 	}
-	config, err := run.DurableConfig(ctx)
+	durable, err := run.DurableSnapshot(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "load durable evaluation config")
+		return nil, errors.Wrap(err, "load durable evaluation evidence")
 	}
-	rebuiltComparison, err := compare.Build(ctx, run)
+	config := durable.Config
+	durablePolicy := policyDocument
+	if durable.Directory != "" {
+		durablePolicy, err = policy.Load(ctx, durable.PolicyPath)
+		if err != nil {
+			return nil, errors.Wrap(err, "load durable gate policy")
+		}
+		if policyDocument.ByteDigest != durablePolicy.ByteDigest ||
+			policyDocument.Digest != durablePolicy.Digest ||
+			!reflect.DeepEqual(policyDocument.Policy, durablePolicy.Policy) {
+			return nil, errors.New("supplied gate policy differs from artifact run evidence")
+		}
+	}
+	rebuiltComparison, err := compare.Build(ctx, durable)
 	if err != nil {
 		return nil, errors.Wrap(err, "rebuild comparison from artifact run")
 	}
 	if !reflect.DeepEqual(comparison, rebuiltComparison) {
 		return nil, errors.New("supplied comparison differs from artifact run evidence")
 	}
-	recomputed, err := gate.Evaluate(ctx, policy, rebuiltComparison)
+	recomputed, err := gate.Evaluate(ctx, durablePolicy, rebuiltComparison)
 	if err != nil {
 		return nil, errors.Wrap(err, "recompute gate decision")
 	}
@@ -41,8 +55,8 @@ func Build(ctx context.Context, run *eval.ArtifactRun, comparison *compare.Repor
 		return nil, errors.New("supplied gate decision differs from recomputed comparison decision")
 	}
 	if decision.APIVersion != gate.DecisionAPIVersion ||
-		decision.PolicyDigest != policy.Digest ||
-		policy.ByteDigest != config.PolicyDigest ||
+		decision.PolicyDigest != durablePolicy.Digest ||
+		durablePolicy.ByteDigest != config.PolicyDigest ||
 		comparison.SuiteDigest != config.SuiteDigest ||
 		comparison.PolicyDigest != config.PolicyDigest ||
 		comparison.CandidateID != config.CandidateID ||
@@ -59,13 +73,13 @@ func Build(ctx context.Context, run *eval.ArtifactRun, comparison *compare.Repor
 		ParentSnapshot: comparison.ParentSnapshot, ChildSnapshot: comparison.ChildSnapshot,
 		Mutation: config.Mutation, ChangedAsset: config.ChangedAsset,
 		ParentAssetDigest: config.ParentAssetDigest, ChildAssetDigest: config.ChildAssetDigest,
-		PolicyName: policy.Policy.Name, PolicyDigest: policy.Digest,
+		PolicyName: durablePolicy.Policy.Name, PolicyDigest: durablePolicy.Digest,
 		Decision: decision.Status, Reasons: append([]string(nil), decision.Reasons...),
 	}
-	return &Document{Markdown: renderMarkdown(config, comparison, policy, decision), Plan: plan}, nil
+	return &Document{Markdown: renderMarkdown(config, comparison, durablePolicy, decision), Plan: plan}, nil
 }
 
-func renderMarkdown(config eval.RunConfig, comparison *compare.Report, policy *gate.PolicyDocument, decision gate.Decision) string {
+func renderMarkdown(config eval.RunConfig, comparison *compare.Report, policy *policy.Document, decision gate.Decision) string {
 	var output strings.Builder
 	fmt.Fprintf(&output, "# Promotion review: %s\n\n", comparison.CandidateID)
 	fmt.Fprintf(&output, "> Decision: **%s**. This report does not apply the candidate; human review is required.\n\n", strings.ToUpper(string(decision.Status)))

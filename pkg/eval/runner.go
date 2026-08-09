@@ -15,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/go-go-golems/ragopt/pkg/candidate"
+	"github.com/go-go-golems/ragopt/pkg/policy"
 	"github.com/go-go-golems/ragopt/pkg/runstore"
 )
 
@@ -164,7 +165,7 @@ func prepareRequest(ctx context.Context, request RunRequest) (*preparedRequest, 
 	if incumbentName == challengerName {
 		return nil, errors.Errorf("arm names must be unique, both are %q", incumbentName)
 	}
-	policyPath, policyDigest, err := loadPolicyIdentity(request.PolicyPath)
+	policyPath, policyDigest, err := loadPolicyIdentity(ctx, request.PolicyPath)
 	if err != nil {
 		return nil, err
 	}
@@ -198,7 +199,7 @@ func prepareRequest(ctx context.Context, request RunRequest) (*preparedRequest, 
 	}, nil
 }
 
-func loadPolicyIdentity(path string) (string, string, error) {
+func loadPolicyIdentity(ctx context.Context, path string) (string, string, error) {
 	if strings.TrimSpace(path) == "" {
 		return "", "", errors.New("gate policy path is required")
 	}
@@ -213,11 +214,11 @@ func loadPolicyIdentity(path string) (string, string, error) {
 	if !info.Mode().IsRegular() {
 		return "", "", errors.New("gate policy path is not a regular file")
 	}
-	data, err := os.ReadFile(absolute)
+	document, err := policy.Load(ctx, absolute)
 	if err != nil {
-		return "", "", errors.Wrap(err, "read gate policy")
+		return "", "", errors.Wrap(err, "validate gate policy")
 	}
-	return absolute, digestBytes(data), nil
+	return document.Path, document.ByteDigest, nil
 }
 
 func execute(

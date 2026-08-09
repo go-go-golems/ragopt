@@ -349,6 +349,22 @@ func TestAssetRoleEncodingIsInjective(t *testing.T) {
 	}
 }
 
+func TestRunRejectsMalformedPolicyBeforeCreatingRun(t *testing.T) {
+	fixture := newEvaluationFixture(t)
+	writeFile(t, fixture.policy, []byte("api_version: ragopt-gate-policy/v1\nname: incomplete\n"))
+	runRoot := t.TempDir()
+	request := fixture.request(runRoot, &scriptedArm{name: "incumbent", control: &scriptControl{}}, &scriptedArm{name: "challenger", control: &scriptControl{}})
+	_, err := Run(t.Context(), request)
+	if err == nil || !strings.Contains(err.Error(), "validate gate policy") {
+		t.Fatalf("malformed policy was accepted: %v", err)
+	}
+	entries, readErr := os.ReadDir(runRoot)
+	mustNoError(t, readErr)
+	if len(entries) != 0 {
+		t.Fatalf("invalid policy created run artifacts: %v", entries)
+	}
+}
+
 func TestAssetRoleStaysWithinCopiedInputFilenameLimit(t *testing.T) {
 	role := assetRole("candidate", candidate.AssetRef{
 		Name: strings.Repeat("a", 128), SHA256: byteDigest([]byte("asset")),
@@ -648,7 +664,19 @@ func newEvaluationFixture(t *testing.T) *evaluationFixture {
 	suite, err := LoadSuite(t.Context(), suitePath)
 	mustNoError(t, err)
 	policyPath := filepath.Join(root, "policy.json")
-	writeFile(t, policyPath, []byte(`{"api_version":"fixture-policy/v1","target":"quality"}`))
+	writeFile(t, policyPath, []byte(`api_version: ragopt-gate-policy/v1
+name: fixture-policy
+hard_gates:
+  require_all_cells: true
+  require_completed: true
+  require_contract_valid: true
+  max_failure_rate: 0
+target:
+  metric: quality
+  minimum_mean_delta: 0
+  require_positive_each_repeat: false
+regressions: {}
+`))
 	candidateValue := writeCandidateFixture(t, filepath.Join(root, "bundle"))
 	return &evaluationFixture{suite: suite, policy: policyPath, candidate: candidateValue}
 }

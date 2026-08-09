@@ -3,11 +3,14 @@ package gate
 import (
 	"context"
 	"fmt"
+	"math"
 	"sort"
+	"strings"
 
 	"github.com/pkg/errors"
 
 	"github.com/go-go-golems/ragopt/pkg/compare"
+	"github.com/go-go-golems/ragopt/pkg/policy"
 	"github.com/go-go-golems/ragopt/pkg/runstore"
 )
 
@@ -39,27 +42,27 @@ type Decision struct {
 
 // Evaluate applies identity, hard, target, regression, and tie-break phases in
 // lexicographic order. It is pure and performs no I/O.
-func Evaluate(ctx context.Context, policy *PolicyDocument, report *compare.Report) (Decision, error) {
+func Evaluate(ctx context.Context, policyDocument *policy.Document, report *compare.Report) (Decision, error) {
 	if err := ctx.Err(); err != nil {
 		return Decision{}, err
 	}
-	if policy == nil || report == nil {
+	if policyDocument == nil || report == nil {
 		return Decision{}, errors.New("gate policy and comparison report are required")
 	}
-	semanticDigest, err := policyDigest(policy.Policy)
+	semanticDigest, err := policy.Digest(policyDocument.Policy)
 	if err != nil {
 		return Decision{}, errors.Wrap(err, "validate gate policy semantics")
 	}
-	if semanticDigest != policy.Digest {
-		return Decision{}, errors.Errorf("gate policy semantic digest mismatch: document=%s actual=%s", policy.Digest, semanticDigest)
+	if semanticDigest != policyDocument.Digest {
+		return Decision{}, errors.Errorf("gate policy semantic digest mismatch: document=%s actual=%s", policyDocument.Digest, semanticDigest)
 	}
 	decision := Decision{
-		APIVersion: DecisionAPIVersion, PolicyName: policy.Policy.Name,
-		PolicyDigest: policy.Digest, Status: DecisionPass,
+		APIVersion: DecisionAPIVersion, PolicyName: policyDocument.Policy.Name,
+		PolicyDigest: policyDocument.Digest, Status: DecisionPass,
 	}
 	identity := []CheckResult{
-		check("identity", "policy_bytes", policy.ByteDigest == report.PolicyDigest,
-			"run policy bytes match the loaded gate policy", map[string]any{"run": report.PolicyDigest, "loaded": policy.ByteDigest}),
+		check("identity", "policy_bytes", policyDocument.ByteDigest == report.PolicyDigest,
+			"run policy bytes match the loaded gate policy", map[string]any{"run": report.PolicyDigest, "loaded": policyDocument.ByteDigest}),
 		check("identity", "run_complete", report.RunState == runstore.StateComplete,
 			fmt.Sprintf("evaluated run state is %q", report.RunState), map[string]any{"state": report.RunState}),
 		check("identity", "complete_pairing", report.CompletePairs == report.ExpectedPairs && len(report.MissingPairs) == 0,
@@ -71,15 +74,15 @@ func Evaluate(ctx context.Context, policy *PolicyDocument, report *compare.Repor
 
 	all := findGroup(report, "all")
 	hard := make([]CheckResult, 0)
-	if policy.Policy.HardGates.RequireAllCells {
+	if policyDocument.Policy.HardGates.RequireAllCells {
 		hard = append(hard, check("hard", "require_all_cells", report.CompletePairs == report.ExpectedPairs,
 			fmt.Sprintf("complete pairs %d of %d", report.CompletePairs, report.ExpectedPairs), nil))
 	}
-	if policy.Policy.HardGates.RequireCompleted {
+	if policyDocument.Policy.HardGates.RequireCompleted {
 		hard = append(hard, check("hard", "require_completed", all != nil && all.CandidateCompleted == all.ExpectedPairs,
 			fmt.Sprintf("candidate completed %d of %d", valueInt(all, func(group *compare.GroupAggregate) int { return group.CandidateCompleted }), report.ExpectedPairs), nil))
 	}
-	if policy.Policy.HardGates.RequireContractValid {
+	if policyDocument.Policy.HardGates.RequireContractValid {
 		hard = append(hard, check("hard", "require_contract_valid", all != nil && all.CandidateContractValid == all.ExpectedPairs,
 			fmt.Sprintf("candidate contract-valid %d of %d", valueInt(all, func(group *compare.GroupAggregate) int { return group.CandidateContractValid }), report.ExpectedPairs), nil))
 	}
@@ -87,12 +90,12 @@ func Evaluate(ctx context.Context, policy *PolicyDocument, report *compare.Repor
 	if all != nil {
 		failureRate = all.CandidateFailureRate
 	}
-	maxFailure := *policy.Policy.HardGates.MaxFailureRate
+	maxFailure := *policyDocument.Policy.HardGates.MaxFailureRate
 	hard = append(hard, check("hard", "max_failure_rate", failureRate <= maxFailure,
 		fmt.Sprintf("candidate failure rate %.6f <= %.6f", failureRate, maxFailure), map[string]any{"actual": failureRate, "maximum": maxFailure}))
-	floorMetrics := sortedMetricNames(policy.Policy.HardGates.MetricFloors)
+	floorMetrics := sortedMetricNames(policyDocument.Policy.HardGates.MetricFloors)
 	for _, metric := range floorMetrics {
-		floor := policy.Policy.HardGates.MetricFloors[metric]
+		floor := policyDocument.Policy.HardGates.MetricFloors[metric]
 		passed, minimum, present := candidateMetricFloor(report.Pairs, metric, floor)
 		hard = append(hard, check("hard", "metric_floor:"+metric, passed,
 			fmt.Sprintf("candidate %s minimum %.6f across %d pairs; floor %.6f", metric, minimum, present, floor),
@@ -102,22 +105,22 @@ func Evaluate(ctx context.Context, policy *PolicyDocument, report *compare.Repor
 		return decision, nil
 	}
 
-	targetChecks, err := evaluateTarget(policy.Policy.Target, report)
+	targetChecks, err := evaluateTarget(policyDocument.Policy.Target, report)
 	if err != nil {
 		return Decision{}, err
 	}
 	if stopAfter(&decision, targetChecks) {
 		return decision, nil
 	}
-	regressionChecks := evaluateRegressions(policy.Policy.Regressions, report)
+	regressionChecks := evaluateRegressions(policyDocument.Policy.Regressions, report)
 	if stopAfter(&decision, regressionChecks) {
 		return decision, nil
 	}
-	decision.Checks = append(decision.Checks, evaluateTieBreakers(policy.Policy.TieBreakers, all)...)
+	decision.Checks = append(decision.Checks, evaluateTieBreakers(policyDocument.Policy.TieBreakers, all)...)
 	return decision, nil
 }
 
-func evaluateTarget(target Target, report *compare.Report) ([]CheckResult, error) {
+func evaluateTarget(target policy.Target, report *compare.Report) ([]CheckResult, error) {
 	selectedGroups := groupSet(target.Groups)
 	deltas := make([]struct {
 		repeat int
@@ -182,7 +185,7 @@ func evaluateTarget(target Target, report *compare.Report) ([]CheckResult, error
 	return checks, nil
 }
 
-func evaluateRegressions(regressions Regressions, report *compare.Report) []CheckResult {
+func evaluateRegressions(regressions policy.Regressions, report *compare.Report) []CheckResult {
 	checks := make([]CheckResult, 0)
 	for _, metric := range sortedMetricNames(regressions.MaximumCaseDelta) {
 		minimum := regressions.MaximumCaseDelta[metric]
@@ -227,6 +230,29 @@ func evaluateRegressions(regressions Regressions, report *compare.Report) []Chec
 		}
 	}
 	return checks
+}
+
+func containsGroup(groups []string, selected map[string]struct{}) bool {
+	if len(selected) == 0 {
+		return true
+	}
+	if _, all := selected["all"]; all {
+		return true
+	}
+	for _, group := range groups {
+		if _, ok := selected[group]; ok {
+			return true
+		}
+	}
+	return false
+}
+
+func groupSet(groups []string) map[string]struct{} {
+	result := make(map[string]struct{}, len(groups))
+	for _, group := range groups {
+		result[strings.TrimSpace(group)] = struct{}{}
+	}
+	return result
 }
 
 func evaluateTieBreakers(tieBreakers []string, all *compare.GroupAggregate) []CheckResult {
@@ -345,6 +371,8 @@ func checkedMean(values []float64) (float64, error) {
 	}
 	return mean, nil
 }
+
+func finite(value float64) bool { return !math.IsNaN(value) && !math.IsInf(value, 0) }
 
 func valueInt(group *compare.GroupAggregate, fn func(*compare.GroupAggregate) int) int {
 	if group == nil {

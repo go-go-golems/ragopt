@@ -15,6 +15,7 @@ import (
 	"github.com/go-go-golems/ragopt/pkg/compare"
 	"github.com/go-go-golems/ragopt/pkg/eval"
 	"github.com/go-go-golems/ragopt/pkg/gate"
+	"github.com/go-go-golems/ragopt/pkg/policy"
 	"github.com/go-go-golems/ragopt/pkg/runstore"
 )
 
@@ -66,30 +67,30 @@ func TestBuildAndWritePromotionEvidenceWithoutApplying(t *testing.T) {
 }
 
 func TestBuildRejectsInconsistentIdentities(t *testing.T) {
-	mutations := map[string]func(*eval.ArtifactRun, *compare.Report, *gate.PolicyDocument){
-		"run": func(_ *eval.ArtifactRun, report *compare.Report, _ *gate.PolicyDocument) { report.RunID = "other-run" },
-		"suite": func(_ *eval.ArtifactRun, report *compare.Report, _ *gate.PolicyDocument) {
+	mutations := map[string]func(*eval.ArtifactRun, *compare.Report, *policy.Document){
+		"run": func(_ *eval.ArtifactRun, report *compare.Report, _ *policy.Document) { report.RunID = "other-run" },
+		"suite": func(_ *eval.ArtifactRun, report *compare.Report, _ *policy.Document) {
 			report.SuiteDigest = reportDigest('x')
 		},
-		"policy bytes": func(_ *eval.ArtifactRun, _ *compare.Report, policy *gate.PolicyDocument) {
+		"policy bytes": func(_ *eval.ArtifactRun, _ *compare.Report, policy *policy.Document) {
 			policy.ByteDigest = reportDigest('x')
 		},
-		"candidate ID": func(_ *eval.ArtifactRun, report *compare.Report, _ *gate.PolicyDocument) {
+		"candidate ID": func(_ *eval.ArtifactRun, report *compare.Report, _ *policy.Document) {
 			report.CandidateID = "other"
 		},
-		"candidate digest": func(_ *eval.ArtifactRun, report *compare.Report, _ *gate.PolicyDocument) {
+		"candidate digest": func(_ *eval.ArtifactRun, report *compare.Report, _ *policy.Document) {
 			report.CandidateDigest = reportDigest('x')
 		},
-		"parent snapshot": func(_ *eval.ArtifactRun, report *compare.Report, _ *gate.PolicyDocument) {
+		"parent snapshot": func(_ *eval.ArtifactRun, report *compare.Report, _ *policy.Document) {
 			report.ParentSnapshot = reportDigest('x')
 		},
-		"child snapshot": func(_ *eval.ArtifactRun, report *compare.Report, _ *gate.PolicyDocument) {
+		"child snapshot": func(_ *eval.ArtifactRun, report *compare.Report, _ *policy.Document) {
 			report.ChildSnapshot = reportDigest('x')
 		},
-		"incumbent arm": func(_ *eval.ArtifactRun, report *compare.Report, _ *gate.PolicyDocument) {
+		"incumbent arm": func(_ *eval.ArtifactRun, report *compare.Report, _ *policy.Document) {
 			report.IncumbentArm = "other"
 		},
-		"challenger arm": func(_ *eval.ArtifactRun, report *compare.Report, _ *gate.PolicyDocument) {
+		"challenger arm": func(_ *eval.ArtifactRun, report *compare.Report, _ *policy.Document) {
 			report.ChallengerArm = "other"
 		},
 	}
@@ -127,13 +128,12 @@ func TestBuildRejectsComparisonAndDecisionNotBackedByRun(t *testing.T) {
 	}
 }
 
-func TestBuildUsesManifestBoundConfigForPromotionFields(t *testing.T) {
+func TestBuildRejectsIncompleteDirectoryBackedRun(t *testing.T) {
 	run, comparison, policy, decision := reportFixture()
 	run.Config.APIVersion = eval.RunAPIVersion
 	run.Config.InputDigests = map[string]string{"suite": reportDigest('s')}
-	durable := run.Config
 	directory := t.TempDir()
-	data, err := json.Marshal(durable)
+	data, err := json.Marshal(run.Config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -143,14 +143,8 @@ func TestBuildUsesManifestBoundConfigForPromotionFields(t *testing.T) {
 	digest := sha256.Sum256(data)
 	run.Directory = directory
 	run.Manifest.ConfigDigest = "sha256:" + hex.EncodeToString(digest[:])
-	run.Config.ChangedAsset = "mutated-in-memory"
-	run.Config.Mutation.Hypothesis = "fabricated hypothesis"
-	document, err := Build(t.Context(), run, comparison, policy, decision)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if document.Plan.ChangedAsset != durable.ChangedAsset || document.Plan.Mutation.Hypothesis != durable.Mutation.Hypothesis {
-		t.Fatalf("promotion plan trusted mutable config: %#v", document.Plan)
+	if _, err := Build(t.Context(), run, comparison, policy, decision); err == nil || !strings.Contains(err.Error(), "load durable evaluation evidence") {
+		t.Fatalf("incomplete directory-backed run was accepted: %v", err)
 	}
 }
 
@@ -287,7 +281,7 @@ func TestReportPathsResolveExistingParentSymlinks(t *testing.T) {
 	}
 }
 
-func reportFixture() (*eval.ArtifactRun, *compare.Report, *gate.PolicyDocument, gate.Decision) {
+func reportFixture() (*eval.ArtifactRun, *compare.Report, *policy.Document, gate.Decision) {
 	mutation := candidate.MutationDeclaration{
 		Asset: "prompt", Hypothesis: "Make comparison behavior explicit.",
 		ExpectedImprovement: candidate.ExpectedImprovement{Metric: "quality", Groups: []string{"comparison"}},
@@ -317,10 +311,10 @@ func reportFixture() (*eval.ArtifactRun, *compare.Report, *gate.PolicyDocument, 
 		panic(err)
 	}
 	maximumFailure := 1.0
-	policy := &gate.PolicyDocument{ByteDigest: reportDigest('p'), Policy: gate.Policy{
-		APIVersion: gate.PolicyAPIVersion, Name: "policy-1",
-		HardGates: gate.HardGates{MaxFailureRate: &maximumFailure},
-		Target:    gate.Target{Metric: "quality", Groups: []string{"comparison"}, MinimumMeanDelta: 0.05},
+	policy := &policy.Document{ByteDigest: reportDigest('p'), Policy: policy.Policy{
+		APIVersion: policy.PolicyAPIVersion, Name: "policy-1",
+		HardGates: policy.HardGates{MaxFailureRate: &maximumFailure},
+		Target:    policy.Target{Metric: "quality", Groups: []string{"comparison"}, MinimumMeanDelta: 0.05},
 	}}
 	semantic, err := json.Marshal(policy.Policy)
 	if err != nil {
