@@ -94,17 +94,49 @@ func TestCopyInputRejectsReservedManifestPath(t *testing.T) {
 	}
 }
 
-func TestOpenRecoversPendingInputTransactions(t *testing.T) {
-	t.Run("committed manifest completes publication", func(t *testing.T) {
+func TestOpenDoesNotRecoverPendingInputTransactions(t *testing.T) {
+	t.Run("committed manifest remains pending", func(t *testing.T) {
 		run := mustCreateRun(t, map[string]any{})
+		data := []byte("suite")
+		ref := InputRef{Role: "suite", CopiedPath: "inputs/suite.json", SHA256: digestBytes(data), SizeBytes: int64(len(data))}
+		pending := filepath.Join(run.Dir(), "inputs", ".pending-suite.json")
+		mustWriteFile(t, pending, data)
+		mustWriteJSON(t, filepath.Join(run.Dir(), "inputs", "manifest.json"), []InputRef{ref})
+		if _, err := Open(run.Dir()); err == nil {
+			t.Fatal("Open accepted a manifest whose publication is still pending")
+		}
+		if _, err := os.Stat(pending); err != nil {
+			t.Fatalf("reader changed writer-owned pending input: %v", err)
+		}
+	})
+
+	t.Run("uncommitted bytes remain pending", func(t *testing.T) {
+		run := mustCreateRun(t, map[string]any{})
+		pending := filepath.Join(run.Dir(), "inputs", ".pending-suite.json")
+		mustWriteFile(t, pending, []byte("suite"))
+		reader, err := Open(run.Dir())
+		mustNoError(t, err)
+		if len(reader.Inputs()) != 0 {
+			t.Fatalf("inputs = %d, want 0", len(reader.Inputs()))
+		}
+		if _, err := os.Stat(pending); err != nil {
+			t.Fatalf("reader changed writer-owned pending input: %v", err)
+		}
+	})
+}
+
+func TestResumeRecoversPendingInputTransactions(t *testing.T) {
+	config := map[string]any{"x": 1}
+	t.Run("committed manifest completes publication", func(t *testing.T) {
+		run := mustCreateRun(t, config)
 		data := []byte("suite")
 		ref := InputRef{Role: "suite", CopiedPath: "inputs/suite.json", SHA256: digestBytes(data), SizeBytes: int64(len(data))}
 		mustWriteFile(t, filepath.Join(run.Dir(), "inputs", ".pending-suite.json"), data)
 		mustWriteJSON(t, filepath.Join(run.Dir(), "inputs", "manifest.json"), []InputRef{ref})
-		reader, err := Open(run.Dir())
+		resumed, err := Resume(t.Context(), run.Dir(), config)
 		mustNoError(t, err)
-		if len(reader.Inputs()) != 1 {
-			t.Fatalf("recovered inputs = %d, want 1", len(reader.Inputs()))
+		if len(resumed.Inputs()) != 1 {
+			t.Fatalf("recovered inputs = %d, want 1", len(resumed.Inputs()))
 		}
 		if _, err := os.Stat(filepath.Join(run.Dir(), ref.CopiedPath)); err != nil {
 			t.Fatalf("committed pending input was not published: %v", err)
@@ -112,18 +144,34 @@ func TestOpenRecoversPendingInputTransactions(t *testing.T) {
 	})
 
 	t.Run("uncommitted bytes are discarded", func(t *testing.T) {
-		run := mustCreateRun(t, map[string]any{})
+		run := mustCreateRun(t, config)
 		pending := filepath.Join(run.Dir(), "inputs", ".pending-suite.json")
 		mustWriteFile(t, pending, []byte("suite"))
-		reader, err := Open(run.Dir())
+		resumed, err := Resume(t.Context(), run.Dir(), config)
 		mustNoError(t, err)
-		if len(reader.Inputs()) != 0 {
-			t.Fatalf("recovered inputs = %d, want 0", len(reader.Inputs()))
+		if len(resumed.Inputs()) != 0 {
+			t.Fatalf("recovered inputs = %d, want 0", len(resumed.Inputs()))
 		}
 		if _, err := os.Stat(pending); !errors.Is(err, os.ErrNotExist) {
 			t.Fatalf("uncommitted pending input remains: %v", err)
 		}
 	})
+}
+
+func TestCreateRetainsAbsoluteRunDirectory(t *testing.T) {
+	base := t.TempDir()
+	t.Chdir(base)
+	mustNoError(t, os.Mkdir("runs", 0o700))
+	run, err := Create(t.Context(), Options{Root: "runs", Name: "absolute"}, map[string]any{"x": 1})
+	mustNoError(t, err)
+	if !filepath.IsAbs(run.Dir()) {
+		t.Fatalf("run directory = %q, want absolute", run.Dir())
+	}
+	t.Chdir(t.TempDir())
+	mustNoError(t, run.WriteBytes(t.Context(), "results/after-chdir.txt", []byte("ok")))
+	if _, err := os.Stat(filepath.Join(run.Dir(), "results", "after-chdir.txt")); err != nil {
+		t.Fatalf("write after chdir: %v", err)
+	}
 }
 
 func TestConfigDigestIsStableAcrossMapOrder(t *testing.T) {

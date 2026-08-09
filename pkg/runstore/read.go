@@ -169,9 +169,6 @@ func validateStatus(status Status) error {
 }
 
 func readInputs(root string) ([]InputRef, error) {
-	if err := recoverPendingInputs(root); err != nil {
-		return nil, errors.Wrap(err, "recover pending copied inputs")
-	}
 	manifestPath := filepath.Join(root, "inputs", "manifest.json")
 	var inputs []InputRef
 	err := readStrictJSON(manifestPath, &inputs)
@@ -181,8 +178,10 @@ func readInputs(root string) ([]InputRef, error) {
 			if readErr != nil {
 				return nil, errors.Wrap(readErr, "read input directory")
 			}
-			if len(entries) != 0 {
-				return nil, errors.New("input directory has files but no input manifest")
+			for _, entry := range entries {
+				if !strings.HasPrefix(entry.Name(), ".pending-") {
+					return nil, errors.New("input directory has files but no input manifest")
+				}
 			}
 			return nil, nil
 		}
@@ -226,7 +225,7 @@ func readInputs(root string) ([]InputRef, error) {
 		return nil, errors.Wrap(err, "read input directory")
 	}
 	for _, entry := range entries {
-		if entry.Name() == "manifest.json" {
+		if entry.Name() == "manifest.json" || strings.HasPrefix(entry.Name(), ".pending-") {
 			continue
 		}
 		if _, ok := paths[filepath.Join("inputs", entry.Name())]; !ok {

@@ -167,6 +167,24 @@ func TestWriteRejectsSameResolvedOutputPath(t *testing.T) {
 	}
 }
 
+func TestReportDestinationAliasUsesFilesystemCaseSemantics(t *testing.T) {
+	directory := t.TempDir()
+	caseInsensitive, err := filesystemCaseInsensitive(directory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	alias, err := destinationsAlias(
+		filepath.Join(directory, "review.out"),
+		filepath.Join(directory, "Review.out"),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if alias != caseInsensitive {
+		t.Fatalf("case-folded alias = %v, filesystem case-insensitive = %v", alias, caseInsensitive)
+	}
+}
+
 func TestWriteDoesNotPublishEitherOutputWhenOneDestinationIsInvalid(t *testing.T) {
 	directory := t.TempDir()
 	markdownPath := filepath.Join(directory, "review.md")

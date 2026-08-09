@@ -36,7 +36,14 @@ func Resume(ctx context.Context, dir string, expectedConfig any) (*Run, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	reader, err := Open(dir)
+	absDir, err := filepath.Abs(dir)
+	if err != nil {
+		return nil, errors.Wrap(err, "resolve run directory")
+	}
+	if err := recoverPendingInputs(absDir); err != nil {
+		return nil, errors.Wrap(err, "recover pending copied inputs")
+	}
+	reader, err := Open(absDir)
 	if err != nil {
 		return nil, errors.Wrap(err, "validate run before resume")
 	}
@@ -67,6 +74,10 @@ func Create(ctx context.Context, options Options, config any) (*Run, error) {
 	if strings.TrimSpace(options.Root) == "" {
 		return nil, errors.New("run root is required")
 	}
+	root, err := filepath.Abs(options.Root)
+	if err != nil {
+		return nil, errors.Wrap(err, "resolve run root")
+	}
 	name, err := safeName("run name", options.Name)
 	if err != nil {
 		return nil, err
@@ -93,7 +104,7 @@ func Create(ctx context.Context, options Options, config any) (*Run, error) {
 	if err != nil {
 		return nil, err
 	}
-	dir := filepath.Join(options.Root, runID)
+	dir := filepath.Join(root, runID)
 	for _, child := range []string{"inputs", "results", "native"} {
 		if err := os.MkdirAll(filepath.Join(dir, child), 0o700); err != nil {
 			return nil, errors.Wrap(err, "create run directory")
