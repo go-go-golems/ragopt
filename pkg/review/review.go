@@ -103,16 +103,27 @@ func ValidateAnnotation(annotation Annotation, known map[string]struct{}, dimens
 	if _, ok := known[annotation.ReviewID]; !ok {
 		return errors.Errorf("unknown review ID %q", annotation.ReviewID)
 	}
-	if strings.TrimSpace(annotation.Reviewer) == "" {
+	trimmedReviewer := strings.TrimSpace(annotation.Reviewer)
+	if trimmedReviewer == "" {
 		return errors.New("reviewer is required")
 	}
+	if trimmedReviewer != annotation.Reviewer {
+		return errors.New("reviewer must not have surrounding whitespace")
+	}
+	declared := make(map[string]struct{}, len(dimensions))
 	for _, dimension := range dimensions {
+		declared[dimension.Name] = struct{}{}
 		score, ok := annotation.Scores[dimension.Name]
 		if !ok {
 			return errors.Errorf("%s score is required", dimension.Name)
 		}
 		if score < dimension.Min || score > dimension.Max {
 			return errors.Errorf("%s score %d is outside [%d,%d]", dimension.Name, score, dimension.Min, dimension.Max)
+		}
+	}
+	for name := range annotation.Scores {
+		if _, ok := declared[name]; !ok {
+			return errors.Errorf("score dimension %q is not declared", name)
 		}
 	}
 	return nil

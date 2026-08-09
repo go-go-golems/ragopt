@@ -222,7 +222,7 @@ func loadArtifactCells(reader *runstore.Reader, config RunConfig, suite *SuiteDo
 		if cell.SnapshotDigest != expectedCell.snapshot {
 			return nil, errors.Errorf("evaluation cell line %d has invalid snapshot", index+1)
 		}
-		nativeDirectory, err := reader.Path(filepath.Join("native", expectedCell.arm, expectedCell.caseValue.ID, formatRepeat(expectedCell.repeat)))
+		nativeDirectory, err := reader.Path(nativeCellPath(expectedCell.arm, expectedCell.caseValue.ID, expectedCell.repeat))
 		if err != nil {
 			return nil, err
 		}

@@ -34,6 +34,7 @@ type Case struct {
 type SuiteDocument struct {
 	Suite      Suite  `json:"suite"`
 	Digest     string `json:"digest"`
+	ByteDigest string `json:"byte_digest,omitempty"`
 	SourcePath string `json:"source_path"`
 }
 

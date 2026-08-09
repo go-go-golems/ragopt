@@ -3,6 +3,7 @@ package report
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"sort"
 	"strings"
 
@@ -20,6 +21,13 @@ func Build(ctx context.Context, run *eval.ArtifactRun, comparison *compare.Repor
 	}
 	if run == nil || comparison == nil || policy == nil {
 		return nil, errors.New("artifact run, comparison, and policy are required")
+	}
+	recomputed, err := gate.Evaluate(ctx, policy, comparison)
+	if err != nil {
+		return nil, errors.Wrap(err, "recompute gate decision")
+	}
+	if !reflect.DeepEqual(decision, recomputed) {
+		return nil, errors.New("supplied gate decision differs from recomputed comparison decision")
 	}
 	if decision.APIVersion != gate.DecisionAPIVersion ||
 		decision.PolicyDigest != policy.Digest ||

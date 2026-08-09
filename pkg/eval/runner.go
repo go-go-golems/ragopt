@@ -2,6 +2,7 @@ package eval
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"math"
 	"os"
@@ -246,6 +247,12 @@ func execute(
 			return failRun(ctx, run, result, err)
 		}
 		if err := run.AppendJSONL(ctx, "results/cells.jsonl", cell); err != nil {
+			if ctxErr := ctx.Err(); ctxErr != nil {
+				return result, ctxErr
+			}
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return result, err
+			}
 			return failRun(ctx, run, result, errors.Wrap(err, "append result cell"))
 		}
 		completed[key] = cell
@@ -265,6 +272,12 @@ func execute(
 			"failed_cells":    result.Failures,
 		},
 	}); err != nil {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return result, ctxErr
+		}
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return result, err
+		}
 		return failRun(ctx, run, result, errors.Wrap(err, "complete paired evaluation run"))
 	}
 	return result, nil
@@ -284,7 +297,7 @@ func buildSchedule(prepared *preparedRequest, incumbentView, challengerView Cand
 }
 
 func executeCell(ctx context.Context, run *runstore.Run, prepared *preparedRequest, item scheduledCell) (Cell, error) {
-	nativeRelative := filepath.Join("native", item.armName, item.caseValue.ID, fmt.Sprintf("%04d", item.repeat))
+	nativeRelative := nativeCellPath(item.armName, item.caseValue.ID, item.repeat)
 	nativeDirectory, err := run.Path(nativeRelative)
 	if err != nil {
 		return Cell{}, errors.Wrap(err, "resolve native artifact directory")
@@ -295,6 +308,10 @@ func executeCell(ctx context.Context, run *runstore.Run, prepared *preparedReque
 	if err := os.MkdirAll(nativeDirectory, 0o700); err != nil {
 		return Cell{}, errors.Wrap(err, "create native artifact directory")
 	}
+	protected, err := snapshotRunEvidence(run.Dir(), nativeDirectory)
+	if err != nil {
+		return Cell{}, errors.Wrap(err, "snapshot run evidence before arm")
+	}
 	startedAt := time.Now().UTC()
 	outcome, armErr := item.arm.Run(ctx, Request{
 		RunDirectory:    run.Dir(),
@@ -304,8 +321,8 @@ func executeCell(ctx context.Context, run *runstore.Run, prepared *preparedReque
 		Candidate:       cloneView(item.view),
 	})
 	finishedAt := time.Now().UTC()
-	if err := verifyBoundInputs(run, prepared.config.InputDigests); err != nil {
-		return Cell{}, errors.Wrap(err, "arm mutated immutable run inputs")
+	if err := verifyRunEvidence(run.Dir(), nativeDirectory, protected); err != nil {
+		return Cell{}, errors.Wrap(err, "arm mutated run-owned evidence")
 	}
 	if armErr != nil {
 		if ctxErr := ctx.Err(); ctxErr != nil {
@@ -341,6 +358,15 @@ func executeCell(ctx context.Context, run *runstore.Run, prepared *preparedReque
 		FinishedAt:     finishedAt,
 		Outcome:        outcome,
 	}, nil
+}
+
+func nativeCellPath(armName, caseID string, repeat int) string {
+	return filepath.Join(
+		"native",
+		"arm-"+hex.EncodeToString([]byte(armName)),
+		"case-"+hex.EncodeToString([]byte(caseID)),
+		fmt.Sprintf("%04d", repeat),
+	)
 }
 
 func recordArmFailure(ctx context.Context, run *runstore.Run, nativeRelative string, armErr error, duration time.Duration) (Outcome, error) {

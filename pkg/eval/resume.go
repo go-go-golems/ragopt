@@ -2,7 +2,6 @@ package eval
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -90,7 +89,7 @@ func validateStoredCell(run *runstore.Run, prepared *preparedRequest, item sched
 		cell.SuiteDigest != prepared.config.SuiteDigest || cell.PolicyDigest != prepared.config.PolicyDigest {
 		return errors.New("cell semantic identity does not match resumed run")
 	}
-	nativeRelative := filepath.Join("native", item.armName, item.caseValue.ID, formatRepeat(item.repeat))
+	nativeRelative := nativeCellPath(item.armName, item.caseValue.ID, item.repeat)
 	nativeDirectory, err := run.Path(nativeRelative)
 	if err != nil {
 		return err
@@ -123,8 +122,4 @@ func truncateAndSync(path string, size int64) error {
 		return errors.Wrap(err, "sync JSONL directory after recovery")
 	}
 	return errors.Wrap(directory.Close(), "close JSONL recovery directory")
-}
-
-func formatRepeat(repeat int) string {
-	return fmt.Sprintf("%04d", repeat)
 }

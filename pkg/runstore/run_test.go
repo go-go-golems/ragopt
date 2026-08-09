@@ -84,6 +84,38 @@ func TestCopyInputRejectsDuplicateRoleAndPath(t *testing.T) {
 	}
 }
 
+func TestOpenRecoversPendingInputTransactions(t *testing.T) {
+	t.Run("committed manifest completes publication", func(t *testing.T) {
+		run := mustCreateRun(t, map[string]any{})
+		data := []byte("suite")
+		ref := InputRef{Role: "suite", CopiedPath: "inputs/suite.json", SHA256: digestBytes(data), SizeBytes: int64(len(data))}
+		mustWriteFile(t, filepath.Join(run.Dir(), "inputs", ".pending-suite.json"), data)
+		mustWriteJSON(t, filepath.Join(run.Dir(), "inputs", "manifest.json"), []InputRef{ref})
+		reader, err := Open(run.Dir())
+		mustNoError(t, err)
+		if len(reader.Inputs()) != 1 {
+			t.Fatalf("recovered inputs = %d, want 1", len(reader.Inputs()))
+		}
+		if _, err := os.Stat(filepath.Join(run.Dir(), ref.CopiedPath)); err != nil {
+			t.Fatalf("committed pending input was not published: %v", err)
+		}
+	})
+
+	t.Run("uncommitted bytes are discarded", func(t *testing.T) {
+		run := mustCreateRun(t, map[string]any{})
+		pending := filepath.Join(run.Dir(), "inputs", ".pending-suite.json")
+		mustWriteFile(t, pending, []byte("suite"))
+		reader, err := Open(run.Dir())
+		mustNoError(t, err)
+		if len(reader.Inputs()) != 0 {
+			t.Fatalf("recovered inputs = %d, want 0", len(reader.Inputs()))
+		}
+		if _, err := os.Stat(pending); !errors.Is(err, os.ErrNotExist) {
+			t.Fatalf("uncommitted pending input remains: %v", err)
+		}
+	})
+}
+
 func TestConfigDigestIsStableAcrossMapOrder(t *testing.T) {
 	first := mustCreateRun(t, map[string]any{"z": 2, "a": map[string]any{"b": true, "a": 1}})
 	second := mustCreateRun(t, map[string]any{"a": map[string]any{"a": 1, "b": true}, "z": 2})

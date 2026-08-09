@@ -29,6 +29,7 @@ func (run *Run) CopyInput(ctx context.Context, role, source string) (InputRef, e
 		return InputRef{}, errors.Wrap(err, "read input")
 	}
 	relative := filepath.Join("inputs", name+filepath.Ext(absoluteSource))
+	pendingRelative := filepath.Join("inputs", ".pending-"+filepath.Base(relative))
 
 	run.mu.Lock()
 	defer run.mu.Unlock()
@@ -43,9 +44,6 @@ func (run *Run) CopyInput(ctx context.Context, role, source string) (InputRef, e
 			return InputRef{}, errors.Errorf("input copied path %q is already registered", relative)
 		}
 	}
-	if err := run.writeBytes(ctx, relative, data); err != nil {
-		return InputRef{}, err
-	}
 	ref := InputRef{
 		Role:         role,
 		OriginalPath: absoluteSource,
@@ -53,9 +51,29 @@ func (run *Run) CopyInput(ctx context.Context, role, source string) (InputRef, e
 		SHA256:       digestBytes(data),
 		SizeBytes:    int64(len(data)),
 	}
+	if err := run.writeBytes(ctx, pendingRelative, data); err != nil {
+		return InputRef{}, err
+	}
 	run.inputs = append(run.inputs, ref)
 	if err := run.writeJSON(ctx, "inputs/manifest.json", run.inputs); err != nil {
 		return InputRef{}, err
+	}
+	if err := ctx.Err(); err != nil {
+		return InputRef{}, err
+	}
+	pendingPath, err := joinWithin(run.dir, pendingRelative)
+	if err != nil {
+		return InputRef{}, err
+	}
+	finalPath, err := joinWithin(run.dir, relative)
+	if err != nil {
+		return InputRef{}, err
+	}
+	if err := os.Rename(pendingPath, finalPath); err != nil {
+		return InputRef{}, errors.Wrap(err, "publish copied input")
+	}
+	if err := syncDirectory(filepath.Dir(finalPath)); err != nil {
+		return InputRef{}, errors.Wrap(err, "sync copied input directory")
 	}
 	return ref, nil
 }

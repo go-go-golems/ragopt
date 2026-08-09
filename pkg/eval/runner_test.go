@@ -310,7 +310,7 @@ func TestArmCannotMutateBoundInputs(t *testing.T) {
 	fixture := newEvaluationFixture(t)
 	request := fixture.request(t.TempDir(), &mutatingInputArm{name: "incumbent"}, &scriptedArm{name: "challenger", control: &scriptControl{}})
 	result, err := Run(t.Context(), request)
-	if err == nil || !strings.Contains(err.Error(), "arm mutated immutable run inputs") {
+	if err == nil || !strings.Contains(err.Error(), "arm mutated run-owned evidence") {
 		t.Fatalf("expected bound-input mutation rejection, got %v", err)
 	}
 	statusData, readErr := os.ReadFile(filepath.Join(result.RunDirectory, "status.json"))
@@ -319,6 +319,21 @@ func TestArmCannotMutateBoundInputs(t *testing.T) {
 	mustNoError(t, json.Unmarshal(statusData, &status))
 	if status.State != runstore.StateFailed {
 		t.Fatalf("input mutation did not fail run: %q", status.State)
+	}
+}
+
+func TestArmCannotMutateOtherRunEvidence(t *testing.T) {
+	fixture := newEvaluationFixture(t)
+	control := &scriptControl{}
+	arm := &mutatingRunArm{delegate: &scriptedArm{name: "incumbent", control: control}}
+	request := fixture.request(t.TempDir(), arm, &scriptedArm{name: "challenger", control: control})
+	result, err := Run(t.Context(), request)
+	if err == nil || !strings.Contains(err.Error(), `run evidence "config.json" changed`) {
+		t.Fatalf("expected run-evidence mutation rejection, got %v", err)
+	}
+	_, openErr := runstore.Open(result.RunDirectory)
+	if openErr == nil || !strings.Contains(openErr.Error(), "config digest mismatch") {
+		t.Fatalf("expected tampered config to remain detectable, got %v", openErr)
 	}
 }
 
@@ -334,6 +349,48 @@ func TestCancellationReturnsContextErrorFromGenericArmError(t *testing.T) {
 	mustNoError(t, openErr)
 	if reader.Status().State != runstore.StateActive {
 		t.Fatalf("canceled run became terminal: %q", reader.Status().State)
+	}
+}
+
+func TestCancellationAfterSuccessfulArmLeavesRunResumable(t *testing.T) {
+	fixture := newEvaluationFixture(t)
+	ctx, cancel := context.WithCancel(t.Context())
+	control := &scriptControl{}
+	arm := &cancelingSuccessArm{delegate: &scriptedArm{name: "incumbent", control: control}, cancel: cancel}
+	request := fixture.request(t.TempDir(), arm, &scriptedArm{name: "challenger", control: control})
+	result, err := Run(ctx, request)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context cancellation, got %v", err)
+	}
+	reader, openErr := runstore.Open(result.RunDirectory)
+	mustNoError(t, openErr)
+	if reader.Status().State != runstore.StateActive {
+		t.Fatalf("canceled run became terminal: %q", reader.Status().State)
+	}
+}
+
+func TestNativeCellPathsAreCaseIndependent(t *testing.T) {
+	first := nativeCellPath("Arm", "Case", 0)
+	second := nativeCellPath("arm", "case", 0)
+	if strings.EqualFold(first, second) {
+		t.Fatalf("case-distinct coordinates collide: %q and %q", first, second)
+	}
+}
+
+func TestSuiteBytesRemainBoundToLoadedSemantics(t *testing.T) {
+	fixture := newEvaluationFixture(t)
+	control := &scriptControl{}
+	request := fixture.request(t.TempDir(), &scriptedArm{name: "incumbent", control: control}, &scriptedArm{name: "challenger", control: control})
+	prepared, err := prepareRequest(t.Context(), request)
+	mustNoError(t, err)
+	data, err := os.ReadFile(prepared.suite.SourcePath)
+	mustNoError(t, err)
+	writeFile(t, prepared.suite.SourcePath, append(data, '\n'))
+	run, err := runstore.Create(t.Context(), runstore.Options{Root: request.RunRoot, Name: request.Name}, prepared.config)
+	mustNoError(t, err)
+	_, _, err = bindInputs(t.Context(), run, prepared)
+	if err == nil || !strings.Contains(err.Error(), "evaluation suite changed during binding") {
+		t.Fatalf("expected suite byte drift rejection, got %v", err)
 	}
 }
 
@@ -479,6 +536,32 @@ type mutatingInputArm struct{ name string }
 func (arm *mutatingInputArm) Name() string { return arm.name }
 func (arm *mutatingInputArm) Run(_ context.Context, request Request) (Outcome, error) {
 	return Outcome{}, os.WriteFile(request.Candidate.Assets["prompt"].Path, []byte("tampered"), 0o600)
+}
+
+type mutatingRunArm struct{ delegate Arm }
+
+func (arm *mutatingRunArm) Name() string { return arm.delegate.Name() }
+func (arm *mutatingRunArm) Run(ctx context.Context, request Request) (Outcome, error) {
+	outcome, err := arm.delegate.Run(ctx, request)
+	if err != nil {
+		return Outcome{}, err
+	}
+	if err := os.WriteFile(filepath.Join(request.RunDirectory, "config.json"), []byte(`{"tampered":true}`), 0o600); err != nil {
+		return Outcome{}, err
+	}
+	return outcome, nil
+}
+
+type cancelingSuccessArm struct {
+	delegate Arm
+	cancel   context.CancelFunc
+}
+
+func (arm *cancelingSuccessArm) Name() string { return arm.delegate.Name() }
+func (arm *cancelingSuccessArm) Run(ctx context.Context, request Request) (Outcome, error) {
+	outcome, err := arm.delegate.Run(ctx, request)
+	arm.cancel()
+	return outcome, err
 }
 
 type cancelingErrorArm struct {
