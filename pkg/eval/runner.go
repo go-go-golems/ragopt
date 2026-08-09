@@ -266,7 +266,17 @@ func execute(
 	if result.Completed != result.Expected {
 		return failRun(ctx, run, result, errors.Errorf("result cell count mismatch: completed=%d expected=%d", result.Completed, result.Expected))
 	}
+	return finalizeRun(ctx, run, result)
+}
+
+func finalizeRun(ctx context.Context, run *runstore.Run, result *RunResult) (*RunResult, error) {
 	if _, err := LoadArtifactRun(ctx, run.Dir()); err != nil {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return result, ctxErr
+		}
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return result, err
+		}
 		return failRun(ctx, run, result, errors.Wrap(err, "audit complete evaluation evidence"))
 	}
 	if err := run.Complete(ctx, runstore.Summary{

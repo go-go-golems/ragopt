@@ -98,6 +98,28 @@ func TestTargetAllSelectsEveryPair(t *testing.T) {
 	}
 }
 
+func TestEvaluateRejectsTargetMeanOverflow(t *testing.T) {
+	run := gateFixture()
+	policy := gatePolicy(run.Config.PolicyDigest)
+	policy.Policy.Target.Groups = []string{"selected"}
+	policy.Digest = mustPolicyDigest(policy.Policy)
+	report, err := compare.Build(t.Context(), run)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for index := range report.Pairs {
+		report.Pairs[index].Groups = []string{"selected"}
+		for deltaIndex := range report.Pairs[index].Deltas {
+			if report.Pairs[index].Deltas[deltaIndex].Metric == "quality" {
+				report.Pairs[index].Deltas[deltaIndex].Delta = 1.0e308
+			}
+		}
+	}
+	if _, err := Evaluate(t.Context(), policy, report); err == nil || !strings.Contains(err.Error(), "mean accumulation is not finite") {
+		t.Fatalf("expected target mean overflow rejection, got %v", err)
+	}
+}
+
 func TestEvaluateRejectsIncompleteRunStateBeforePromotionChecks(t *testing.T) {
 	for _, state := range []string{runstore.StateActive, runstore.StateFailed} {
 		t.Run(string(state), func(t *testing.T) {
@@ -152,6 +174,13 @@ regressions: {}
 	}
 	if _, err := LoadPolicy(t.Context(), path); err == nil || !strings.Contains(err.Error(), "max_failure_rate is required") {
 		t.Fatalf("missing threshold error: %v", err)
+	}
+	missingTarget := strings.Replace(valid, "  minimum_mean_delta: 0.1\n", "", 1)
+	if err := os.WriteFile(path, []byte(missingTarget), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadPolicy(t.Context(), path); err == nil || !strings.Contains(err.Error(), "minimum_mean_delta is required") {
+		t.Fatalf("missing target threshold error: %v", err)
 	}
 	unknown := valid + "unknown: true\n"
 	if err := os.WriteFile(path, []byte(unknown), 0o600); err != nil {

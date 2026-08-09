@@ -86,6 +86,9 @@ func LoadPolicy(ctx context.Context, path string) (*PolicyDocument, error) {
 		}
 		return nil, errors.Wrap(err, "check gate policy trailing document")
 	}
+	if err := validateRequiredPolicyFields(data); err != nil {
+		return nil, err
+	}
 	if err := validatePolicy(policy); err != nil {
 		return nil, err
 	}
@@ -96,6 +99,21 @@ func LoadPolicy(ctx context.Context, path string) (*PolicyDocument, error) {
 	return &PolicyDocument{
 		Policy: policy, Digest: semanticDigest, ByteDigest: digestBytes(data), Path: absolute,
 	}, nil
+}
+
+func validateRequiredPolicyFields(data []byte) error {
+	var required struct {
+		Target struct {
+			MinimumMeanDelta *float64 `yaml:"minimum_mean_delta"`
+		} `yaml:"target"`
+	}
+	if err := yaml.Unmarshal(data, &required); err != nil {
+		return errors.Wrap(err, "decode required gate policy fields")
+	}
+	if required.Target.MinimumMeanDelta == nil {
+		return errors.New("target minimum_mean_delta is required")
+	}
+	return nil
 }
 
 func policyDigest(policy Policy) (string, error) {

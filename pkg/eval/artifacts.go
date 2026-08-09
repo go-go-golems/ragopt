@@ -27,6 +27,31 @@ type ArtifactRun struct {
 	configDigest string
 }
 
+// DurableSnapshot reloads every run artifact when this value came from disk.
+// Synthetic in-memory runs used by callers without a Directory are already
+// their own authority and are returned unchanged.
+func (r *ArtifactRun) DurableSnapshot(ctx context.Context) (*ArtifactRun, error) {
+	if r == nil {
+		return nil, errors.New("artifact run is required")
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if r.Directory == "" {
+		return r, nil
+	}
+	if r.configDigest == "" {
+		config, err := r.DurableConfig(ctx)
+		if err != nil {
+			return nil, err
+		}
+		clone := *r
+		clone.Config = config
+		return &clone, nil
+	}
+	return LoadArtifactRun(ctx, r.Directory)
+}
+
 // LoadArtifactRun validates a run's common artifacts, evaluation config,
 // complete copied-input set, suite, committed cells, and native artifacts.
 // It never repairs or mutates the run.

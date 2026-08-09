@@ -43,7 +43,6 @@ func Build(ctx context.Context, run *eval.ArtifactRun, comparison *compare.Repor
 	if decision.APIVersion != gate.DecisionAPIVersion ||
 		decision.PolicyDigest != policy.Digest ||
 		policy.ByteDigest != config.PolicyDigest ||
-		comparison.RunID != run.Manifest.RunID ||
 		comparison.SuiteDigest != config.SuiteDigest ||
 		comparison.PolicyDigest != config.PolicyDigest ||
 		comparison.CandidateID != config.CandidateID ||

@@ -102,7 +102,10 @@ func Evaluate(ctx context.Context, policy *PolicyDocument, report *compare.Repor
 		return decision, nil
 	}
 
-	targetChecks := evaluateTarget(policy.Policy.Target, report)
+	targetChecks, err := evaluateTarget(policy.Policy.Target, report)
+	if err != nil {
+		return Decision{}, err
+	}
 	if stopAfter(&decision, targetChecks) {
 		return decision, nil
 	}
@@ -114,7 +117,7 @@ func Evaluate(ctx context.Context, policy *PolicyDocument, report *compare.Repor
 	return decision, nil
 }
 
-func evaluateTarget(target Target, report *compare.Report) []CheckResult {
+func evaluateTarget(target Target, report *compare.Report) ([]CheckResult, error) {
 	selectedGroups := groupSet(target.Groups)
 	deltas := make([]struct {
 		repeat int
@@ -137,12 +140,13 @@ func evaluateTarget(target Target, report *compare.Report) []CheckResult {
 			value  float64
 		}{repeat: pair.Key.RepeatIndex, value: delta})
 	}
-	targetMean := 0.0
+	targetValues := make([]float64, 0, len(deltas))
 	for _, delta := range deltas {
-		targetMean += delta.value
+		targetValues = append(targetValues, delta.value)
 	}
-	if len(deltas) > 0 {
-		targetMean /= float64(len(deltas))
+	targetMean, err := checkedMean(targetValues)
+	if err != nil {
+		return nil, errors.Wrapf(err, "average target metric %q", target.Metric)
 	}
 	checks := []CheckResult{
 		check("target", "metric_presence:"+target.Metric, selectedPairs > 0 && missingMetric == 0 && len(deltas) == selectedPairs,
@@ -163,7 +167,10 @@ func evaluateTarget(target Target, report *compare.Report) []CheckResult {
 		passed := selectedPairs > 0 && missingMetric == 0
 		means := map[string]float64{}
 		for _, repeat := range repeats {
-			value := mean(byRepeat[repeat])
+			value, err := checkedMean(byRepeat[repeat])
+			if err != nil {
+				return nil, errors.Wrapf(err, "average target metric %q for repeat %d", target.Metric, repeat)
+			}
 			means[fmt.Sprintf("%d", repeat)] = value
 			if value <= 0 {
 				passed = false
@@ -172,7 +179,7 @@ func evaluateTarget(target Target, report *compare.Report) []CheckResult {
 		checks = append(checks, check("target", "positive_each_repeat:"+target.Metric, passed,
 			"target mean delta must be positive in every represented repeat", map[string]any{"repeat_means": means}))
 	}
-	return checks
+	return checks, nil
 }
 
 func evaluateRegressions(regressions Regressions, report *compare.Report) []CheckResult {
@@ -321,15 +328,22 @@ func sortedMetricNames(values map[string]float64) []string {
 	return result
 }
 
-func mean(values []float64) float64 {
+func checkedMean(values []float64) (float64, error) {
 	if len(values) == 0 {
-		return 0
+		return 0, nil
 	}
 	total := 0.0
 	for _, value := range values {
 		total += value
+		if !finite(total) {
+			return 0, errors.New("mean accumulation is not finite")
+		}
 	}
-	return total / float64(len(values))
+	mean := total / float64(len(values))
+	if !finite(mean) {
+		return 0, errors.New("mean is not finite")
+	}
+	return mean, nil
 }
 
 func valueInt(group *compare.GroupAggregate, fn func(*compare.GroupAggregate) int) int {

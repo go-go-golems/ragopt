@@ -103,6 +103,21 @@ func TestLoadAnnotationsAcceptsLargeNotesAndRejectsInvalidDimensions(t *testing.
 	require.ErrorContains(t, err, "duplicate")
 }
 
+func TestReviewBoundariesRejectUnsafeRangesAndDuplicateKeys(t *testing.T) {
+	maxInt := int(^uint(0) >> 1)
+	if err := ValidateDimensions([]Dimension{{Name: "quality", Min: -1, Max: maxInt}}); err == nil || !strings.Contains(err.Error(), "too wide") {
+		t.Fatalf("expected unsafe disagreement range rejection, got %v", err)
+	}
+	keys := []KeyEntry{
+		{ReviewID: "r1", SubjectID: "q1", Variant: "control"},
+		{ReviewID: "r1", SubjectID: "q1", Variant: "candidate"},
+	}
+	_, err := LoadAnnotations("", keys, []Dimension{{Name: "quality", Min: 0, Max: 3}})
+	if err == nil || !strings.Contains(err.Error(), "duplicate unblinding key") {
+		t.Fatalf("expected duplicate key rejection, got %v", err)
+	}
+}
+
 func TestAggregatePairsVariantsAndReviewerOverlap(t *testing.T) {
 	dimensions := []Dimension{{Name: "quality", Min: 0, Max: 3}}
 	keys := []KeyEntry{{ReviewID: "a", SubjectID: "q1", Variant: "control"}, {ReviewID: "b", SubjectID: "q1", Variant: "candidate"}}
