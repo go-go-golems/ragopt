@@ -147,6 +147,19 @@ func KnownIDs(keys []KeyEntry) map[string]struct{} {
 func ValidateKeys(keys []KeyEntry) error {
 	seen := make(map[string]struct{}, len(keys))
 	for _, key := range keys {
+		for _, identity := range []struct{ label, value string }{
+			{label: "review ID", value: key.ReviewID},
+			{label: "subject ID", value: key.SubjectID},
+			{label: "variant", value: key.Variant},
+		} {
+			label, value := identity.label, identity.value
+			if strings.TrimSpace(value) == "" {
+				return errors.Errorf("unblinding key %s is required", label)
+			}
+			if strings.TrimSpace(value) != value {
+				return errors.Errorf("unblinding key %s must not have surrounding whitespace", label)
+			}
+		}
 		if _, exists := seen[key.ReviewID]; exists {
 			return errors.Errorf("duplicate unblinding key review ID %q", key.ReviewID)
 		}

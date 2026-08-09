@@ -1,12 +1,17 @@
 package runstore
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
 )
+
+const maximumFileComponentBytes = 255
+const maximumCopiedInputNameBytes = maximumFileComponentBytes - len(".pending-")
 
 // joinWithin validates a relative artifact path and rejects existing symlink
 // components. It protects normal single-process use; like other lexical path
@@ -74,4 +79,34 @@ func safeName(label, value string) (string, error) {
 		return "", errors.Errorf("%s has no safe characters", label)
 	}
 	return name, nil
+}
+
+func boundedSafeName(name string, maximum int) string {
+	if len(name) <= maximum {
+		return name
+	}
+	digest := sha256.Sum256([]byte(name))
+	suffix := "-" + hex.EncodeToString(digest[:12])
+	prefix := strings.TrimRight(name[:maximum-len(suffix)], "-")
+	return prefix + suffix
+}
+
+func copiedInputName(name, extension string) string {
+	candidate := name + extension
+	if len(candidate) <= maximumCopiedInputNameBytes {
+		return candidate
+	}
+	digest := sha256.Sum256([]byte(candidate))
+	token := hex.EncodeToString(digest[:16])
+	keptExtension := extension
+	if len(keptExtension) > 32 {
+		keptExtension = ""
+	}
+	prefixBudget := maximumCopiedInputNameBytes - len(token) - len(keptExtension) - 1
+	prefix := name
+	if len(prefix) > prefixBudget {
+		prefix = prefix[:prefixBudget]
+	}
+	prefix = strings.TrimRight(prefix, "-")
+	return prefix + "-" + token + keptExtension
 }

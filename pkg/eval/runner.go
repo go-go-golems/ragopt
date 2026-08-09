@@ -79,7 +79,7 @@ func Run(ctx context.Context, request RunRequest) (*RunResult, error) {
 	result := newRunResult(run, prepared, false)
 	incumbentView, challengerView, err := bindInputs(ctx, run, prepared)
 	if err != nil {
-		return failRun(ctx, run, result, errors.Wrap(err, "bind immutable run inputs"))
+		return bindingFailure(ctx, run, result, err)
 	}
 	return execute(ctx, run, prepared, incumbentView, challengerView, nil, result)
 }
@@ -648,6 +648,14 @@ func failRun(ctx context.Context, run *runstore.Run, result *RunResult, cause er
 		return result, errors.Wrapf(cause, "also failed to mark run failed: %v", failErr)
 	}
 	return result, cause
+}
+
+func bindingFailure(ctx context.Context, run *runstore.Run, result *RunResult, err error) (*RunResult, error) {
+	cause := errors.Wrap(err, "bind immutable run inputs")
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return result, cause
+	}
+	return failRun(ctx, run, result, cause)
 }
 
 func cloneView(view CandidateView) CandidateView {

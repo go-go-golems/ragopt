@@ -151,15 +151,41 @@ func ValidateOutputsOutsideRun(runDirectory string, paths ...string) error {
 		if err != nil {
 			return errors.Wrap(err, "resolve report output path")
 		}
-		relative, err := filepath.Rel(runAbsolute, outputAbsolute)
+		inside, err := pathWithinDirectory(runAbsolute, outputAbsolute)
 		if err != nil {
 			return errors.Wrap(err, "compare report output with evaluated run")
 		}
-		if relative == "." || (relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator))) {
+		if inside {
 			return errors.Errorf("report output path %q is inside evaluated run %q", outputAbsolute, runAbsolute)
 		}
 	}
 	return nil
+}
+
+func pathWithinDirectory(directory, candidate string) (bool, error) {
+	directoryInfo, err := os.Stat(directory)
+	if err != nil {
+		return false, err
+	}
+	if !directoryInfo.IsDir() {
+		return false, errors.Errorf("evaluated run path %q is not a directory", directory)
+	}
+	current := filepath.Clean(candidate)
+	for {
+		info, statErr := os.Stat(current)
+		if statErr == nil {
+			if os.SameFile(directoryInfo, info) {
+				return true, nil
+			}
+		} else if !os.IsNotExist(statErr) {
+			return false, statErr
+		}
+		parent := filepath.Dir(current)
+		if parent == current {
+			return false, nil
+		}
+		current = parent
+	}
 }
 
 // resolveDestination canonicalizes symlinks in every existing path component

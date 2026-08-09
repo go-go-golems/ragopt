@@ -250,6 +250,25 @@ func TestValidateOutputsOutsideRun(t *testing.T) {
 	}
 }
 
+func TestValidateOutputsOutsideRunUsesFilesystemCaseSemantics(t *testing.T) {
+	root := t.TempDir()
+	caseInsensitive, err := filesystemCaseInsensitive(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !caseInsensitive {
+		t.Skip("filesystem is case-sensitive")
+	}
+	runDirectory := filepath.Join(root, "RunID")
+	if err := os.MkdirAll(runDirectory, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	output := filepath.Join(root, "runid", "CONFIG.JSON")
+	if err := ValidateOutputsOutsideRun(runDirectory, output); err == nil {
+		t.Fatal("case-varied output inside evaluated run was accepted")
+	}
+}
+
 func TestReportPathsResolveExistingParentSymlinks(t *testing.T) {
 	root := t.TempDir()
 	runDirectory := filepath.Join(root, "run")
