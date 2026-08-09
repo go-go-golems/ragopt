@@ -665,9 +665,21 @@ func rejectExternalArtifactAlias(runDirectory string, artifactInfo os.FileInfo) 
 }
 
 func identifyArtifact(runDirectory, path string) (ArtifactRef, error) {
-	data, err := os.ReadFile(path)
+	file, err := os.Open(path)
 	if err != nil {
-		return ArtifactRef{}, errors.Wrap(err, "read native artifact")
+		return ArtifactRef{}, errors.Wrap(err, "open native artifact")
+	}
+	defer func() { _ = file.Close() }()
+	info, err := file.Stat()
+	if err != nil {
+		return ArtifactRef{}, errors.Wrap(err, "stat native artifact")
+	}
+	if !info.Mode().IsRegular() {
+		return ArtifactRef{}, errors.New("native artifact is not a regular file")
+	}
+	hash := sha256.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return ArtifactRef{}, errors.Wrap(err, "digest native artifact")
 	}
 	resolvedRunDirectory, err := filepath.EvalSymlinks(runDirectory)
 	if err != nil {
@@ -681,7 +693,7 @@ func identifyArtifact(runDirectory, path string) (ArtifactRef, error) {
 	if err != nil {
 		return ArtifactRef{}, errors.Wrap(err, "make native artifact path relative")
 	}
-	return ArtifactRef{Path: relative, SHA256: digestBytes(data), SizeBytes: int64(len(data))}, nil
+	return ArtifactRef{Path: relative, SHA256: "sha256:" + hex.EncodeToString(hash.Sum(nil)), SizeBytes: info.Size()}, nil
 }
 
 func newRunResult(run *runstore.Run, prepared *preparedRequest, resumed bool) *RunResult {

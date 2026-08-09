@@ -384,6 +384,27 @@ func TestCreateValidatesAndClonesDimensions(t *testing.T) {
 	}
 }
 
+func TestOpenRejectsSymlinkedCommonArtifacts(t *testing.T) {
+	for _, name := range []string{"manifest.json", "config.json", "status.json"} {
+		t.Run(name, func(t *testing.T) {
+			run := mustCreateRun(t, map[string]any{"x": 1})
+			path := filepath.Join(run.Dir(), name)
+			target := filepath.Join(t.TempDir(), name)
+			data, err := os.ReadFile(path)
+			mustNoError(t, err)
+			mustWriteFile(t, target, data)
+			mustNoError(t, os.Remove(path))
+			if err := os.Symlink(target, path); err != nil {
+				t.Skipf("symlink unavailable: %v", err)
+			}
+			_, err = Open(run.Dir())
+			if err == nil || !strings.Contains(err.Error(), "not a regular file") {
+				t.Fatalf("Open error = %v, want symlink rejection", err)
+			}
+		})
+	}
+}
+
 func mustCreateRun(t *testing.T, config any) *Run {
 	t.Helper()
 	run, err := Create(context.Background(), Options{Root: t.TempDir(), Name: "fixture"}, config)

@@ -98,7 +98,23 @@ func atomicWrite(ctx context.Context, path string, data []byte) error {
 	if err := os.Rename(temporaryName, path); err != nil {
 		return errors.Wrap(err, "publish artifact")
 	}
-	return syncDirectory(directory)
+	if err := syncDirectory(directory); err != nil {
+		return &publishedWriteError{err: err}
+	}
+	return nil
+}
+
+// publishedWriteError reports a failure after rename made the new artifact
+// visible. Callers that enforce in-memory lifecycle state must not treat this
+// as a pre-publication failure.
+type publishedWriteError struct{ err error }
+
+func (err *publishedWriteError) Error() string { return err.err.Error() }
+func (err *publishedWriteError) Unwrap() error { return err.err }
+
+func wasPublished(err error) bool {
+	var published *publishedWriteError
+	return errors.As(err, &published)
 }
 
 func syncDirectory(path string) error {

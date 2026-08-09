@@ -530,6 +530,19 @@ func TestIdentifyArtifactPersistsPathRelativeToResolvedRunRoot(t *testing.T) {
 	}
 }
 
+func TestIdentifyArtifactStreamsContentIdentity(t *testing.T) {
+	runDirectory := t.TempDir()
+	path := filepath.Join(runDirectory, "native", "artifact.bin")
+	data := []byte(strings.Repeat("artifact-data", 1<<16))
+	mustNoError(t, os.MkdirAll(filepath.Dir(path), 0o700))
+	writeFile(t, path, data)
+	identified, err := identifyArtifact(runDirectory, path)
+	mustNoError(t, err)
+	if identified.SizeBytes != int64(len(data)) || identified.SHA256 != byteDigest(data) {
+		t.Fatalf("artifact identity = %#v", identified)
+	}
+}
+
 func TestSuiteBytesRemainBoundToLoadedSemantics(t *testing.T) {
 	fixture := newEvaluationFixture(t)
 	control := &scriptControl{}
