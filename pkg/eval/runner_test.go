@@ -377,6 +377,16 @@ func TestNativeCellPathsAreCaseIndependent(t *testing.T) {
 	}
 }
 
+func TestNativeCellPathComponentsStayWithinFilesystemLimits(t *testing.T) {
+	identity := strings.Repeat("a", 128)
+	path := nativeCellPath(identity, identity, 9999)
+	for _, component := range strings.Split(path, string(filepath.Separator)) {
+		if len(component) > 255 {
+			t.Fatalf("native path component has %d bytes: %q", len(component), component)
+		}
+	}
+}
+
 func TestSuiteBytesRemainBoundToLoadedSemantics(t *testing.T) {
 	fixture := newEvaluationFixture(t)
 	control := &scriptControl{}
@@ -391,6 +401,47 @@ func TestSuiteBytesRemainBoundToLoadedSemantics(t *testing.T) {
 	_, _, err = bindInputs(t.Context(), run, prepared)
 	if err == nil || !strings.Contains(err.Error(), "evaluation suite changed during binding") {
 		t.Fatalf("expected suite byte drift rejection, got %v", err)
+	}
+}
+
+func TestCandidateManifestBytesRemainBoundToLoadedSemantics(t *testing.T) {
+	tests := []struct {
+		name string
+		path func(*candidate.Candidate) string
+		want string
+	}{
+		{name: "candidate", path: func(value *candidate.Candidate) string { return value.ManifestPath }, want: "candidate manifest changed during binding"},
+		{name: "parent snapshot", path: func(value *candidate.Candidate) string { return value.Manifest.ParentSnapshot }, want: "parent snapshot changed during binding"},
+		{name: "candidate snapshot", path: func(value *candidate.Candidate) string { return value.Manifest.CandidateSnapshot }, want: "candidate snapshot changed during binding"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			fixture := newEvaluationFixture(t)
+			control := &scriptControl{}
+			request := fixture.request(t.TempDir(), &scriptedArm{name: "incumbent", control: control}, &scriptedArm{name: "challenger", control: control})
+			prepared, err := prepareRequest(t.Context(), request)
+			mustNoError(t, err)
+			manifestPath := filepath.Join(prepared.candidate.Root, test.path(prepared.candidate))
+			data, err := os.ReadFile(manifestPath)
+			mustNoError(t, err)
+			writeFile(t, manifestPath, append(data, '\n'))
+			run, err := runstore.Create(t.Context(), runstore.Options{Root: request.RunRoot, Name: request.Name}, prepared.config)
+			mustNoError(t, err)
+			_, _, err = bindInputs(t.Context(), run, prepared)
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("expected %s, got %v", test.want, err)
+			}
+		})
+	}
+}
+
+func TestNativeArtifactCannotHardLinkProtectedRunEvidence(t *testing.T) {
+	fixture := newEvaluationFixture(t)
+	control := &scriptControl{}
+	request := fixture.request(t.TempDir(), &scriptedArm{name: "incumbent", control: control}, &hardLinkArtifactArm{name: "challenger"})
+	_, err := Run(t.Context(), request)
+	if err == nil || !strings.Contains(err.Error(), "aliases protected run evidence") {
+		t.Fatalf("expected hard-link alias rejection, got %v", err)
 	}
 }
 
@@ -550,6 +601,26 @@ func (arm *mutatingRunArm) Run(ctx context.Context, request Request) (Outcome, e
 		return Outcome{}, err
 	}
 	return outcome, nil
+}
+
+type hardLinkArtifactArm struct{ name string }
+
+func (arm *hardLinkArtifactArm) Name() string { return arm.name }
+func (arm *hardLinkArtifactArm) Run(_ context.Context, request Request) (Outcome, error) {
+	source := filepath.Join(request.RunDirectory, "results", "cells.jsonl")
+	artifactPath := filepath.Join(request.NativeDirectory, "result.json")
+	if err := os.Link(source, artifactPath); err != nil {
+		return Outcome{}, err
+	}
+	relative, err := filepath.Rel(request.RunDirectory, artifactPath)
+	if err != nil {
+		return Outcome{}, err
+	}
+	return Outcome{
+		Completed: true, ContractValid: true,
+		Metrics:        map[string]float64{"quality": 0.8},
+		NativeArtifact: ArtifactRef{Path: relative},
+	}, nil
 }
 
 type cancelingSuccessArm struct {

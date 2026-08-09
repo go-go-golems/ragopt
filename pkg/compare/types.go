@@ -84,6 +84,7 @@ type GroupAggregate struct {
 type Report struct {
 	APIVersion      string            `json:"api_version"`
 	RunID           string            `json:"run_id"`
+	RunState        string            `json:"run_state"`
 	SuiteDigest     string            `json:"suite_digest"`
 	PolicyDigest    string            `json:"policy_digest"`
 	CandidateID     string            `json:"candidate_id"`

@@ -26,6 +26,7 @@ type Snapshot struct {
 	LockedAssets  []AssetRef        `json:"locked_assets" yaml:"locked_assets"`
 	MutableAssets []AssetRef        `json:"mutable_assets" yaml:"mutable_assets"`
 	Dimensions    map[string]string `json:"dimensions" yaml:"dimensions"`
+	ByteDigest    string            `json:"byte_digest,omitempty" yaml:"-"`
 
 	assetBytes map[string][]byte
 }
@@ -81,11 +82,12 @@ type Mutation struct {
 
 // Candidate is a fully loaded and validated immutable candidate view.
 type Candidate struct {
-	Manifest     CandidateManifest `json:"manifest"`
-	Parent       Snapshot          `json:"parent"`
-	Child        Snapshot          `json:"child"`
-	Mutation     Mutation          `json:"mutation"`
-	Digest       string            `json:"digest"`
-	Root         string            `json:"root"`
-	ManifestPath string            `json:"manifest_path"`
+	Manifest           CandidateManifest `json:"manifest"`
+	Parent             Snapshot          `json:"parent"`
+	Child              Snapshot          `json:"child"`
+	Mutation           Mutation          `json:"mutation"`
+	Digest             string            `json:"digest"`
+	Root               string            `json:"root"`
+	ManifestPath       string            `json:"manifest_path"`
+	ManifestByteDigest string            `json:"manifest_byte_digest"`
 }

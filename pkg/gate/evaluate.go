@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/go-go-golems/ragopt/pkg/compare"
+	"github.com/go-go-golems/ragopt/pkg/runstore"
 )
 
 const DecisionAPIVersion = "ragopt-gate-decision/v1"
@@ -59,6 +60,8 @@ func Evaluate(ctx context.Context, policy *PolicyDocument, report *compare.Repor
 	identity := []CheckResult{
 		check("identity", "policy_bytes", policy.ByteDigest == report.PolicyDigest,
 			"run policy bytes match the loaded gate policy", map[string]any{"run": report.PolicyDigest, "loaded": policy.ByteDigest}),
+		check("identity", "run_complete", report.RunState == runstore.StateComplete,
+			fmt.Sprintf("evaluated run state is %q", report.RunState), map[string]any{"state": report.RunState}),
 		check("identity", "complete_pairing", report.CompletePairs == report.ExpectedPairs && len(report.MissingPairs) == 0,
 			fmt.Sprintf("complete pairs %d of %d", report.CompletePairs, report.ExpectedPairs), nil),
 	}

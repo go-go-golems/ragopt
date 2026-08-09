@@ -112,6 +112,21 @@ func TestBuildRejectsDecisionFromDifferentComparison(t *testing.T) {
 	}
 }
 
+func TestBuildRejectsComparisonAndDecisionNotBackedByRun(t *testing.T) {
+	run, comparison, policy, _ := reportFixture()
+	comparison.Pairs[0].Deltas[0].Candidate = 2
+	comparison.Pairs[0].Deltas[0].Delta = 1.5
+	comparison.Metrics[0].MeanCandidate = 2
+	comparison.Metrics[0].MeanDelta = 1.5
+	decision, err := gate.Evaluate(t.Context(), policy, comparison)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Build(t.Context(), run, comparison, policy, decision); err == nil || !strings.Contains(err.Error(), "differs from artifact run evidence") {
+		t.Fatalf("expected fabricated comparison rejection, got %v", err)
+	}
+}
+
 func TestWriteRejectsSameResolvedOutputPath(t *testing.T) {
 	run, comparison, policy, decision := reportFixture()
 	document, err := Build(t.Context(), run, comparison, policy, decision)
@@ -178,22 +193,26 @@ func reportFixture() (*eval.ArtifactRun, *compare.Report, *gate.PolicyDocument, 
 	}
 	run := &eval.ArtifactRun{
 		Manifest: runstore.Manifest{RunID: "run-1"},
+		Status:   runstore.Status{State: runstore.StateComplete},
 		Config: eval.RunConfig{
 			SuiteDigest: reportDigest('s'), PolicyDigest: reportDigest('p'),
 			CandidateID: "candidate-1", CandidateDigest: reportDigest('c'),
 			ParentSnapshot: reportDigest('i'), ChildSnapshot: reportDigest('n'),
-			IncumbentArm: "incumbent", ChallengerArm: "candidate",
+			IncumbentArm: "incumbent", ChallengerArm: "candidate", Repeats: 1,
 			Mutation: mutation, ChangedAsset: "prompt", ParentAssetDigest: reportDigest('a'), ChildAssetDigest: reportDigest('b'),
 		},
 	}
-	comparison := &compare.Report{
-		APIVersion: compare.ReportAPIVersion, RunID: "run-1", SuiteDigest: reportDigest('s'), PolicyDigest: reportDigest('p'),
-		CandidateID: "candidate-1", CandidateDigest: reportDigest('c'), ParentSnapshot: reportDigest('i'), ChildSnapshot: reportDigest('n'),
-		IncumbentArm: "incumbent", ChallengerArm: "candidate",
-		ExpectedPairs: 1, CompletePairs: 1,
-		Groups:  []compare.GroupAggregate{{Group: "all", ExpectedPairs: 1, CompletePairs: 1, CandidateCompleted: 1, CandidateContractValid: 1}},
-		Metrics: []compare.MetricAggregate{{Group: "all", Metric: "quality", ExpectedPairs: 1, CompletePairs: 1, PairsWithMetric: 1, MeanIncumbent: 0.5, MeanCandidate: 0.6, MeanDelta: 0.1, Wins: 1}},
-		Pairs:   []compare.Pair{{Key: compare.PairKey{CaseID: "case-a"}, Groups: []string{"comparison"}, Candidate: eval.Cell{Outcome: eval.Outcome{Completed: true, ContractValid: true}}, Deltas: []compare.MetricDelta{{Metric: "quality", Incumbent: 0.5, Candidate: 0.6, Delta: 0.1}}, MetricPresence: []compare.MetricPresence{{Metric: "quality", IncumbentPresent: true, CandidatePresent: true}}}},
+	run.Suite = &eval.SuiteDocument{Digest: run.Config.SuiteDigest, Suite: eval.Suite{
+		APIVersion: eval.SuiteAPIVersion, Name: "report-fixture",
+		Cases: []eval.Case{{ID: "case-a", Groups: []string{"comparison"}, Input: []byte(`{"id":"a"}`)}},
+	}}
+	run.Cells = []eval.Cell{
+		reportCell(run, run.Config.IncumbentArm, run.Config.ParentSnapshot, 0.5),
+		reportCell(run, run.Config.ChallengerArm, run.Config.ChildSnapshot, 0.6),
+	}
+	comparison, err := compare.Build(context.Background(), run)
+	if err != nil {
+		panic(err)
 	}
 	maximumFailure := 1.0
 	policy := &gate.PolicyDocument{ByteDigest: reportDigest('p'), Policy: gate.Policy{
@@ -212,6 +231,15 @@ func reportFixture() (*eval.ArtifactRun, *compare.Report, *gate.PolicyDocument, 
 		panic(err)
 	}
 	return run, comparison, policy, decision
+}
+
+func reportCell(run *eval.ArtifactRun, arm, snapshot string, quality float64) eval.Cell {
+	return eval.Cell{
+		APIVersion: eval.CellAPIVersion, RunID: run.Manifest.RunID,
+		CaseID: "case-a", Arm: arm, CandidateID: run.Config.CandidateID,
+		SnapshotDigest: snapshot, SuiteDigest: run.Config.SuiteDigest, PolicyDigest: run.Config.PolicyDigest,
+		Outcome: eval.Outcome{Completed: true, ContractValid: true, Metrics: map[string]float64{"quality": quality}},
+	}
 }
 
 func reportDigest(value byte) string { return "sha256:" + strings.Repeat(string(value), 64) }

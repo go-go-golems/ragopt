@@ -35,7 +35,8 @@ func loadSnapshot(ctx context.Context, resolvedRoot, manifestPath string) (*Snap
 		return nil, errors.Wrap(err, "resolve snapshot manifest")
 	}
 	var snapshot Snapshot
-	if err := readStrictYAML(path, &snapshot); err != nil {
+	byteDigest, err := readStrictYAMLWithDigest(path, &snapshot)
+	if err != nil {
 		return nil, errors.Wrap(err, "read snapshot manifest")
 	}
 	if snapshot.APIVersion != SnapshotAPIVersion {
@@ -72,6 +73,7 @@ func loadSnapshot(ctx context.Context, resolvedRoot, manifestPath string) (*Snap
 	}
 	snapshot.Dimensions = cloneStrings(snapshot.Dimensions)
 	snapshot.assetBytes = assets
+	snapshot.ByteDigest = byteDigest
 	return &snapshot, nil
 }
 

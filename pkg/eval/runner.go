@@ -2,6 +2,7 @@ package eval
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"math"
@@ -166,7 +167,7 @@ func prepareRequest(ctx context.Context, request RunRequest) (*preparedRequest, 
 	if err != nil {
 		return nil, err
 	}
-	inputDigests, err := expectedInputDigests(reloadedSuite, policyPath, reloadedCandidate)
+	inputDigests, err := expectedInputDigests(reloadedSuite, policyDigest, reloadedCandidate)
 	if err != nil {
 		return nil, err
 	}
@@ -363,10 +364,15 @@ func executeCell(ctx context.Context, run *runstore.Run, prepared *preparedReque
 func nativeCellPath(armName, caseID string, repeat int) string {
 	return filepath.Join(
 		"native",
-		"arm-"+hex.EncodeToString([]byte(armName)),
-		"case-"+hex.EncodeToString([]byte(caseID)),
+		nativeIdentityComponent("arm", armName),
+		nativeIdentityComponent("case", caseID),
 		fmt.Sprintf("%04d", repeat),
 	)
+}
+
+func nativeIdentityComponent(kind, identity string) string {
+	digest := sha256.Sum256([]byte(identity))
+	return kind + "-" + hex.EncodeToString(digest[:])
 }
 
 func recordArmFailure(ctx context.Context, run *runstore.Run, nativeRelative string, armErr error, duration time.Duration) (Outcome, error) {
@@ -488,7 +494,39 @@ func resolveNativeArtifact(runDirectory, nativeDirectory, relative string) (stri
 	if !info.Mode().IsRegular() {
 		return "", errors.New("native artifact is not a regular file")
 	}
+	if err := rejectExternalArtifactAlias(runDirectory, nativeDirectory, info); err != nil {
+		return "", err
+	}
 	return resolved, nil
+}
+
+func rejectExternalArtifactAlias(runDirectory, nativeDirectory string, artifactInfo os.FileInfo) error {
+	runDirectory = filepath.Clean(runDirectory)
+	nativeDirectory = filepath.Clean(nativeDirectory)
+	err := filepath.WalkDir(runDirectory, func(path string, entry os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if filepath.Clean(path) == nativeDirectory && entry.IsDir() {
+			return filepath.SkipDir
+		}
+		if entry.IsDir() {
+			return nil
+		}
+		info, err := entry.Info()
+		if err != nil {
+			return err
+		}
+		if info.Mode().IsRegular() && os.SameFile(artifactInfo, info) {
+			relative, relErr := filepath.Rel(runDirectory, path)
+			if relErr != nil {
+				return relErr
+			}
+			return errors.Errorf("native artifact aliases protected run evidence %q", relative)
+		}
+		return nil
+	})
+	return errors.Wrap(err, "check native artifact aliases")
 }
 
 func identifyArtifact(runDirectory, path string) (ArtifactRef, error) {

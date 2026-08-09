@@ -22,6 +22,9 @@ func TestBuildPairsAndAggregatesWithoutHidingMissingMetrics(t *testing.T) {
 	if report.ExpectedPairs != 4 || report.CompletePairs != 4 || len(report.MissingPairs) != 0 {
 		t.Fatalf("pair counts: expected=%d complete=%d missing=%d", report.ExpectedPairs, report.CompletePairs, len(report.MissingPairs))
 	}
+	if report.RunState != runstore.StateComplete {
+		t.Fatalf("run state = %q, want complete", report.RunState)
+	}
 	quality := findMetricForTest(t, report, "all", "quality")
 	if quality.CompletePairs != 4 || quality.PairsWithMetric != 3 {
 		t.Fatalf("quality denominators: %#v", quality)
@@ -85,7 +88,11 @@ func comparisonFixture() *eval.ArtifactRun {
 			{ID: "case-b", Groups: []string{"factual"}, Input: []byte(`{"id":"b"}`)},
 		},
 	}}
-	run := &eval.ArtifactRun{Manifest: runstore.Manifest{RunID: "run-1"}, Config: config, Suite: suite}
+	run := &eval.ArtifactRun{
+		Manifest: runstore.Manifest{RunID: "run-1"},
+		Status:   runstore.Status{State: runstore.StateComplete},
+		Config:   config, Suite: suite,
+	}
 	values := []struct{ incumbent, candidate float64 }{{0.5, 0.6}, {0.7, 0.8}, {0.8, 0.7}, {0.5, 0.6}}
 	index := 0
 	for _, caseValue := range suite.Suite.Cases {

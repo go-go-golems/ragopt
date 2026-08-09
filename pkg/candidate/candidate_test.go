@@ -25,6 +25,15 @@ func TestLoadCandidateValidExactlyOneMutation(t *testing.T) {
 	if loaded.Digest == "" || loaded.Parent.SnapshotID == loaded.Child.SnapshotID {
 		t.Fatalf("invalid identities: %#v", loaded)
 	}
+	for label, digest := range map[string]string{
+		"candidate manifest": loaded.ManifestByteDigest,
+		"parent manifest":    loaded.Parent.ByteDigest,
+		"child manifest":     loaded.Child.ByteDigest,
+	} {
+		if !strings.HasPrefix(digest, "sha256:") {
+			t.Fatalf("%s byte digest = %q", label, digest)
+		}
+	}
 	if !filepath.IsAbs(loaded.Root) {
 		t.Fatalf("bundle root is not absolute: %q", loaded.Root)
 	}
