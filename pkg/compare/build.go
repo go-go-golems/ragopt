@@ -2,6 +2,7 @@ package compare
 
 import (
 	"context"
+	"math"
 	"sort"
 	"strings"
 
@@ -26,7 +27,10 @@ func Build(ctx context.Context, run *eval.ArtifactRun) (*Report, error) {
 	if run == nil || run.Suite == nil {
 		return nil, errors.New("evaluation artifact run and suite are required")
 	}
-	config := run.Config
+	config, err := run.DurableConfig(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "load durable evaluation config")
+	}
 	index := make(map[coordinate]eval.Cell, len(run.Cells))
 	validCases := make(map[string]struct{}, len(run.Suite.Suite.Cases))
 	for _, caseValue := range run.Suite.Suite.Cases {
@@ -50,6 +54,11 @@ func Build(ctx context.Context, run *eval.ArtifactRun) (*Report, error) {
 			cell.PolicyDigest != config.PolicyDigest || cell.CandidateID != config.CandidateID ||
 			cell.SnapshotDigest != expectedSnapshot {
 			return nil, errors.Errorf("cell %q/%d/%s has cross-run identity", cell.CaseID, cell.RepeatIndex, cell.Arm)
+		}
+		for metric, value := range cell.Outcome.Metrics {
+			if !finite(value) {
+				return nil, errors.Errorf("cell %q/%d/%s metric %q is not finite", cell.CaseID, cell.RepeatIndex, cell.Arm, metric)
+			}
 		}
 		key := coordinate{caseID: cell.CaseID, repeat: cell.RepeatIndex, arm: cell.Arm}
 		if _, exists := index[key]; exists {
@@ -85,16 +94,22 @@ func Build(ctx context.Context, run *eval.ArtifactRun) (*Report, error) {
 				})
 				continue
 			}
-			pair := buildPair(key, groups, incumbent, candidateCell)
+			pair, err := buildPair(key, groups, incumbent, candidateCell)
+			if err != nil {
+				return nil, err
+			}
 			report.Pairs = append(report.Pairs, pair)
 		}
 	}
 	report.CompletePairs = len(report.Pairs)
-	report.Metrics, report.Groups = aggregate(report)
+	report.Metrics, report.Groups, err = aggregate(report)
+	if err != nil {
+		return nil, err
+	}
 	return report, nil
 }
 
-func buildPair(key PairKey, groups []string, incumbent, candidateCell eval.Cell) Pair {
+func buildPair(key PairKey, groups []string, incumbent, candidateCell eval.Cell) (Pair, error) {
 	metricNames := make(map[string]struct{}, len(incumbent.Outcome.Metrics)+len(candidateCell.Outcome.Metrics))
 	for name := range incumbent.Outcome.Metrics {
 		metricNames[name] = struct{}{}
@@ -115,8 +130,12 @@ func buildPair(key PairKey, groups []string, incumbent, candidateCell eval.Cell)
 			Metric: name, IncumbentPresent: incumbentPresent, CandidatePresent: candidatePresent,
 		})
 		if incumbentPresent && candidatePresent {
+			delta := candidateValue - incumbentValue
+			if !finite(delta) {
+				return Pair{}, errors.Errorf("metric %q delta for %q/%d is not finite", name, key.CaseID, key.RepeatIndex)
+			}
 			pair.Deltas = append(pair.Deltas, MetricDelta{
-				Metric: name, Incumbent: incumbentValue, Candidate: candidateValue, Delta: candidateValue - incumbentValue,
+				Metric: name, Incumbent: incumbentValue, Candidate: candidateValue, Delta: delta,
 			})
 		}
 	}
@@ -126,7 +145,7 @@ func buildPair(key PairKey, groups []string, incumbent, candidateCell eval.Cell)
 		TotalTokens:   (candidateCell.Outcome.InputTokens + candidateCell.Outcome.OutputTokens) - (incumbent.Outcome.InputTokens + incumbent.Outcome.OutputTokens),
 		DurationNanos: int64(candidateCell.Outcome.Duration - incumbent.Outcome.Duration),
 	}
-	return pair
+	return pair, nil
 }
 
 type metricAccumulator struct {
@@ -144,7 +163,7 @@ type groupAccumulator struct {
 	duration  int64
 }
 
-func aggregate(report *Report) ([]MetricAggregate, []GroupAggregate) {
+func aggregate(report *Report) ([]MetricAggregate, []GroupAggregate, error) {
 	expectedByGroup := map[string]int{"all": report.ExpectedPairs}
 	// Expected group counts come from both complete and missing pairs.
 	for _, pair := range report.Pairs {
@@ -185,6 +204,9 @@ func aggregate(report *Report) ([]MetricAggregate, []GroupAggregate) {
 				metric.incumbent += delta.Incumbent
 				metric.candidate += delta.Candidate
 				metric.delta += delta.Delta
+				if !finite(metric.incumbent) || !finite(metric.candidate) || !finite(metric.delta) {
+					return nil, nil, errors.Errorf("metric %q aggregate for group %q is not finite", delta.Metric, group)
+				}
 				switch {
 				case delta.Delta > 0:
 					metric.aggregate.Wins++
@@ -204,6 +226,9 @@ func aggregate(report *Report) ([]MetricAggregate, []GroupAggregate) {
 			accumulator.aggregate.MeanIncumbent = accumulator.incumbent / count
 			accumulator.aggregate.MeanCandidate = accumulator.candidate / count
 			accumulator.aggregate.MeanDelta = accumulator.delta / count
+			if !finite(accumulator.aggregate.MeanIncumbent) || !finite(accumulator.aggregate.MeanCandidate) || !finite(accumulator.aggregate.MeanDelta) {
+				return nil, nil, errors.Errorf("metric %q mean for group %q is not finite", accumulator.aggregate.Metric, accumulator.aggregate.Group)
+			}
 		}
 		metricResults = append(metricResults, accumulator.aggregate)
 	}
@@ -228,8 +253,10 @@ func aggregate(report *Report) ([]MetricAggregate, []GroupAggregate) {
 		groupResults = append(groupResults, accumulator.aggregate)
 	}
 	sort.Slice(groupResults, func(i, j int) bool { return groupResults[i].Group < groupResults[j].Group })
-	return metricResults, groupResults
+	return metricResults, groupResults, nil
 }
+
+func finite(value float64) bool { return !math.IsNaN(value) && !math.IsInf(value, 0) }
 
 func addOutcomeCounts(aggregate *GroupAggregate, pair Pair) {
 	if pair.Incumbent.Outcome.Completed {

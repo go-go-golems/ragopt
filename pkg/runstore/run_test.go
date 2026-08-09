@@ -84,6 +84,16 @@ func TestCopyInputRejectsDuplicateRoleAndPath(t *testing.T) {
 	}
 }
 
+func TestCopyInputRejectsReservedManifestPath(t *testing.T) {
+	run := mustCreateRun(t, map[string]any{"x": 1})
+	source := filepath.Join(t.TempDir(), "source.json")
+	mustWriteFile(t, source, []byte(`{}`))
+	_, err := run.CopyInput(t.Context(), "manifest", source)
+	if err == nil || !strings.Contains(err.Error(), "reserved input manifest") {
+		t.Fatalf("expected reserved manifest collision, got %v", err)
+	}
+}
+
 func TestOpenRecoversPendingInputTransactions(t *testing.T) {
 	t.Run("committed manifest completes publication", func(t *testing.T) {
 		run := mustCreateRun(t, map[string]any{})

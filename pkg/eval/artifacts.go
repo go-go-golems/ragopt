@@ -3,6 +3,7 @@ package eval
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -22,6 +23,8 @@ type ArtifactRun struct {
 	PolicyPath string
 	Cells      []Cell
 	Inputs     []runstore.InputRef
+
+	configDigest string
 }
 
 // LoadArtifactRun validates a run's common artifacts, evaluation config,
@@ -85,15 +88,67 @@ func LoadArtifactRun(ctx context.Context, directory string) (*ArtifactRun, error
 		return nil, err
 	}
 	return &ArtifactRun{
-		Directory:  reader.Dir(),
-		Manifest:   reader.Manifest(),
-		Status:     reader.Status(),
-		Config:     config,
-		Suite:      suite,
-		PolicyPath: policyPath,
-		Cells:      cells,
-		Inputs:     inputs,
+		Directory:    reader.Dir(),
+		Manifest:     reader.Manifest(),
+		Status:       reader.Status(),
+		Config:       config,
+		Suite:        suite,
+		PolicyPath:   policyPath,
+		Cells:        cells,
+		Inputs:       inputs,
+		configDigest: reader.Manifest().ConfigDigest,
 	}, nil
+}
+
+// DurableConfig reloads the run configuration from its immutable artifact and
+// verifies its manifest-bound digest. Callers that make promotion decisions
+// must use this copy instead of trusting the mutable Config convenience field.
+func (r *ArtifactRun) DurableConfig(ctx context.Context) (RunConfig, error) {
+	if r == nil {
+		return RunConfig{}, errors.New("artifact run is required")
+	}
+	if err := ctx.Err(); err != nil {
+		return RunConfig{}, err
+	}
+	digest := r.configDigest
+	if digest == "" {
+		digest = r.Manifest.ConfigDigest
+	}
+	if r.Directory == "" || digest == "" {
+		return cloneRunConfig(r.Config)
+	}
+	path := filepath.Join(r.Directory, "config.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return RunConfig{}, errors.Wrap(err, "read durable evaluation config")
+	}
+	var config RunConfig
+	if err := decodeStrictJSON(data, &config); err != nil {
+		return RunConfig{}, errors.Wrap(err, "decode durable evaluation config")
+	}
+	if err := validateRunConfig(config); err != nil {
+		return RunConfig{}, err
+	}
+	actual, err := digestJSON(config)
+	if err != nil {
+		return RunConfig{}, err
+	}
+	if actual != digest {
+		return RunConfig{}, errors.Errorf("durable evaluation config digest mismatch: manifest=%s actual=%s", digest, actual)
+	}
+	return config, nil
+}
+
+func cloneRunConfig(config RunConfig) (RunConfig, error) {
+	data, err := json.Marshal(config)
+	if err != nil {
+		return RunConfig{}, errors.Wrap(err, "clone evaluation config")
+	}
+	var clone RunConfig
+	if err := json.Unmarshal(data, &clone); err != nil {
+		return RunConfig{}, errors.Wrap(err, "clone evaluation config")
+	}
+	return clone, nil
 }
 
 func validateRunConfig(config RunConfig) error {

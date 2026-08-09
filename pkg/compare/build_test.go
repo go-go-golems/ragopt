@@ -76,6 +76,28 @@ func TestBuildRejectsDuplicateAndCrossIdentityCells(t *testing.T) {
 	}
 }
 
+func TestBuildRejectsNonFiniteDerivedArithmetic(t *testing.T) {
+	t.Run("delta overflow", func(t *testing.T) {
+		run := comparisonFixture()
+		run.Cells[0].Outcome.Metrics["quality"] = -math.MaxFloat64
+		run.Cells[1].Outcome.Metrics["quality"] = math.MaxFloat64
+		_, err := Build(t.Context(), run)
+		if err == nil || !strings.Contains(err.Error(), "delta") {
+			t.Fatalf("expected non-finite delta rejection, got %v", err)
+		}
+	})
+	t.Run("aggregate overflow", func(t *testing.T) {
+		run := comparisonFixture()
+		for index := range run.Cells {
+			run.Cells[index].Outcome.Metrics["quality"] = math.MaxFloat64
+		}
+		_, err := Build(t.Context(), run)
+		if err == nil || !strings.Contains(err.Error(), "aggregate") {
+			t.Fatalf("expected non-finite aggregate rejection, got %v", err)
+		}
+	})
+}
+
 func comparisonFixture() *eval.ArtifactRun {
 	config := eval.RunConfig{
 		APIVersion: eval.RunAPIVersion, SuiteDigest: digest('s'), PolicyDigest: digest('p'),

@@ -5,61 +5,44 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
+
+	"github.com/go-go-golems/ragopt/pkg/runstore"
 )
 
 type runEvidenceSnapshot map[string]string
 
-// snapshotRunEvidence identifies every pre-existing run-owned file outside the
-// current cell's native directory. Arms may create evidence only inside that
-// directory; all other run state is immutable for the duration of the call.
-func snapshotRunEvidence(runDirectory, excludedDirectory string) (runEvidenceSnapshot, error) {
-	runDirectory = filepath.Clean(runDirectory)
-	excludedDirectory = filepath.Clean(excludedDirectory)
-	snapshot := runEvidenceSnapshot{}
-	err := filepath.WalkDir(runDirectory, func(path string, entry os.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		if filepath.Clean(path) == excludedDirectory {
-			if entry.IsDir() {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		if entry.IsDir() {
-			return nil
-		}
-		relative, err := filepath.Rel(runDirectory, path)
+// snapshotRunEvidence hashes the fixed trust roots exposed to every arm. The
+// set is bounded by configuration plus copied inputs; committed cells and
+// native artifacts are audited once as a whole before run completion.
+func snapshotRunEvidence(run *runstore.Run) (runEvidenceSnapshot, error) {
+	paths := []string{"manifest.json", "config.json", "status.json", filepath.Join("inputs", "manifest.json")}
+	for _, input := range run.Inputs() {
+		paths = append(paths, input.CopiedPath)
+	}
+	snapshot := make(runEvidenceSnapshot, len(paths))
+	for _, relative := range paths {
+		path, err := run.Path(relative)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		info, err := entry.Info()
+		info, err := os.Lstat(path)
 		if err != nil {
-			return err
-		}
-		if info.Mode()&os.ModeSymlink != 0 {
-			target, err := os.Readlink(path)
-			if err != nil {
-				return err
-			}
-			snapshot[relative] = "symlink:" + target
-			return nil
+			return nil, errors.Wrapf(err, "inspect run evidence %q", relative)
 		}
 		if !info.Mode().IsRegular() {
-			return errors.Errorf("run evidence %q is not a regular file", relative)
+			return nil, errors.Errorf("run evidence %q is not a regular file", relative)
 		}
 		data, err := os.ReadFile(path)
 		if err != nil {
-			return err
+			return nil, errors.Wrapf(err, "read run evidence %q", relative)
 		}
 		snapshot[relative] = digestBytes(data)
-		return nil
-	})
-	return snapshot, errors.Wrap(err, "walk run evidence")
+	}
+	return snapshot, nil
 }
 
-func verifyRunEvidence(runDirectory, excludedDirectory string, expected runEvidenceSnapshot) error {
-	actual, err := snapshotRunEvidence(runDirectory, excludedDirectory)
+func verifyRunEvidence(run *runstore.Run, expected runEvidenceSnapshot) error {
+	actual, err := snapshotRunEvidence(run)
 	if err != nil {
 		return err
 	}
