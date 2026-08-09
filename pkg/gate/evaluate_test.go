@@ -9,33 +9,34 @@ import (
 
 	"github.com/go-go-golems/ragopt/pkg/compare"
 	"github.com/go-go-golems/ragopt/pkg/eval"
+	"github.com/go-go-golems/ragopt/pkg/policy"
 	"github.com/go-go-golems/ragopt/pkg/runstore"
 )
 
 func TestGateDecisionGoldens(t *testing.T) {
 	tests := []struct {
 		name   string
-		mutate func(*eval.ArtifactRun, *PolicyDocument)
+		mutate func(*eval.ArtifactRun, *policy.Document)
 	}{
 		{name: "pass"},
-		{name: "hard-fail", mutate: func(run *eval.ArtifactRun, _ *PolicyDocument) {
+		{name: "hard-fail", mutate: func(run *eval.ArtifactRun, _ *policy.Document) {
 			run.Cells[1].Outcome.Completed = false
 			run.Cells[1].Outcome.Failure = &eval.Failure{Class: "provider", Message: "unavailable"}
 		}},
-		{name: "target-fail", mutate: func(run *eval.ArtifactRun, _ *PolicyDocument) {
+		{name: "target-fail", mutate: func(run *eval.ArtifactRun, _ *policy.Document) {
 			run.Cells[1].Outcome.Metrics["quality"] = 0.5
 			run.Cells[3].Outcome.Metrics["quality"] = 0.6
 		}},
-		{name: "catastrophic-regression", mutate: func(run *eval.ArtifactRun, _ *PolicyDocument) {
+		{name: "catastrophic-regression", mutate: func(run *eval.ArtifactRun, _ *policy.Document) {
 			run.Cells[1].Outcome.Metrics["safety"] = 0.65
 		}},
-		{name: "tie-break", mutate: func(run *eval.ArtifactRun, policy *PolicyDocument) {
+		{name: "tie-break", mutate: func(run *eval.ArtifactRun, policy *policy.Document) {
 			run.Cells[1].Outcome.Metrics["quality"] = 0.5
 			run.Cells[3].Outcome.Metrics["quality"] = 0.6
 			policy.Policy.Target.MinimumMeanDelta = 0
 			policy.Policy.Target.RequirePositiveEachRepeat = false
 		}},
-		{name: "incomplete-pairing", mutate: func(run *eval.ArtifactRun, _ *PolicyDocument) {
+		{name: "incomplete-pairing", mutate: func(run *eval.ArtifactRun, _ *policy.Document) {
 			run.Cells = run.Cells[:len(run.Cells)-1]
 		}},
 	}
@@ -160,7 +161,7 @@ regressions: {}
 	if err := os.WriteFile(path, []byte(valid), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	document, err := LoadPolicy(t.Context(), path)
+	document, err := policy.Load(t.Context(), path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -172,21 +173,21 @@ regressions: {}
 	if err := os.WriteFile(path, []byte(invalid), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := LoadPolicy(t.Context(), path); err == nil || !strings.Contains(err.Error(), "max_failure_rate is required") {
+	if _, err := policy.Load(t.Context(), path); err == nil || !strings.Contains(err.Error(), "max_failure_rate is required") {
 		t.Fatalf("missing threshold error: %v", err)
 	}
 	missingTarget := strings.Replace(valid, "  minimum_mean_delta: 0.1\n", "", 1)
 	if err := os.WriteFile(path, []byte(missingTarget), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := LoadPolicy(t.Context(), path); err == nil || !strings.Contains(err.Error(), "minimum_mean_delta is required") {
+	if _, err := policy.Load(t.Context(), path); err == nil || !strings.Contains(err.Error(), "minimum_mean_delta is required") {
 		t.Fatalf("missing target threshold error: %v", err)
 	}
 	unknown := valid + "unknown: true\n"
 	if err := os.WriteFile(path, []byte(unknown), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := LoadPolicy(t.Context(), path); err == nil || !strings.Contains(err.Error(), "field unknown not found") {
+	if _, err := policy.Load(t.Context(), path); err == nil || !strings.Contains(err.Error(), "field unknown not found") {
 		t.Fatalf("unknown-field error: %v", err)
 	}
 }
@@ -228,15 +229,15 @@ func gateCell(config eval.RunConfig, caseID, arm, snapshot string, quality float
 	}
 }
 
-func gatePolicy(byteDigest string) *PolicyDocument {
+func gatePolicy(byteDigest string) *policy.Document {
 	maximumFailure := 0.0
-	document := &PolicyDocument{
+	document := &policy.Document{
 		ByteDigest: byteDigest,
-		Policy: Policy{
-			APIVersion: PolicyAPIVersion, Name: "fixture-policy",
-			HardGates:   HardGates{RequireAllCells: true, RequireCompleted: true, RequireContractValid: true, MaxFailureRate: &maximumFailure, MetricFloors: map[string]float64{"safety": 0.6}},
-			Target:      Target{Metric: "quality", MinimumMeanDelta: 0.05, RequirePositiveEachRepeat: true},
-			Regressions: Regressions{MaximumCaseDelta: map[string]float64{"safety": -0.2}, MaximumMeanDelta: map[string]map[string]float64{"all": {"quality": -0.2}}},
+		Policy: policy.Policy{
+			APIVersion: policy.PolicyAPIVersion, Name: "fixture-policy",
+			HardGates:   policy.HardGates{RequireAllCells: true, RequireCompleted: true, RequireContractValid: true, MaxFailureRate: &maximumFailure, MetricFloors: map[string]float64{"safety": 0.6}},
+			Target:      policy.Target{Metric: "quality", MinimumMeanDelta: 0.05, RequirePositiveEachRepeat: true},
+			Regressions: policy.Regressions{MaximumCaseDelta: map[string]float64{"safety": -0.2}, MaximumMeanDelta: map[string]map[string]float64{"all": {"quality": -0.2}}},
 			TieBreakers: []string{"provider_calls", "total_tokens"},
 		},
 	}
@@ -244,8 +245,8 @@ func gatePolicy(byteDigest string) *PolicyDocument {
 	return document
 }
 
-func mustPolicyDigest(policy Policy) string {
-	digest, err := policyDigest(policy)
+func mustPolicyDigest(value policy.Policy) string {
+	digest, err := policy.Digest(value)
 	if err != nil {
 		panic(err)
 	}

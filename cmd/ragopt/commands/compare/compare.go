@@ -14,6 +14,7 @@ import (
 	comparelib "github.com/go-go-golems/ragopt/pkg/compare"
 	"github.com/go-go-golems/ragopt/pkg/eval"
 	"github.com/go-go-golems/ragopt/pkg/gate"
+	"github.com/go-go-golems/ragopt/pkg/policy"
 )
 
 type Command struct{ *cmds.CommandDescription }
@@ -49,7 +50,7 @@ func (command *Command) RunIntoGlazeProcessor(ctx context.Context, vals *values.
 	if err != nil {
 		return errors.Wrap(err, "load evaluation artifacts")
 	}
-	policy, err := gate.LoadPolicy(ctx, run.PolicyPath)
+	policyDocument, err := policy.Load(ctx, run.PolicyPath)
 	if err != nil {
 		return errors.Wrap(err, "load copied gate policy")
 	}
@@ -57,7 +58,7 @@ func (command *Command) RunIntoGlazeProcessor(ctx context.Context, vals *values.
 	if err != nil {
 		return errors.Wrap(err, "compare paired outcomes")
 	}
-	decision, err := gate.Evaluate(ctx, policy, comparison)
+	decision, err := gate.Evaluate(ctx, policyDocument, comparison)
 	if err != nil {
 		return errors.Wrap(err, "evaluate gate policy")
 	}

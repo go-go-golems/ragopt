@@ -1,6 +1,6 @@
-// Package gate strictly loads product-authored gate policies and evaluates
-// them lexicographically over a comparison report.
-package gate
+// Package policy strictly loads product-authored gate policies independently
+// of evaluation and decision packages.
+package policy
 
 import (
 	"bytes"
@@ -13,7 +13,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strings"
 
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
@@ -50,7 +49,7 @@ type Policy struct {
 	TieBreakers []string    `json:"tie_breakers,omitempty" yaml:"tie_breakers,omitempty"`
 }
 
-type PolicyDocument struct {
+type Document struct {
 	Policy     Policy `json:"policy"`
 	Digest     string `json:"digest"`
 	ByteDigest string `json:"byte_digest"`
@@ -59,9 +58,9 @@ type PolicyDocument struct {
 
 var identifierPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`)
 
-// LoadPolicy strictly loads one policy without supplying metric or threshold
+// Load strictly loads one policy without supplying metric or threshold
 // defaults.
-func LoadPolicy(ctx context.Context, path string) (*PolicyDocument, error) {
+func Load(ctx context.Context, path string) (*Document, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -89,14 +88,14 @@ func LoadPolicy(ctx context.Context, path string) (*PolicyDocument, error) {
 	if err := validateRequiredPolicyFields(data); err != nil {
 		return nil, err
 	}
-	if err := validatePolicy(policy); err != nil {
+	if err := Validate(policy); err != nil {
 		return nil, err
 	}
-	semanticDigest, err := policyDigest(policy)
+	semanticDigest, err := Digest(policy)
 	if err != nil {
 		return nil, err
 	}
-	return &PolicyDocument{
+	return &Document{
 		Policy: policy, Digest: semanticDigest, ByteDigest: digestBytes(data), Path: absolute,
 	}, nil
 }
@@ -116,8 +115,9 @@ func validateRequiredPolicyFields(data []byte) error {
 	return nil
 }
 
-func policyDigest(policy Policy) (string, error) {
-	if err := validatePolicy(policy); err != nil {
+// Digest returns the canonical semantic identity of a validated policy.
+func Digest(policy Policy) (string, error) {
+	if err := Validate(policy); err != nil {
 		return "", err
 	}
 	semantic, err := json.Marshal(policy)
@@ -127,7 +127,8 @@ func policyDigest(policy Policy) (string, error) {
 	return digestBytes(semantic), nil
 }
 
-func validatePolicy(policy Policy) error {
+// Validate checks the complete policy semantic contract.
+func Validate(policy Policy) error {
 	if policy.APIVersion != PolicyAPIVersion {
 		return errors.Errorf("unsupported gate policy API version %q", policy.APIVersion)
 	}
@@ -210,27 +211,4 @@ func finite(value float64) bool { return !math.IsNaN(value) && !math.IsInf(value
 func digestBytes(data []byte) string {
 	sum := sha256.Sum256(data)
 	return "sha256:" + hex.EncodeToString(sum[:])
-}
-
-func containsGroup(groups []string, selected map[string]struct{}) bool {
-	if len(selected) == 0 {
-		return true
-	}
-	if _, all := selected["all"]; all {
-		return true
-	}
-	for _, group := range groups {
-		if _, ok := selected[group]; ok {
-			return true
-		}
-	}
-	return false
-}
-
-func groupSet(groups []string) map[string]struct{} {
-	result := make(map[string]struct{}, len(groups))
-	for _, group := range groups {
-		result[strings.TrimSpace(group)] = struct{}{}
-	}
-	return result
 }
