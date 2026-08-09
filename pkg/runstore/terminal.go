@@ -39,6 +39,7 @@ func (run *Run) finish(ctx context.Context, state, message string, summary Summa
 		}
 	}
 	finishedAt := time.Now().UTC()
+	finishedAt = clampFinishTime(run.status.StartedAt, finishedAt)
 	run.status.State = state
 	run.status.FinishedAt = &finishedAt
 	run.status.Error = message
@@ -47,4 +48,11 @@ func (run *Run) finish(ctx context.Context, state, message string, summary Summa
 	}
 	run.terminal = true
 	return nil
+}
+
+func clampFinishTime(startedAt, finishedAt time.Time) time.Time {
+	if finishedAt.Before(startedAt) {
+		return startedAt
+	}
+	return finishedAt
 }

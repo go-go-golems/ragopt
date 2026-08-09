@@ -231,7 +231,7 @@ func TestResumeRejectsIdentityMismatchWithoutMutatingActiveRun(t *testing.T) {
 	}
 }
 
-func TestResumeRejectsMissingBoundInput(t *testing.T) {
+func TestResumeCompletesMissingBoundInput(t *testing.T) {
 	fixture := newEvaluationFixture(t)
 	ctx, cancel := context.WithCancel(t.Context())
 	control := &scriptControl{cancel: cancel, cancelOnCall: 2}
@@ -261,13 +261,14 @@ func TestResumeRejectsMissingBoundInput(t *testing.T) {
 	resumeControl := &scriptControl{}
 	request.Incumbent = &scriptedArm{name: "incumbent", control: resumeControl}
 	request.Challenger = &scriptedArm{name: "challenger", control: resumeControl}
-	_, err = Resume(t.Context(), result.RunDirectory, request)
-	if err == nil || !strings.Contains(err.Error(), "bound input count mismatch") {
-		t.Fatalf("expected complete input-set rejection, got %v", err)
+	resumed, err := Resume(t.Context(), result.RunDirectory, request)
+	mustNoError(t, err)
+	if resumed.Completed != resumed.Expected {
+		t.Fatalf("partial-input resume did not complete: %#v", resumed)
 	}
 	reader, openErr := runstore.Open(result.RunDirectory)
 	mustNoError(t, openErr)
-	if reader.Status().State != runstore.StateFailed {
+	if reader.Status().State != runstore.StateComplete {
 		t.Fatalf("missing-input resume state: %q", reader.Status().State)
 	}
 }
@@ -291,7 +292,12 @@ func TestResumeRejectsMalformedMiddleAndDuplicateCells(t *testing.T) {
 				path := filepath.Join(runDirectory, "results", "cells.jsonl")
 				data, err := os.ReadFile(path)
 				mustNoError(t, err)
-				appendFile(t, path, data)
+				var duplicate Cell
+				mustNoError(t, json.Unmarshal(bytes.TrimSpace(data), &duplicate))
+				mustNoError(t, sealCell(&duplicate, duplicate.Digest))
+				line, err := json.Marshal(duplicate)
+				mustNoError(t, err)
+				appendFile(t, path, append(line, '\n'))
 			},
 			want: "duplicate result cell key",
 		},
@@ -598,18 +604,44 @@ func TestNativeArtifactHardLinkedOutsideRunBecomesOwnedCopy(t *testing.T) {
 
 func TestEvidenceSnapshotAuthenticatesCommittedCellJournal(t *testing.T) {
 	run := mustCreateEvidenceRun(t)
-	before, err := snapshotRunEvidence(run)
+	before, err := snapshotRunEvidence(run, "")
 	mustNoError(t, err)
 	mustNoError(t, run.WriteBytes(t.Context(), "native/old.json", []byte(`{}`)))
-	mustNoError(t, run.AppendJSONL(t.Context(), "results/cells.jsonl", map[string]string{"cell": "old"}))
-	after, err := snapshotRunEvidence(run)
+	cell := Cell{APIVersion: CellAPIVersion, RunID: run.Manifest().RunID}
+	mustNoError(t, sealCell(&cell, ""))
+	mustNoError(t, run.AppendJSONL(t.Context(), "results/cells.jsonl", cell))
+	after, err := snapshotRunEvidence(run, cell.Digest)
 	mustNoError(t, err)
-	if len(after) != len(before)+1 || after[filepath.Join("results", "cells.jsonl")] == "" {
-		t.Fatalf("committed cell journal is not authenticated: before=%v after=%v", before, after)
+	if after.journalDigest != cell.Digest || len(after.files) != len(before.files) {
+		t.Fatalf("committed cell journal head is not authenticated: before=%v after=%v", before, after)
 	}
 	writeFile(t, filepath.Join(run.Dir(), "results", "cells.jsonl"), []byte(`{"cell":"changed"}`+"\n"))
-	if err := verifyRunEvidence(run, after); err == nil || !strings.Contains(err.Error(), "cells.jsonl") {
+	if err := verifyRunEvidence(run, after); err == nil || !strings.Contains(err.Error(), "cell journal") {
 		t.Fatalf("changed cell journal was not rejected: %v", err)
+	}
+}
+
+func TestEvidenceSnapshotAnchorsCompleteCellChain(t *testing.T) {
+	run := mustCreateEvidenceRun(t)
+	first := Cell{APIVersion: CellAPIVersion, RunID: run.Manifest().RunID, CaseID: "first"}
+	mustNoError(t, sealCell(&first, ""))
+	second := Cell{APIVersion: CellAPIVersion, RunID: run.Manifest().RunID, CaseID: "second"}
+	mustNoError(t, sealCell(&second, first.Digest))
+	mustNoError(t, run.AppendJSONL(t.Context(), "results/cells.jsonl", first))
+	mustNoError(t, run.AppendJSONL(t.Context(), "results/cells.jsonl", second))
+	protected, err := snapshotRunEvidence(run, second.Digest)
+	mustNoError(t, err)
+
+	first.CaseID = "rewritten"
+	mustNoError(t, sealCell(&first, ""))
+	mustNoError(t, sealCell(&second, first.Digest))
+	firstLine, err := json.Marshal(first)
+	mustNoError(t, err)
+	secondLine, err := json.Marshal(second)
+	mustNoError(t, err)
+	writeFile(t, filepath.Join(run.Dir(), "results", "cells.jsonl"), append(append(firstLine, '\n'), append(secondLine, '\n')...))
+	if err := verifyRunEvidence(run, protected); err == nil || !strings.Contains(err.Error(), "cell journal head changed") {
+		t.Fatalf("rewritten cell chain was not rejected: %v", err)
 	}
 }
 
@@ -652,11 +684,30 @@ func TestLoadRejectsStoredCellWithoutArtifactIdentity(t *testing.T) {
 	cell.Outcome.NativeArtifact.SizeBytes = 0
 	lines[0], err = json.Marshal(cell)
 	mustNoError(t, err)
+	lines = resealCellLines(t, lines)
 	writeFile(t, path, bytes.Join(lines, []byte{'\n'}))
 	_, err = LoadArtifactRun(t.Context(), result.RunDirectory)
 	if err == nil || !strings.Contains(err.Error(), "artifact digest is required") {
 		t.Fatalf("expected missing stored identity rejection, got %v", err)
 	}
+}
+
+func resealCellLines(t *testing.T, lines [][]byte) [][]byte {
+	t.Helper()
+	previous := ""
+	for index, line := range lines {
+		if len(line) == 0 {
+			continue
+		}
+		var cell Cell
+		mustNoError(t, json.Unmarshal(line, &cell))
+		mustNoError(t, sealCell(&cell, previous))
+		encoded, err := json.Marshal(cell)
+		mustNoError(t, err)
+		lines[index] = encoded
+		previous = cell.Digest
+	}
+	return lines
 }
 
 type evaluationFixture struct {

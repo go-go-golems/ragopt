@@ -15,17 +15,17 @@ func loadCompletedCells(
 	prepared *preparedRequest,
 	incumbentView CandidateView,
 	challengerView CandidateView,
-) (map[string]Cell, error) {
+) (map[string]Cell, string, error) {
 	path, err := run.Path(filepath.Join("results", "cells.jsonl"))
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return map[string]Cell{}, nil
+			return map[string]Cell{}, "", nil
 		}
-		return nil, errors.Wrap(err, "read result cells")
+		return nil, "", errors.Wrap(err, "read result cells")
 	}
 	if len(data) > 0 && data[len(data)-1] != '\n' {
 		lastNewline := bytes.LastIndexByte(data, '\n')
@@ -34,7 +34,7 @@ func loadCompletedCells(
 			keep = lastNewline + 1
 		}
 		if err := truncateAndSync(path, int64(keep)); err != nil {
-			return nil, errors.Wrap(err, "discard uncommitted truncated JSONL tail")
+			return nil, "", errors.Wrap(err, "discard uncommitted truncated JSONL tail")
 		}
 		data = data[:keep]
 	}
@@ -44,32 +44,37 @@ func loadCompletedCells(
 		expected[expectedCellKey(prepared, item)] = item
 	}
 	completed := make(map[string]Cell)
+	chainDigest := ""
 	lines := bytes.Split(data, []byte{'\n'})
 	for index, line := range lines {
 		if len(line) == 0 {
 			if index != len(lines)-1 {
-				return nil, errors.Errorf("result cell line %d is blank", index+1)
+				return nil, "", errors.Errorf("result cell line %d is blank", index+1)
 			}
 			continue
 		}
 		var cell Cell
 		if err := decodeStrictJSON(line, &cell); err != nil {
-			return nil, errors.Wrapf(err, "decode result cell line %d", index+1)
+			return nil, "", errors.Wrapf(err, "decode result cell line %d", index+1)
+		}
+		if err := validateCellChain(cell, chainDigest); err != nil {
+			return nil, "", errors.Wrapf(err, "validate result cell line %d chain", index+1)
 		}
 		key := cellKey(cell)
 		item, exists := expected[key]
 		if !exists {
-			return nil, errors.Errorf("result cell line %d has an unexpected identity", index+1)
+			return nil, "", errors.Errorf("result cell line %d has an unexpected identity", index+1)
 		}
 		if _, exists := completed[key]; exists {
-			return nil, errors.Errorf("duplicate result cell key on line %d", index+1)
+			return nil, "", errors.Errorf("duplicate result cell key on line %d", index+1)
 		}
 		if err := validateStoredCell(run, prepared, item, &cell); err != nil {
-			return nil, errors.Wrapf(err, "validate result cell line %d", index+1)
+			return nil, "", errors.Wrapf(err, "validate result cell line %d", index+1)
 		}
 		completed[key] = cell
+		chainDigest = cell.Digest
 	}
-	return completed, nil
+	return completed, chainDigest, nil
 }
 
 func validateStoredCell(run *runstore.Run, prepared *preparedRequest, item scheduledCell, cell *Cell) error {

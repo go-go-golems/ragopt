@@ -27,14 +27,14 @@ func bindInputs(
 	run *runstore.Run,
 	prepared *preparedRequest,
 ) (CandidateView, CandidateView, error) {
-	suiteRef, err := run.CopyInput(ctx, roleSuite, prepared.suite.SourcePath)
+	suiteRef, err := ensureBoundInput(ctx, run, roleSuite, prepared.suite.SourcePath, prepared.suite.ByteDigest, 0)
 	if err != nil {
 		return CandidateView{}, CandidateView{}, errors.Wrap(err, "copy evaluation suite")
 	}
 	if suiteRef.SHA256 != prepared.suite.ByteDigest {
 		return CandidateView{}, CandidateView{}, errors.Errorf("evaluation suite changed during binding: expected=%s copied=%s", prepared.suite.ByteDigest, suiteRef.SHA256)
 	}
-	policyRef, err := run.CopyInput(ctx, rolePolicy, prepared.policyPath)
+	policyRef, err := ensureBoundInput(ctx, run, rolePolicy, prepared.policyPath, prepared.config.PolicyDigest, 0)
 	if err != nil {
 		return CandidateView{}, CandidateView{}, errors.Wrap(err, "copy gate policy")
 	}
@@ -42,21 +42,21 @@ func bindInputs(
 		return CandidateView{}, CandidateView{}, errors.Errorf("gate policy changed during binding: expected=%s copied=%s", prepared.config.PolicyDigest, policyRef.SHA256)
 	}
 	candidateValue := prepared.candidate
-	candidateRef, err := run.CopyInput(ctx, roleCandidateManifest, filepath.Join(candidateValue.Root, candidateValue.ManifestPath))
+	candidateRef, err := ensureBoundInput(ctx, run, roleCandidateManifest, filepath.Join(candidateValue.Root, candidateValue.ManifestPath), candidateValue.ManifestByteDigest, 0)
 	if err != nil {
 		return CandidateView{}, CandidateView{}, errors.Wrap(err, "copy candidate manifest")
 	}
 	if candidateRef.SHA256 != candidateValue.ManifestByteDigest {
 		return CandidateView{}, CandidateView{}, errors.Errorf("candidate manifest changed during binding: expected=%s copied=%s", candidateValue.ManifestByteDigest, candidateRef.SHA256)
 	}
-	parentRef, err := run.CopyInput(ctx, roleParentSnapshot, filepath.Join(candidateValue.Root, candidateValue.Manifest.ParentSnapshot))
+	parentRef, err := ensureBoundInput(ctx, run, roleParentSnapshot, filepath.Join(candidateValue.Root, candidateValue.Manifest.ParentSnapshot), candidateValue.Parent.ByteDigest, 0)
 	if err != nil {
 		return CandidateView{}, CandidateView{}, errors.Wrap(err, "copy parent snapshot")
 	}
 	if parentRef.SHA256 != candidateValue.Parent.ByteDigest {
 		return CandidateView{}, CandidateView{}, errors.Errorf("parent snapshot changed during binding: expected=%s copied=%s", candidateValue.Parent.ByteDigest, parentRef.SHA256)
 	}
-	childRef, err := run.CopyInput(ctx, roleChildSnapshot, filepath.Join(candidateValue.Root, candidateValue.Manifest.CandidateSnapshot))
+	childRef, err := ensureBoundInput(ctx, run, roleChildSnapshot, filepath.Join(candidateValue.Root, candidateValue.Manifest.CandidateSnapshot), candidateValue.Child.ByteDigest, 0)
 	if err != nil {
 		return CandidateView{}, CandidateView{}, errors.Wrap(err, "copy candidate snapshot")
 	}
@@ -73,6 +73,30 @@ func bindInputs(
 		return CandidateView{}, CandidateView{}, err
 	}
 	return viewsFromInputs(run, candidateValue)
+}
+
+func ensureBoundInput(ctx context.Context, run *runstore.Run, role, source, expectedDigest string, expectedSize int64) (runstore.InputRef, error) {
+	for _, input := range run.Inputs() {
+		if input.Role != role {
+			continue
+		}
+		if input.SHA256 != expectedDigest || (expectedSize > 0 && input.SizeBytes != expectedSize) {
+			return runstore.InputRef{}, errors.Errorf("existing bound input %q differs from requested source identity", role)
+		}
+		path, err := run.Path(input.CopiedPath)
+		if err != nil {
+			return runstore.InputRef{}, err
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return runstore.InputRef{}, errors.Wrapf(err, "read existing bound input %q", role)
+		}
+		if digestBytes(data) != expectedDigest || int64(len(data)) != input.SizeBytes {
+			return runstore.InputRef{}, errors.Errorf("existing bound input %q content changed", role)
+		}
+		return input, nil
+	}
+	return run.CopyInput(ctx, role, source)
 }
 
 func expectedInputDigests(suite *SuiteDocument, policyDigest string, candidateValue *candidate.Candidate) (map[string]string, error) {
@@ -146,7 +170,7 @@ func verifyBoundInputs(run *runstore.Run, expected map[string]string) error {
 func copySnapshotAssets(ctx context.Context, run *runstore.Run, root, side string, snapshot candidate.Snapshot) error {
 	for _, item := range snapshotAssets(snapshot) {
 		role := assetRole(side, item.ref, item.locked)
-		copied, err := run.CopyInput(ctx, role, filepath.Join(root, item.ref.Path))
+		copied, err := ensureBoundInput(ctx, run, role, filepath.Join(root, item.ref.Path), item.ref.SHA256, item.ref.SizeBytes)
 		if err != nil {
 			return errors.Wrapf(err, "copy %s asset %q", side, item.ref.Name)
 		}

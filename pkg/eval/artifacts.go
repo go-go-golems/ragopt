@@ -262,6 +262,7 @@ func loadArtifactCells(reader *runstore.Reader, config RunConfig, suite *SuiteDo
 		}
 	}
 	seen := make(map[string]struct{})
+	chainDigest := ""
 	lines := bytes.Split(data, []byte{'\n'})
 	cells := make([]Cell, 0, len(lines)-1)
 	for index, line := range lines {
@@ -274,6 +275,9 @@ func loadArtifactCells(reader *runstore.Reader, config RunConfig, suite *SuiteDo
 		var cell Cell
 		if err := decodeStrictJSON(line, &cell); err != nil {
 			return nil, errors.Wrapf(err, "decode evaluation cell line %d", index+1)
+		}
+		if err := validateCellChain(cell, chainDigest); err != nil {
+			return nil, errors.Wrapf(err, "validate evaluation cell line %d chain", index+1)
 		}
 		key := cellKey(cell)
 		expectedCell, exists := expected[key]
@@ -301,6 +305,7 @@ func loadArtifactCells(reader *runstore.Reader, config RunConfig, suite *SuiteDo
 			return nil, errors.Wrapf(err, "validate evaluation cell line %d outcome", index+1)
 		}
 		cells = append(cells, cell)
+		chainDigest = cell.Digest
 	}
 	return cells, nil
 }
