@@ -169,6 +169,9 @@ func validateStatus(status Status) error {
 }
 
 func readInputs(root string) ([]InputRef, error) {
+	if err := recoverPendingInputs(root); err != nil {
+		return nil, errors.Wrap(err, "recover pending copied inputs")
+	}
 	manifestPath := filepath.Join(root, "inputs", "manifest.json")
 	var inputs []InputRef
 	err := readStrictJSON(manifestPath, &inputs)
@@ -231,6 +234,58 @@ func readInputs(root string) ([]InputRef, error) {
 		}
 	}
 	return inputs, nil
+}
+
+// recoverPendingInputs completes or discards the small transaction used by
+// CopyInput. A manifest that names the final file commits the pending bytes;
+// without that manifest entry, the pending bytes were never committed.
+func recoverPendingInputs(root string) error {
+	directory := filepath.Join(root, "inputs")
+	entries, err := os.ReadDir(directory)
+	if err != nil {
+		return err
+	}
+	var pending []os.DirEntry
+	for _, entry := range entries {
+		if strings.HasPrefix(entry.Name(), ".pending-") {
+			pending = append(pending, entry)
+		}
+	}
+	if len(pending) == 0 {
+		return nil
+	}
+	var manifest []InputRef
+	manifestErr := readStrictJSON(filepath.Join(directory, "manifest.json"), &manifest)
+	if manifestErr != nil && !errors.Is(manifestErr, os.ErrNotExist) {
+		return errors.Wrap(manifestErr, "read input manifest during recovery")
+	}
+	committed := make(map[string]struct{}, len(manifest))
+	for _, input := range manifest {
+		committed[filepath.Base(input.CopiedPath)] = struct{}{}
+	}
+	for _, entry := range pending {
+		pendingPath := filepath.Join(directory, entry.Name())
+		finalName := strings.TrimPrefix(entry.Name(), ".pending-")
+		finalPath := filepath.Join(directory, finalName)
+		if _, ok := committed[finalName]; ok {
+			if _, err := os.Lstat(finalPath); err == nil {
+				if err := os.Remove(pendingPath); err != nil {
+					return errors.Wrap(err, "discard redundant pending input")
+				}
+				continue
+			} else if !os.IsNotExist(err) {
+				return err
+			}
+			if err := os.Rename(pendingPath, finalPath); err != nil {
+				return errors.Wrap(err, "finish pending input publication")
+			}
+			continue
+		}
+		if err := os.Remove(pendingPath); err != nil {
+			return errors.Wrap(err, "discard uncommitted pending input")
+		}
+	}
+	return syncDirectory(directory)
 }
 
 func readStrictJSON(path string, destination any) error {

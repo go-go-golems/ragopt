@@ -19,11 +19,11 @@ func Write(ctx context.Context, document *Document, markdownPath, planPath strin
 	if markdownPath == "" || planPath == "" {
 		return errors.New("markdown and plan output paths are required")
 	}
-	markdownAbsolute, err := filepath.Abs(markdownPath)
+	markdownAbsolute, err := resolveDestination(markdownPath)
 	if err != nil {
 		return errors.Wrap(err, "resolve markdown output path")
 	}
-	planAbsolute, err := filepath.Abs(planPath)
+	planAbsolute, err := resolveDestination(planPath)
 	if err != nil {
 		return errors.Wrap(err, "resolve plan output path")
 	}
@@ -47,12 +47,12 @@ func Write(ctx context.Context, document *Document, markdownPath, planPath strin
 // ValidateOutputsOutsideRun rejects report destinations that would overwrite
 // any file in the immutable evaluated run.
 func ValidateOutputsOutsideRun(runDirectory string, paths ...string) error {
-	runAbsolute, err := filepath.Abs(runDirectory)
+	runAbsolute, err := resolveDestination(runDirectory)
 	if err != nil {
 		return errors.Wrap(err, "resolve evaluated run directory")
 	}
 	for _, path := range paths {
-		outputAbsolute, err := filepath.Abs(path)
+		outputAbsolute, err := resolveDestination(path)
 		if err != nil {
 			return errors.Wrap(err, "resolve report output path")
 		}
@@ -65,6 +65,40 @@ func ValidateOutputsOutsideRun(runDirectory string, paths ...string) error {
 		}
 	}
 	return nil
+}
+
+// resolveDestination canonicalizes symlinks in every existing path component
+// while preserving a not-yet-created suffix. This is the identity atomicWrite
+// will actually address after it creates missing parent directories.
+func resolveDestination(path string) (string, error) {
+	absolute, err := filepath.Abs(path)
+	if err != nil {
+		return "", err
+	}
+	current := filepath.Clean(absolute)
+	var suffix []string
+	for {
+		_, err := os.Lstat(current)
+		if err == nil {
+			resolved, err := filepath.EvalSymlinks(current)
+			if err != nil {
+				return "", err
+			}
+			for index := len(suffix) - 1; index >= 0; index-- {
+				resolved = filepath.Join(resolved, suffix[index])
+			}
+			return filepath.Clean(resolved), nil
+		}
+		if !os.IsNotExist(err) {
+			return "", err
+		}
+		parent := filepath.Dir(current)
+		if parent == current {
+			return "", err
+		}
+		suffix = append(suffix, filepath.Base(current))
+		current = parent
+	}
 }
 
 func atomicWrite(ctx context.Context, path string, data []byte) error {

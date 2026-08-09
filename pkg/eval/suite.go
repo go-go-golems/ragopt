@@ -42,7 +42,7 @@ func LoadSuite(ctx context.Context, path string) (*SuiteDocument, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "digest suite")
 	}
-	return &SuiteDocument{Suite: suite, Digest: digest, SourcePath: absolute}, nil
+	return &SuiteDocument{Suite: suite, Digest: digest, ByteDigest: digestBytes(data), SourcePath: absolute}, nil
 }
 
 func normalizeSuite(suite *Suite) error {

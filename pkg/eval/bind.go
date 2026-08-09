@@ -28,8 +28,12 @@ func bindInputs(
 	run *runstore.Run,
 	prepared *preparedRequest,
 ) (CandidateView, CandidateView, error) {
-	if _, err := run.CopyInput(ctx, roleSuite, prepared.suite.SourcePath); err != nil {
+	suiteRef, err := run.CopyInput(ctx, roleSuite, prepared.suite.SourcePath)
+	if err != nil {
 		return CandidateView{}, CandidateView{}, errors.Wrap(err, "copy evaluation suite")
+	}
+	if suiteRef.SHA256 != prepared.suite.ByteDigest {
+		return CandidateView{}, CandidateView{}, errors.Errorf("evaluation suite changed during binding: expected=%s copied=%s", prepared.suite.ByteDigest, suiteRef.SHA256)
 	}
 	policyRef, err := run.CopyInput(ctx, rolePolicy, prepared.policyPath)
 	if err != nil {
@@ -62,7 +66,6 @@ func bindInputs(
 
 func expectedInputDigests(suite *SuiteDocument, policyPath string, candidateValue *candidate.Candidate) (map[string]string, error) {
 	paths := map[string]string{
-		roleSuite:             suite.SourcePath,
 		rolePolicy:            policyPath,
 		roleCandidateManifest: filepath.Join(candidateValue.Root, candidateValue.ManifestPath),
 		roleParentSnapshot:    filepath.Join(candidateValue.Root, candidateValue.Manifest.ParentSnapshot),
@@ -83,7 +86,11 @@ func expectedInputDigests(suite *SuiteDocument, policyPath string, candidateValu
 			paths[role] = filepath.Join(candidateValue.Root, item.ref.Path)
 		}
 	}
-	result := make(map[string]string, len(paths))
+	if strings.TrimSpace(suite.ByteDigest) == "" {
+		return nil, errors.New("suite byte digest is required")
+	}
+	result := make(map[string]string, len(paths)+1)
+	result[roleSuite] = suite.ByteDigest
 	for role, path := range paths {
 		data, err := os.ReadFile(path)
 		if err != nil {

@@ -44,6 +44,22 @@ func TestLoadAnnotationsRejectsTrailingJSONValue(t *testing.T) {
 	require.ErrorContains(t, err, "trailing JSON value")
 }
 
+func TestLoadAnnotationsRejectsReviewerAliasesAndUndeclaredScores(t *testing.T) {
+	keys := []KeyEntry{{ReviewID: "r1", SubjectID: "q1", Variant: "v1"}}
+	dimensions := []Dimension{{Name: "quality", Min: 0, Max: 3}}
+	path := filepath.Join(t.TempDir(), "annotations.jsonl")
+	for name, line := range map[string]string{
+		"reviewer whitespace": `{"review_id":"r1","reviewer":" alice ","scores":{"quality":3}}`,
+		"undeclared score":    `{"review_id":"r1","reviewer":"alice","scores":{"quality":3,"qualty":2}}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			require.NoError(t, os.WriteFile(path, []byte(line+"\n"), 0o600))
+			_, err := LoadAnnotations(path, keys, dimensions)
+			require.Error(t, err)
+		})
+	}
+}
+
 func TestAggregatePairsVariantsAndReviewerOverlap(t *testing.T) {
 	dimensions := []Dimension{{Name: "quality", Min: 0, Max: 3}}
 	keys := []KeyEntry{{ReviewID: "a", SubjectID: "q1", Variant: "control"}, {ReviewID: "b", SubjectID: "q1", Variant: "candidate"}}

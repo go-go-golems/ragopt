@@ -1,6 +1,9 @@
 package report
 
 import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -101,6 +104,14 @@ func TestBuildRejectsInconsistentIdentities(t *testing.T) {
 	}
 }
 
+func TestBuildRejectsDecisionFromDifferentComparison(t *testing.T) {
+	run, comparison, policy, decision := reportFixture()
+	comparison.Pairs[0].Deltas[0].Delta = -1
+	if _, err := Build(t.Context(), run, comparison, policy, decision); err == nil {
+		t.Fatal("expected stale gate decision to be rejected")
+	}
+}
+
 func TestWriteRejectsSameResolvedOutputPath(t *testing.T) {
 	run, comparison, policy, decision := reportFixture()
 	document, err := Build(t.Context(), run, comparison, policy, decision)
@@ -125,6 +136,37 @@ func TestValidateOutputsOutsideRun(t *testing.T) {
 	}
 	if err := ValidateOutputsOutsideRun(runDirectory, filepath.Join(runDirectory, "config.json")); err == nil {
 		t.Fatal("expected output inside the evaluated run to be rejected")
+	}
+}
+
+func TestReportPathsResolveExistingParentSymlinks(t *testing.T) {
+	root := t.TempDir()
+	runDirectory := filepath.Join(root, "run")
+	outputs := filepath.Join(root, "outputs")
+	if err := os.MkdirAll(runDirectory, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(outputs, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	runLink := filepath.Join(root, "run-link")
+	outputLink := filepath.Join(root, "output-link")
+	if err := os.Symlink(runDirectory, runLink); err != nil {
+		t.Skipf("symlink unavailable: %v", err)
+	}
+	if err := os.Symlink(outputs, outputLink); err != nil {
+		t.Skipf("symlink unavailable: %v", err)
+	}
+	if err := ValidateOutputsOutsideRun(runDirectory, filepath.Join(runLink, "config.json")); err == nil {
+		t.Fatal("expected symlinked run destination to be rejected")
+	}
+	run, comparison, policy, decision := reportFixture()
+	document, err := Build(t.Context(), run, comparison, policy, decision)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := Write(t.Context(), document, filepath.Join(outputLink, "same.out"), filepath.Join(outputs, "same.out")); err == nil {
+		t.Fatal("expected symlink aliases of one output to be rejected")
 	}
 }
 
@@ -153,8 +195,22 @@ func reportFixture() (*eval.ArtifactRun, *compare.Report, *gate.PolicyDocument, 
 		Metrics: []compare.MetricAggregate{{Group: "all", Metric: "quality", ExpectedPairs: 1, CompletePairs: 1, PairsWithMetric: 1, MeanIncumbent: 0.5, MeanCandidate: 0.6, MeanDelta: 0.1, Wins: 1}},
 		Pairs:   []compare.Pair{{Key: compare.PairKey{CaseID: "case-a"}, Groups: []string{"comparison"}, Candidate: eval.Cell{Outcome: eval.Outcome{Completed: true, ContractValid: true}}, Deltas: []compare.MetricDelta{{Metric: "quality", Incumbent: 0.5, Candidate: 0.6, Delta: 0.1}}, MetricPresence: []compare.MetricPresence{{Metric: "quality", IncumbentPresent: true, CandidatePresent: true}}}},
 	}
-	policy := &gate.PolicyDocument{Digest: reportDigest('d'), ByteDigest: reportDigest('p'), Policy: gate.Policy{Name: "policy-1"}}
-	decision := gate.Decision{APIVersion: gate.DecisionAPIVersion, PolicyName: "policy-1", PolicyDigest: policy.Digest, Status: gate.DecisionPass, Checks: []gate.CheckResult{{Phase: "target", Name: "quality", Passed: true, Message: "quality improved"}}}
+	maximumFailure := 1.0
+	policy := &gate.PolicyDocument{ByteDigest: reportDigest('p'), Policy: gate.Policy{
+		APIVersion: gate.PolicyAPIVersion, Name: "policy-1",
+		HardGates: gate.HardGates{MaxFailureRate: &maximumFailure},
+		Target:    gate.Target{Metric: "quality", Groups: []string{"comparison"}, MinimumMeanDelta: 0.05},
+	}}
+	semantic, err := json.Marshal(policy.Policy)
+	if err != nil {
+		panic(err)
+	}
+	sum := sha256.Sum256(semantic)
+	policy.Digest = "sha256:" + hex.EncodeToString(sum[:])
+	decision, err := gate.Evaluate(context.Background(), policy, comparison)
+	if err != nil {
+		panic(err)
+	}
 	return run, comparison, policy, decision
 }
 
