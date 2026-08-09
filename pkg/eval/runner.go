@@ -320,7 +320,7 @@ func executeCell(ctx context.Context, run *runstore.Run, prepared *preparedReque
 	if err := os.RemoveAll(nativeDirectory); err != nil {
 		return Cell{}, errors.Wrap(err, "clear uncommitted native artifact directory")
 	}
-	if err := os.MkdirAll(nativeDirectory, 0o700); err != nil {
+	if err := createNativeDirectory(run.Dir(), nativeDirectory); err != nil {
 		return Cell{}, errors.Wrap(err, "create native artifact directory")
 	}
 	protected, err := snapshotRunEvidence(run, chainDigest)
@@ -444,6 +444,22 @@ func syncEvidenceDirectory(directory string) error {
 		return errors.Wrap(err, "sync native artifact directory")
 	}
 	return errors.Wrap(handle.Close(), "close native artifact directory")
+}
+
+// createNativeDirectory makes the arm-owned leaf reachable durably before the
+// arm can return an artifact that is later committed in the cell journal.
+func createNativeDirectory(runDirectory, nativeDirectory string) error {
+	if err := os.MkdirAll(nativeDirectory, 0o700); err != nil {
+		return err
+	}
+	for directory := nativeDirectory; ; directory = filepath.Dir(directory) {
+		if err := syncEvidenceDirectory(directory); err != nil {
+			return err
+		}
+		if filepath.Clean(directory) == filepath.Clean(runDirectory) {
+			return nil
+		}
+	}
 }
 
 func nativeCellPath(armName, caseID string, repeat int) string {
@@ -580,6 +596,17 @@ func resolveNativeArtifactPath(runDirectory, nativeDirectory, relative string) (
 	if err != nil {
 		return "", nil, errors.Wrap(err, "resolve native artifact directory")
 	}
+	resolvedRunDirectory, err := filepath.EvalSymlinks(runDirectory)
+	if err != nil {
+		return "", nil, errors.Wrap(err, "resolve run directory")
+	}
+	resolvedNativeRoot, err := filepath.EvalSymlinks(filepath.Join(resolvedRunDirectory, "native"))
+	if err != nil {
+		return "", nil, errors.Wrap(err, "resolve native artifact root")
+	}
+	if err := requirePathWithin(resolvedNativeRoot, resolvedNativeDirectory, "assigned native artifact directory"); err != nil {
+		return "", nil, err
+	}
 	relativeToNative, err := filepath.Rel(resolvedNativeDirectory, resolved)
 	if err != nil {
 		return "", nil, errors.Wrap(err, "compare native artifact directory")
@@ -595,6 +622,17 @@ func resolveNativeArtifactPath(runDirectory, nativeDirectory, relative string) (
 		return "", nil, errors.New("native artifact is not a regular file")
 	}
 	return resolved, info, nil
+}
+
+func requirePathWithin(root, path, label string) error {
+	relative, err := filepath.Rel(root, path)
+	if err != nil {
+		return errors.Wrap(err, "compare native artifact directory")
+	}
+	if relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+		return errors.Errorf("%s is outside the run native root", label)
+	}
+	return nil
 }
 
 func rejectExternalArtifactAlias(runDirectory string, artifactInfo os.FileInfo) error {

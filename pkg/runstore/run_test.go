@@ -106,6 +106,27 @@ func TestCopyInputRejectsReservedManifestPath(t *testing.T) {
 	}
 }
 
+func TestCopyInputRollsBackManifestWhenPublicationFails(t *testing.T) {
+	run, err := Create(t.Context(), Options{Root: t.TempDir(), Name: "publication-rollback"}, map[string]any{"x": 1})
+	mustNoError(t, err)
+	source := filepath.Join(t.TempDir(), "suite.json")
+	mustWriteFile(t, source, []byte(`{"cases":[]}`))
+	finalPath, err := run.Path(filepath.Join("inputs", "suite.json"))
+	mustNoError(t, err)
+	mustNoError(t, os.Mkdir(finalPath, 0o700))
+	_, err = run.CopyInput(t.Context(), "suite", source)
+	if err == nil || !strings.Contains(err.Error(), "publish copied input") {
+		t.Fatalf("CopyInput error = %v, want publication failure", err)
+	}
+	mustNoError(t, os.Remove(finalPath))
+	mustNoError(t, run.Fail(t.Context(), err))
+	reader, err := Open(run.Dir())
+	mustNoError(t, err)
+	if len(reader.Inputs()) != 0 {
+		t.Fatalf("failed publication left committed inputs: %#v", reader.Inputs())
+	}
+}
+
 func TestCopyInputBoundsCompleteDestinationComponent(t *testing.T) {
 	run := mustCreateRun(t, map[string]any{"x": 1})
 	extension := "." + strings.Repeat("e", 240)

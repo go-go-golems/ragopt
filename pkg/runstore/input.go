@@ -74,6 +74,10 @@ func (run *Run) CopyInput(ctx context.Context, role, source string) (InputRef, e
 		return InputRef{}, err
 	}
 	if err := os.Rename(pendingPath, finalPath); err != nil {
+		run.inputs = run.inputs[:len(run.inputs)-1]
+		if rollbackErr := run.writeJSON(ctx, "inputs/manifest.json", run.inputs); rollbackErr != nil {
+			return InputRef{}, errors.Wrapf(rollbackErr, "roll back copied input manifest after publication failure: %v", err)
+		}
 		return InputRef{}, errors.Wrap(err, "publish copied input")
 	}
 	if err := syncDirectory(filepath.Dir(finalPath)); err != nil {
