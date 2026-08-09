@@ -17,11 +17,8 @@ func sealCell(cell *Cell, previous string) error {
 	if err != nil {
 		return errors.Wrap(err, "marshal cell identity")
 	}
-	if len(data) > maximumCellRecordBytes {
-		return errors.Errorf("cell record exceeds %d bytes", maximumCellRecordBytes)
-	}
 	cell.Digest = digestBytes(data)
-	return nil
+	return validateSealedCellSize(*cell)
 }
 
 func validateCellChain(cell Cell, previous string) error {
@@ -37,11 +34,20 @@ func validateCellChain(cell Cell, previous string) error {
 	if err != nil {
 		return errors.Wrap(err, "marshal cell identity")
 	}
-	if len(data) > maximumCellRecordBytes {
-		return errors.Errorf("cell record exceeds %d bytes", maximumCellRecordBytes)
-	}
 	if actual := digestBytes(data); actual != claimed {
 		return errors.Errorf("cell digest mismatch: stored=%s actual=%s", claimed, actual)
+	}
+	cell.Digest = claimed
+	return validateSealedCellSize(cell)
+}
+
+func validateSealedCellSize(cell Cell) error {
+	data, err := json.Marshal(cell)
+	if err != nil {
+		return errors.Wrap(err, "marshal sealed cell")
+	}
+	if len(data)+1 > maximumCellRecordBytes {
+		return errors.Errorf("cell record exceeds %d bytes", maximumCellRecordBytes)
 	}
 	return nil
 }

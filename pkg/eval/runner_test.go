@@ -498,6 +498,21 @@ func TestResolveNativeArtifactAcceptsSymlinkedRunRoot(t *testing.T) {
 	}
 }
 
+func TestResolveNativeArtifactRejectsAssignedDirectoryOutsideRun(t *testing.T) {
+	runDirectory := t.TempDir()
+	nativeDirectory := filepath.Join(runDirectory, "native", "arm", "case", "0000")
+	mustNoError(t, os.MkdirAll(filepath.Dir(nativeDirectory), 0o700))
+	external := t.TempDir()
+	writeFile(t, filepath.Join(external, "artifact.json"), []byte(`{"ok":true}`))
+	if err := os.Symlink(external, nativeDirectory); err != nil {
+		t.Skipf("symlink unavailable: %v", err)
+	}
+	_, err := resolveNativeArtifact(runDirectory, nativeDirectory, filepath.Join("native", "arm", "case", "0000", "artifact.json"))
+	if err == nil || !strings.Contains(err.Error(), "assigned native artifact directory is outside") {
+		t.Fatalf("expected assigned-directory confinement rejection, got %v", err)
+	}
+}
+
 func TestIdentifyArtifactPersistsPathRelativeToResolvedRunRoot(t *testing.T) {
 	realRoot := t.TempDir()
 	artifact := filepath.Join(realRoot, "native", "artifact.json")
@@ -689,6 +704,22 @@ func TestLoadRejectsStoredCellWithoutArtifactIdentity(t *testing.T) {
 	_, err = LoadArtifactRun(t.Context(), result.RunDirectory)
 	if err == nil || !strings.Contains(err.Error(), "artifact digest is required") {
 		t.Fatalf("expected missing stored identity rejection, got %v", err)
+	}
+}
+
+func TestSealCellRejectsOversizedFinalRecord(t *testing.T) {
+	cell := Cell{CaseID: strings.Repeat("x", maximumCellRecordBytes)}
+	data, err := json.Marshal(cell)
+	mustNoError(t, err)
+	excess := len(data) - (maximumCellRecordBytes - 1)
+	cell.CaseID = strings.Repeat("x", len(cell.CaseID)-excess)
+	data, err = json.Marshal(cell)
+	mustNoError(t, err)
+	if len(data) >= maximumCellRecordBytes {
+		t.Fatalf("unsealed record = %d bytes, want below %d", len(data), maximumCellRecordBytes)
+	}
+	if err := sealCell(&cell, ""); err == nil || !strings.Contains(err.Error(), "cell record exceeds") {
+		t.Fatalf("sealCell accepted oversized final record: %v", err)
 	}
 }
 

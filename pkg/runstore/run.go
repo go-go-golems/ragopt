@@ -105,8 +105,14 @@ func Create(ctx context.Context, options Options, config any) (*Run, error) {
 		return nil, err
 	}
 	dir := filepath.Join(root, runID)
+	if err := mkdirAllAndSync(root); err != nil {
+		return nil, errors.Wrap(err, "create run root")
+	}
+	if err := mkdirAllAndSync(dir); err != nil {
+		return nil, errors.Wrap(err, "create run directory")
+	}
 	for _, child := range []string{"inputs", "results", "native"} {
-		if err := os.MkdirAll(filepath.Join(dir, child), 0o700); err != nil {
+		if err := mkdirAllAndSync(filepath.Join(dir, child)); err != nil {
 			return nil, errors.Wrap(err, "create run directory")
 		}
 	}
@@ -147,6 +153,33 @@ func Create(ctx context.Context, options Options, config any) (*Run, error) {
 		return nil, err
 	}
 	return run, nil
+}
+
+// mkdirAllAndSync creates missing directory components one at a time and
+// syncs each parent entry before returning. A durable run must not publish a
+// child whose containing directory entry is still only in the page cache.
+func mkdirAllAndSync(path string) error {
+	info, err := os.Stat(path)
+	if err == nil {
+		if !info.IsDir() {
+			return errors.Errorf("directory path %q is not a directory", path)
+		}
+		return nil
+	}
+	if !os.IsNotExist(err) {
+		return errors.Wrap(err, "inspect directory")
+	}
+	parent := filepath.Dir(path)
+	if parent == path {
+		return errors.Errorf("directory path %q has no existing ancestor", path)
+	}
+	if err := mkdirAllAndSync(parent); err != nil {
+		return err
+	}
+	if err := os.Mkdir(path, 0o700); err != nil && !os.IsExist(err) {
+		return errors.Wrap(err, "create directory")
+	}
+	return syncDirectory(parent)
 }
 
 // Dir returns the run directory.

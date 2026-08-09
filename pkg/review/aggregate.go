@@ -2,6 +2,7 @@ package review
 
 import (
 	"math"
+	"math/big"
 	"sort"
 )
 
@@ -72,18 +73,21 @@ func Aggregate(keys []KeyEntry, annotations []Annotation, dimensions []Dimension
 	}
 	type score struct {
 		count int
-		sum   map[string]float64
+		sum   map[string]*big.Int
 	}
 	itemScores := map[string]*score{}
 	for _, annotation := range annotations {
 		current := itemScores[annotation.ReviewID]
 		if current == nil {
-			current = &score{sum: map[string]float64{}}
+			current = &score{sum: map[string]*big.Int{}}
 			itemScores[annotation.ReviewID] = current
 		}
 		current.count++
 		for name, value := range annotation.Scores {
-			current.sum[name] += float64(value)
+			if current.sum[name] == nil {
+				current.sum[name] = new(big.Int)
+			}
+			current.sum[name].Add(current.sum[name], big.NewInt(int64(value)))
 		}
 	}
 	variants := make([]string, 0, len(available))
@@ -95,7 +99,7 @@ func Aggregate(keys []KeyEntry, annotations []Annotation, dimensions []Dimension
 	// A subject may legitimately have multiple independently identified items
 	// for one variant. Keep every item average instead of allowing map
 	// iteration order to choose one survivor.
-	subjectScores := map[string]map[string]map[string][]float64{}
+	subjectScores := map[string]map[string]map[string][]*big.Rat{}
 	reviewIDs := make([]string, 0, len(itemScores))
 	for id := range itemScores {
 		reviewIDs = append(reviewIDs, id)
@@ -109,13 +113,13 @@ func Aggregate(keys []KeyEntry, annotations []Annotation, dimensions []Dimension
 		}
 		variantItems[key.Variant][id] = item
 		if subjectScores[key.SubjectID] == nil {
-			subjectScores[key.SubjectID] = map[string]map[string][]float64{}
+			subjectScores[key.SubjectID] = map[string]map[string][]*big.Rat{}
 		}
 		if subjectScores[key.SubjectID][key.Variant] == nil {
-			subjectScores[key.SubjectID][key.Variant] = map[string][]float64{}
+			subjectScores[key.SubjectID][key.Variant] = map[string][]*big.Rat{}
 		}
 		for dimension, total := range item.sum {
-			average := total / float64(item.count)
+			average := new(big.Rat).SetFrac(total, big.NewInt(int64(item.count)))
 			subjectScores[key.SubjectID][key.Variant][dimension] = append(
 				subjectScores[key.SubjectID][key.Variant][dimension], average,
 			)
@@ -136,7 +140,7 @@ func Aggregate(keys []KeyEntry, annotations []Annotation, dimensions []Dimension
 			for dimension, total := range item.sum {
 				current := summary.Dimensions[dimension]
 				current.Count++
-				current.Mean += total / float64(item.count)
+				current.Mean += bigIntFloat64(total) / float64(item.count)
 				summary.Dimensions[dimension] = current
 			}
 			summary.AnnotationCount += item.count
@@ -162,7 +166,9 @@ func Aggregate(keys []KeyEntry, annotations []Annotation, dimensions []Dimension
 					a, aOK := byVariant[variants[left]]
 					b, bOK := byVariant[variants[right]]
 					if aOK && bOK && len(a[dimension.Name]) > 0 && len(b[dimension.Name]) > 0 {
-						deltas = append(deltas, meanFloats(a[dimension.Name])-meanFloats(b[dimension.Name]))
+						delta := new(big.Rat).Sub(meanRationals(a[dimension.Name]), meanRationals(b[dimension.Name]))
+						value, _ := new(big.Float).SetRat(delta).Float64()
+						deltas = append(deltas, value)
 					}
 				}
 				report.Comparisons = append(report.Comparisons, summarizeDeltas(variants[left], variants[right], dimension.Name, deltas))
@@ -173,12 +179,17 @@ func Aggregate(keys []KeyEntry, annotations []Annotation, dimensions []Dimension
 	return report
 }
 
-func meanFloats(values []float64) float64 {
-	total := 0.0
+func bigIntFloat64(value *big.Int) float64 {
+	result, _ := new(big.Float).SetInt(value).Float64()
+	return result
+}
+
+func meanRationals(values []*big.Rat) *big.Rat {
+	total := new(big.Rat)
 	for _, value := range values {
-		total += value
+		total.Add(total, value)
 	}
-	return total / float64(len(values))
+	return total.Quo(total, big.NewRat(int64(len(values)), 1))
 }
 
 func summarizeReviewerOverlap(keys map[string]KeyEntry, annotations []Annotation, dimensions []Dimension) (int, []ReviewerOverlapSummary) {

@@ -183,3 +183,20 @@ func TestAggregatePreservesDuplicateSubjectVariantItems(t *testing.T) {
 	require.Equal(t, 1, report.Comparisons[0].ReviewedPairs)
 	require.Equal(t, 2.0, report.Comparisons[0].MeanDelta, "mean(a items)=3 minus b=1")
 }
+
+func TestAggregatePreservesLargeIntegerPairDifference(t *testing.T) {
+	maximum := int(^uint(0) >> 1)
+	dimensions := []Dimension{{Name: "quality", Min: 0, Max: maximum}}
+	keys := []KeyEntry{
+		{ReviewID: "a", SubjectID: "q1", Variant: "a"},
+		{ReviewID: "b", SubjectID: "q1", Variant: "b"},
+	}
+	annotations := []Annotation{
+		{ReviewID: "a", Reviewer: "alice", Scores: map[string]int{"quality": maximum}},
+		{ReviewID: "b", Reviewer: "alice", Scores: map[string]int{"quality": maximum - 1}},
+	}
+	report := Aggregate(keys, annotations, dimensions)
+	require.Len(t, report.Comparisons, 1)
+	require.Equal(t, 1, report.Comparisons[0].Wins)
+	require.Equal(t, 1.0, report.Comparisons[0].MeanDelta)
+}
