@@ -10,8 +10,11 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Write publishes the report and JSON plan atomically to explicit caller-owned
-// paths. It never writes into or changes the evaluated run.
+// Write publishes the report and JSON plan as individually atomic, durable
+// files at explicit caller-owned paths. POSIX has no commit primitive for two
+// arbitrary file paths; callers needing a coherent multi-file bundle must use
+// a bundle directory with an explicit manifest/pointer protocol. Write never
+// writes into or changes the evaluated run.
 func Write(ctx context.Context, document *Document, markdownPath, planPath string) error {
 	if document == nil {
 		return errors.New("report document is required")

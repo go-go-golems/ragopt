@@ -44,6 +44,9 @@ func (run *Run) finish(ctx context.Context, state, message string, summary Summa
 	run.status.FinishedAt = &finishedAt
 	run.status.Error = message
 	if err := run.writeJSON(ctx, "status.json", run.status); err != nil {
+		if wasPublished(err) {
+			run.terminal = true
+		}
 		return err
 	}
 	run.terminal = true

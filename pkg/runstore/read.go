@@ -59,7 +59,7 @@ func Open(dir string) (*Reader, error) {
 	}
 	manifest.Dimensions = validatedDimensions
 
-	configData, err := os.ReadFile(filepath.Join(absDir, "config.json"))
+	configData, err := readRegularFile(filepath.Join(absDir, "config.json"))
 	if err != nil {
 		return nil, errors.Wrap(err, "read run config")
 	}
@@ -295,7 +295,7 @@ func recoverPendingInputs(root string) error {
 }
 
 func readStrictJSON(path string, destination any) error {
-	data, err := os.ReadFile(path)
+	data, err := readRegularFile(path)
 	if err != nil {
 		return err
 	}
@@ -312,4 +312,15 @@ func readStrictJSON(path string, destination any) error {
 		return errors.Wrap(err, "check JSON trailing data")
 	}
 	return nil
+}
+
+func readRegularFile(path string) ([]byte, error) {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return nil, err
+	}
+	if !info.Mode().IsRegular() {
+		return nil, errors.Errorf("%s is not a regular file", path)
+	}
+	return os.ReadFile(path)
 }

@@ -1,9 +1,10 @@
 package eval
 
 import (
-	"bytes"
+	"bufio"
 	"context"
 	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -232,16 +233,14 @@ func loadArtifactCells(reader *runstore.Reader, config RunConfig, suite *SuiteDo
 	if err != nil {
 		return nil, err
 	}
-	data, err := os.ReadFile(path)
+	file, err := os.Open(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
 		}
 		return nil, errors.Wrap(err, "read evaluation cells")
 	}
-	if len(data) > 0 && data[len(data)-1] != '\n' {
-		return nil, errors.New("evaluation cells have a truncated final line")
-	}
+	defer func() { _ = file.Close() }()
 	expected := make(map[string]artifactExpectedCell)
 	for _, caseValue := range suite.Suite.Cases {
 		for repeat := 0; repeat < config.Repeats; repeat++ {
@@ -263,46 +262,54 @@ func loadArtifactCells(reader *runstore.Reader, config RunConfig, suite *SuiteDo
 	}
 	seen := make(map[string]struct{})
 	chainDigest := ""
-	lines := bytes.Split(data, []byte{'\n'})
-	cells := make([]Cell, 0, len(lines)-1)
-	for index, line := range lines {
-		if len(line) == 0 {
-			if index != len(lines)-1 {
-				return nil, errors.Errorf("evaluation cell line %d is blank", index+1)
+	buffered := bufio.NewReader(file)
+	cells := make([]Cell, 0, len(expected))
+	for lineNumber := 1; ; lineNumber++ {
+		line, readErr := buffered.ReadBytes('\n')
+		if readErr == io.EOF {
+			if len(line) > 0 {
+				return nil, errors.New("evaluation cells have a truncated final line")
 			}
-			continue
+			break
+		}
+		if readErr != nil {
+			return nil, errors.Wrap(readErr, "read evaluation cell line")
+		}
+		line = line[:len(line)-1]
+		if len(line) == 0 {
+			return nil, errors.Errorf("evaluation cell line %d is blank", lineNumber)
 		}
 		var cell Cell
 		if err := decodeStrictJSON(line, &cell); err != nil {
-			return nil, errors.Wrapf(err, "decode evaluation cell line %d", index+1)
+			return nil, errors.Wrapf(err, "decode evaluation cell line %d", lineNumber)
 		}
 		if err := validateCellChain(cell, chainDigest); err != nil {
-			return nil, errors.Wrapf(err, "validate evaluation cell line %d chain", index+1)
+			return nil, errors.Wrapf(err, "validate evaluation cell line %d chain", lineNumber)
 		}
 		key := cellKey(cell)
 		expectedCell, exists := expected[key]
 		if !exists {
-			return nil, errors.Errorf("evaluation cell line %d has unexpected identity", index+1)
+			return nil, errors.Errorf("evaluation cell line %d has unexpected identity", lineNumber)
 		}
 		if _, exists := seen[key]; exists {
-			return nil, errors.Errorf("duplicate evaluation cell on line %d", index+1)
+			return nil, errors.Errorf("duplicate evaluation cell on line %d", lineNumber)
 		}
 		seen[key] = struct{}{}
 		if cell.APIVersion != CellAPIVersion || cell.RunID != reader.Manifest().RunID {
-			return nil, errors.Errorf("evaluation cell line %d has invalid schema or run ID", index+1)
+			return nil, errors.Errorf("evaluation cell line %d has invalid schema or run ID", lineNumber)
 		}
 		if cell.StartedAt.IsZero() || cell.FinishedAt.IsZero() || cell.FinishedAt.Before(cell.StartedAt) {
-			return nil, errors.Errorf("evaluation cell line %d has invalid timestamps", index+1)
+			return nil, errors.Errorf("evaluation cell line %d has invalid timestamps", lineNumber)
 		}
 		if cell.SnapshotDigest != expectedCell.snapshot {
-			return nil, errors.Errorf("evaluation cell line %d has invalid snapshot", index+1)
+			return nil, errors.Errorf("evaluation cell line %d has invalid snapshot", lineNumber)
 		}
 		nativeDirectory, err := reader.Path(nativeCellPath(expectedCell.arm, expectedCell.caseValue.ID, expectedCell.repeat))
 		if err != nil {
 			return nil, err
 		}
 		if err := validateStoredOutcome(reader.Dir(), nativeDirectory, &cell.Outcome); err != nil {
-			return nil, errors.Wrapf(err, "validate evaluation cell line %d outcome", index+1)
+			return nil, errors.Wrapf(err, "validate evaluation cell line %d outcome", lineNumber)
 		}
 		cells = append(cells, cell)
 		chainDigest = cell.Digest
