@@ -131,6 +131,24 @@ func TestAggregatePairsVariantsAndReviewerOverlap(t *testing.T) {
 	require.Equal(t, 1, report.ReviewerOverlaps[0].Dimensions["quality"].Count)
 }
 
+func TestAggregateReviewerDifferenceDoesNotOverflow(t *testing.T) {
+	maximum := int(^uint(0) >> 1)
+	dimensions := []Dimension{{Name: "quality", Min: 0, Max: maximum}}
+	keys := []KeyEntry{
+		{ReviewID: "a", SubjectID: "q1", Variant: "control"},
+		{ReviewID: "b", SubjectID: "q2", Variant: "control"},
+	}
+	annotations := []Annotation{
+		{ReviewID: "a", Reviewer: "alice", Scores: map[string]int{"quality": maximum}},
+		{ReviewID: "a", Reviewer: "bob", Scores: map[string]int{"quality": 0}},
+		{ReviewID: "b", Reviewer: "alice", Scores: map[string]int{"quality": maximum}},
+		{ReviewID: "b", Reviewer: "bob", Scores: map[string]int{"quality": 0}},
+	}
+	report := Aggregate(keys, annotations, dimensions)
+	require.Len(t, report.ReviewerOverlaps, 1)
+	require.Equal(t, float64(maximum), report.ReviewerOverlaps[0].Dimensions["quality"].MeanAbsoluteDifference)
+}
+
 func TestAggregatePreservesDuplicateSubjectVariantItems(t *testing.T) {
 	dimensions := []Dimension{{Name: "quality", Min: 0, Max: 4}}
 	keys := []KeyEntry{

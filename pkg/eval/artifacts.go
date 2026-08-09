@@ -40,15 +40,6 @@ func (r *ArtifactRun) DurableSnapshot(ctx context.Context) (*ArtifactRun, error)
 	if r.Directory == "" {
 		return r, nil
 	}
-	if r.configDigest == "" {
-		config, err := r.DurableConfig(ctx)
-		if err != nil {
-			return nil, err
-		}
-		clone := *r
-		clone.Config = config
-		return &clone, nil
-	}
 	return LoadArtifactRun(ctx, r.Directory)
 }
 
