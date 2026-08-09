@@ -51,8 +51,8 @@ type Annotation struct {
 // QueueEntry cannot express Candidate.Variant, which prevents accidental leaks
 // through a typed reviewer transport.
 func BuildArtifacts(protocol Protocol, candidates []Candidate) ([]QueueEntry, []KeyEntry, error) {
-	if strings.TrimSpace(protocol.SchemaVersion) == "" {
-		return nil, nil, errors.New("review schema version is required")
+	if err := ValidateProtocol(protocol); err != nil {
+		return nil, nil, err
 	}
 	queue := make([]QueueEntry, 0, len(candidates))
 	keys := make([]KeyEntry, 0, len(candidates))
@@ -60,6 +60,9 @@ func BuildArtifacts(protocol Protocol, candidates []Candidate) ([]QueueEntry, []
 	for _, candidate := range candidates {
 		if strings.TrimSpace(candidate.SubjectID) == "" || strings.TrimSpace(candidate.Variant) == "" {
 			return nil, nil, errors.New("review subject ID and variant are required")
+		}
+		if strings.TrimSpace(candidate.SubjectID) != candidate.SubjectID || strings.TrimSpace(candidate.Variant) != candidate.Variant {
+			return nil, nil, errors.New("review subject ID and variant must not have surrounding whitespace")
 		}
 		if !json.Valid(candidate.Payload) {
 			return nil, nil, errors.Errorf("review payload for subject %q is not valid JSON", candidate.SubjectID)
@@ -72,12 +75,49 @@ func BuildArtifacts(protocol Protocol, candidates []Candidate) ([]QueueEntry, []
 			return nil, nil, errors.Errorf("duplicate deterministic review ID %q", id)
 		}
 		seen[id] = struct{}{}
-		queue = append(queue, QueueEntry{SchemaVersion: protocol.SchemaVersion, ReviewID: id, SubjectID: candidate.SubjectID, Payload: candidate.Payload})
+		queue = append(queue, QueueEntry{SchemaVersion: protocol.SchemaVersion, ReviewID: id, SubjectID: candidate.SubjectID, Payload: append(json.RawMessage(nil), candidate.Payload...)})
 		keys = append(keys, KeyEntry{ReviewID: id, SubjectID: candidate.SubjectID, Variant: candidate.Variant})
 	}
 	sort.Slice(queue, func(i, j int) bool { return queue[i].ReviewID < queue[j].ReviewID })
 	sort.Slice(keys, func(i, j int) bool { return keys[i].ReviewID < keys[j].ReviewID })
 	return queue, keys, nil
+}
+
+// ValidateProtocol rejects ambiguous review identities and unusable scoring
+// dimensions before either queues or annotations cross a trust boundary.
+func ValidateProtocol(protocol Protocol) error {
+	if strings.TrimSpace(protocol.SchemaVersion) == "" {
+		return errors.New("review schema version is required")
+	}
+	if strings.TrimSpace(protocol.SchemaVersion) != protocol.SchemaVersion {
+		return errors.New("review schema version must not have surrounding whitespace")
+	}
+	return ValidateDimensions(protocol.Dimensions)
+}
+
+// ValidateDimensions validates the shared scoring schema used by queue
+// construction and annotation loading.
+func ValidateDimensions(dimensions []Dimension) error {
+	if len(dimensions) == 0 {
+		return errors.New("at least one review dimension is required")
+	}
+	seen := make(map[string]struct{}, len(dimensions))
+	for _, dimension := range dimensions {
+		if strings.TrimSpace(dimension.Name) == "" {
+			return errors.New("review dimension name is required")
+		}
+		if strings.TrimSpace(dimension.Name) != dimension.Name {
+			return errors.Errorf("review dimension %q must not have surrounding whitespace", dimension.Name)
+		}
+		if _, exists := seen[dimension.Name]; exists {
+			return errors.Errorf("duplicate review dimension %q", dimension.Name)
+		}
+		seen[dimension.Name] = struct{}{}
+		if dimension.Min > dimension.Max {
+			return errors.Errorf("review dimension %q has minimum %d greater than maximum %d", dimension.Name, dimension.Min, dimension.Max)
+		}
+	}
+	return nil
 }
 
 func deterministicID(version string, candidate Candidate) (string, error) {
@@ -100,6 +140,9 @@ func KnownIDs(keys []KeyEntry) map[string]struct{} {
 	return known
 }
 func ValidateAnnotation(annotation Annotation, known map[string]struct{}, dimensions []Dimension) error {
+	if err := ValidateDimensions(dimensions); err != nil {
+		return err
+	}
 	if _, ok := known[annotation.ReviewID]; !ok {
 		return errors.Errorf("unknown review ID %q", annotation.ReviewID)
 	}
@@ -130,6 +173,9 @@ func ValidateAnnotation(annotation Annotation, known map[string]struct{}, dimens
 }
 
 func LoadAnnotations(path string, keys []KeyEntry, dimensions []Dimension) ([]Annotation, error) {
+	if err := ValidateDimensions(dimensions); err != nil {
+		return nil, err
+	}
 	if strings.TrimSpace(path) == "" {
 		return nil, nil
 	}
@@ -140,11 +186,17 @@ func LoadAnnotations(path string, keys []KeyEntry, dimensions []Dimension) ([]An
 	defer func() { _ = file.Close() }()
 	known, seen := KnownIDs(keys), map[string]struct{}{}
 	var annotations []Annotation
-	scanner := bufio.NewScanner(file)
+	reader := bufio.NewReader(file)
 	line := 0
-	for scanner.Scan() {
+	for {
+		text, readErr := reader.ReadString('\n')
+		if len(text) == 0 && readErr == io.EOF {
+			break
+		}
 		line++
-		decoder := json.NewDecoder(strings.NewReader(scanner.Text()))
+		text = strings.TrimSuffix(text, "\n")
+		text = strings.TrimSuffix(text, "\r")
+		decoder := json.NewDecoder(strings.NewReader(text))
 		decoder.DisallowUnknownFields()
 		var annotation Annotation
 		if err := decoder.Decode(&annotation); err != nil {
@@ -166,9 +218,12 @@ func LoadAnnotations(path string, keys []KeyEntry, dimensions []Dimension) ([]An
 		}
 		seen[identity] = struct{}{}
 		annotations = append(annotations, annotation)
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, errors.Wrap(err, "scan annotations")
+		if readErr != nil {
+			if readErr == io.EOF {
+				break
+			}
+			return nil, errors.Wrap(readErr, "read annotations")
+		}
 	}
 	sort.Slice(annotations, func(i, j int) bool {
 		if annotations[i].ReviewID != annotations[j].ReviewID {

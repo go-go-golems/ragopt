@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"path/filepath"
@@ -265,6 +266,9 @@ func execute(
 	if result.Completed != result.Expected {
 		return failRun(ctx, run, result, errors.Errorf("result cell count mismatch: completed=%d expected=%d", result.Completed, result.Expected))
 	}
+	if _, err := LoadArtifactRun(ctx, run.Dir()); err != nil {
+		return failRun(ctx, run, result, errors.Wrap(err, "audit complete evaluation evidence"))
+	}
 	if err := run.Complete(ctx, runstore.Summary{
 		Message: "paired evaluation complete",
 		Metrics: map[string]any{
@@ -309,7 +313,7 @@ func executeCell(ctx context.Context, run *runstore.Run, prepared *preparedReque
 	if err := os.MkdirAll(nativeDirectory, 0o700); err != nil {
 		return Cell{}, errors.Wrap(err, "create native artifact directory")
 	}
-	protected, err := snapshotRunEvidence(run.Dir(), nativeDirectory)
+	protected, err := snapshotRunEvidence(run)
 	if err != nil {
 		return Cell{}, errors.Wrap(err, "snapshot run evidence before arm")
 	}
@@ -322,7 +326,7 @@ func executeCell(ctx context.Context, run *runstore.Run, prepared *preparedReque
 		Candidate:       cloneView(item.view),
 	})
 	finishedAt := time.Now().UTC()
-	if err := verifyRunEvidence(run.Dir(), nativeDirectory, protected); err != nil {
+	if err := verifyRunEvidence(run, protected); err != nil {
 		return Cell{}, errors.Wrap(err, "arm mutated run-owned evidence")
 	}
 	if armErr != nil {
@@ -345,6 +349,9 @@ func executeCell(ctx context.Context, run *runstore.Run, prepared *preparedReque
 			return Cell{}, errors.Wrap(err, "validate arm outcome")
 		}
 	}
+	if err := ownNativeArtifact(run.Dir(), nativeDirectory, &outcome); err != nil {
+		return Cell{}, errors.Wrap(err, "take custody of native artifact")
+	}
 	return Cell{
 		APIVersion:     CellAPIVersion,
 		RunID:          run.Manifest().RunID,
@@ -359,6 +366,67 @@ func executeCell(ctx context.Context, run *runstore.Run, prepared *preparedReque
 		FinishedAt:     finishedAt,
 		Outcome:        outcome,
 	}, nil
+}
+
+// ownNativeArtifact replaces an arm-controlled inode with a synced,
+// run-owned copy before the cell commit. This safely breaks hard links to
+// files outside the run and establishes the artifact durability boundary.
+func ownNativeArtifact(runDirectory, nativeDirectory string, outcome *Outcome) error {
+	path, err := resolveNativeArtifact(runDirectory, nativeDirectory, outcome.NativeArtifact.Path)
+	if err != nil {
+		return err
+	}
+	source, err := os.Open(path)
+	if err != nil {
+		return errors.Wrap(err, "open native artifact")
+	}
+	defer func() { _ = source.Close() }()
+	directory := filepath.Dir(path)
+	temporary, err := os.CreateTemp(directory, ".ragopt-native-*")
+	if err != nil {
+		return errors.Wrap(err, "create owned native artifact")
+	}
+	temporaryPath := temporary.Name()
+	defer func() {
+		_ = temporary.Close()
+		_ = os.Remove(temporaryPath)
+	}()
+	if err := temporary.Chmod(0o600); err != nil {
+		return errors.Wrap(err, "set native artifact permissions")
+	}
+	if _, err := io.Copy(temporary, source); err != nil {
+		return errors.Wrap(err, "copy native artifact")
+	}
+	if err := temporary.Sync(); err != nil {
+		return errors.Wrap(err, "sync native artifact")
+	}
+	if err := temporary.Close(); err != nil {
+		return errors.Wrap(err, "close native artifact")
+	}
+	if err := os.Rename(temporaryPath, path); err != nil {
+		return errors.Wrap(err, "publish owned native artifact")
+	}
+	if err := syncEvidenceDirectory(directory); err != nil {
+		return err
+	}
+	identified, err := identifyArtifact(runDirectory, path)
+	if err != nil {
+		return err
+	}
+	outcome.NativeArtifact = identified
+	return nil
+}
+
+func syncEvidenceDirectory(directory string) error {
+	handle, err := os.Open(directory)
+	if err != nil {
+		return errors.Wrap(err, "open native artifact directory")
+	}
+	if err := handle.Sync(); err != nil {
+		_ = handle.Close()
+		return errors.Wrap(err, "sync native artifact directory")
+	}
+	return errors.Wrap(handle.Close(), "close native artifact directory")
 }
 
 func nativeCellPath(armName, caseID string, repeat int) string {

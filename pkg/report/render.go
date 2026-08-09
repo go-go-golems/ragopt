@@ -22,6 +22,10 @@ func Build(ctx context.Context, run *eval.ArtifactRun, comparison *compare.Repor
 	if run == nil || comparison == nil || policy == nil {
 		return nil, errors.New("artifact run, comparison, and policy are required")
 	}
+	config, err := run.DurableConfig(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "load durable evaluation config")
+	}
 	rebuiltComparison, err := compare.Build(ctx, run)
 	if err != nil {
 		return nil, errors.Wrap(err, "rebuild comparison from artifact run")
@@ -38,31 +42,31 @@ func Build(ctx context.Context, run *eval.ArtifactRun, comparison *compare.Repor
 	}
 	if decision.APIVersion != gate.DecisionAPIVersion ||
 		decision.PolicyDigest != policy.Digest ||
-		policy.ByteDigest != run.Config.PolicyDigest ||
+		policy.ByteDigest != config.PolicyDigest ||
 		comparison.RunID != run.Manifest.RunID ||
-		comparison.SuiteDigest != run.Config.SuiteDigest ||
-		comparison.PolicyDigest != run.Config.PolicyDigest ||
-		comparison.CandidateID != run.Config.CandidateID ||
-		comparison.CandidateDigest != run.Config.CandidateDigest ||
-		comparison.ParentSnapshot != run.Config.ParentSnapshot ||
-		comparison.ChildSnapshot != run.Config.ChildSnapshot ||
-		comparison.IncumbentArm != run.Config.IncumbentArm ||
-		comparison.ChallengerArm != run.Config.ChallengerArm {
+		comparison.SuiteDigest != config.SuiteDigest ||
+		comparison.PolicyDigest != config.PolicyDigest ||
+		comparison.CandidateID != config.CandidateID ||
+		comparison.CandidateDigest != config.CandidateDigest ||
+		comparison.ParentSnapshot != config.ParentSnapshot ||
+		comparison.ChildSnapshot != config.ChildSnapshot ||
+		comparison.IncumbentArm != config.IncumbentArm ||
+		comparison.ChallengerArm != config.ChallengerArm {
 		return nil, errors.New("report inputs have inconsistent identities")
 	}
 	plan := PromotionPlan{
 		APIVersion: PromotionPlanAPIVersion, State: "review_required", HumanApplyRequired: true,
 		RunID: comparison.RunID, CandidateID: comparison.CandidateID, CandidateDigest: comparison.CandidateDigest,
 		ParentSnapshot: comparison.ParentSnapshot, ChildSnapshot: comparison.ChildSnapshot,
-		Mutation: run.Config.Mutation, ChangedAsset: run.Config.ChangedAsset,
-		ParentAssetDigest: run.Config.ParentAssetDigest, ChildAssetDigest: run.Config.ChildAssetDigest,
+		Mutation: config.Mutation, ChangedAsset: config.ChangedAsset,
+		ParentAssetDigest: config.ParentAssetDigest, ChildAssetDigest: config.ChildAssetDigest,
 		PolicyName: policy.Policy.Name, PolicyDigest: policy.Digest,
 		Decision: decision.Status, Reasons: append([]string(nil), decision.Reasons...),
 	}
-	return &Document{Markdown: renderMarkdown(run, comparison, policy, decision), Plan: plan}, nil
+	return &Document{Markdown: renderMarkdown(config, comparison, policy, decision), Plan: plan}, nil
 }
 
-func renderMarkdown(run *eval.ArtifactRun, comparison *compare.Report, policy *gate.PolicyDocument, decision gate.Decision) string {
+func renderMarkdown(config eval.RunConfig, comparison *compare.Report, policy *gate.PolicyDocument, decision gate.Decision) string {
 	var output strings.Builder
 	fmt.Fprintf(&output, "# Promotion review: %s\n\n", comparison.CandidateID)
 	fmt.Fprintf(&output, "> Decision: **%s**. This report does not apply the candidate; human review is required.\n\n", strings.ToUpper(string(decision.Status)))
@@ -70,14 +74,14 @@ func renderMarkdown(run *eval.ArtifactRun, comparison *compare.Report, policy *g
 	fmt.Fprintf(&output, "- Run: `%s`\n- Suite: `%s`\n- Policy: `%s` (`%s`)\n", comparison.RunID, comparison.SuiteDigest, policy.Policy.Name, policy.Digest)
 	fmt.Fprintf(&output, "- Candidate: `%s` (`%s`)\n- Parent snapshot: `%s`\n- Child snapshot: `%s`\n\n", comparison.CandidateID, comparison.CandidateDigest, comparison.ParentSnapshot, comparison.ChildSnapshot)
 	output.WriteString("## Proposed mutation\n\n")
-	fmt.Fprintf(&output, "- Asset: `%s`\n- Parent bytes: `%s`\n- Candidate bytes: `%s`\n", run.Config.ChangedAsset, run.Config.ParentAssetDigest, run.Config.ChildAssetDigest)
-	fmt.Fprintf(&output, "- Hypothesis: %s\n- Expected improvement: `%s`", clean(run.Config.Mutation.Hypothesis), run.Config.Mutation.ExpectedImprovement.Metric)
-	if len(run.Config.Mutation.ExpectedImprovement.Groups) > 0 {
-		fmt.Fprintf(&output, " in `%s`", strings.Join(run.Config.Mutation.ExpectedImprovement.Groups, "`, `"))
+	fmt.Fprintf(&output, "- Asset: `%s`\n- Parent bytes: `%s`\n- Candidate bytes: `%s`\n", config.ChangedAsset, config.ParentAssetDigest, config.ChildAssetDigest)
+	fmt.Fprintf(&output, "- Hypothesis: %s\n- Expected improvement: `%s`", clean(config.Mutation.Hypothesis), config.Mutation.ExpectedImprovement.Metric)
+	if len(config.Mutation.ExpectedImprovement.Groups) > 0 {
+		fmt.Fprintf(&output, " in `%s`", strings.Join(config.Mutation.ExpectedImprovement.Groups, "`, `"))
 	}
 	output.WriteString("\n")
-	if len(run.Config.Mutation.RegressionRisks) > 0 {
-		fmt.Fprintf(&output, "- Declared regression risks: %s\n", clean(strings.Join(run.Config.Mutation.RegressionRisks, "; ")))
+	if len(config.Mutation.RegressionRisks) > 0 {
+		fmt.Fprintf(&output, "- Declared regression risks: %s\n", clean(strings.Join(config.Mutation.RegressionRisks, "; ")))
 	}
 	output.WriteString("\n## Gate decision\n\n")
 	output.WriteString("| Phase | Check | Result | Detail |\n|---|---|---:|---|\n")

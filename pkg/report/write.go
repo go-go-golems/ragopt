@@ -35,11 +35,19 @@ func Write(ctx context.Context, document *Document, markdownPath, planPath strin
 		return errors.Wrap(err, "marshal promotion plan")
 	}
 	plan = append(plan, '\n')
-	if err := atomicWrite(ctx, markdownAbsolute, []byte(document.Markdown)); err != nil {
-		return errors.Wrap(err, "write promotion report")
+	outputs := []*stagedOutput{
+		{path: markdownAbsolute, data: []byte(document.Markdown)},
+		{path: planAbsolute, data: plan},
 	}
-	if err := atomicWrite(ctx, planAbsolute, plan); err != nil {
-		return errors.Wrap(err, "write promotion plan")
+	for _, output := range outputs {
+		if err := output.stage(ctx); err != nil {
+			cleanupStaged(outputs)
+			return errors.Wrap(err, "stage report outputs")
+		}
+	}
+	if err := publishOutputs(ctx, outputs); err != nil {
+		cleanupStaged(outputs)
+		return errors.Wrap(err, "publish report outputs")
 	}
 	return nil
 }
@@ -101,31 +109,42 @@ func resolveDestination(path string) (string, error) {
 	}
 }
 
-func atomicWrite(ctx context.Context, path string, data []byte) error {
+type stagedOutput struct {
+	path      string
+	data      []byte
+	temporary string
+	backup    string
+	existed   bool
+	published bool
+}
+
+func (o *stagedOutput) stage(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	absolute, err := filepath.Abs(path)
-	if err != nil {
-		return errors.Wrap(err, "resolve output path")
-	}
-	directory := filepath.Dir(absolute)
+	directory := filepath.Dir(o.path)
 	if err := os.MkdirAll(directory, 0o700); err != nil {
 		return errors.Wrap(err, "create output directory")
+	}
+	info, err := os.Lstat(o.path)
+	if err == nil {
+		if !info.Mode().IsRegular() {
+			return errors.Errorf("output destination %q is not a regular file", o.path)
+		}
+		o.existed = true
+	} else if !os.IsNotExist(err) {
+		return errors.Wrap(err, "inspect output destination")
 	}
 	temporary, err := os.CreateTemp(directory, ".ragopt-report-*")
 	if err != nil {
 		return errors.Wrap(err, "create temporary output")
 	}
-	temporaryPath := temporary.Name()
-	defer func() {
-		_ = temporary.Close()
-		_ = os.Remove(temporaryPath)
-	}()
+	o.temporary = temporary.Name()
+	defer func() { _ = temporary.Close() }()
 	if err := temporary.Chmod(0o600); err != nil {
 		return errors.Wrap(err, "set output permissions")
 	}
-	if _, err := temporary.Write(data); err != nil {
+	if _, err := temporary.Write(o.data); err != nil {
 		return errors.Wrap(err, "write temporary output")
 	}
 	if err := temporary.Sync(); err != nil {
@@ -134,19 +153,118 @@ func atomicWrite(ctx context.Context, path string, data []byte) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if err := temporary.Close(); err != nil {
-		return errors.Wrap(err, "close temporary output")
+	return errors.Wrap(temporary.Close(), "close temporary output")
+}
+
+func publishOutputs(ctx context.Context, outputs []*stagedOutput) error {
+	for _, output := range outputs {
+		if !output.existed {
+			continue
+		}
+		placeholder, err := os.CreateTemp(filepath.Dir(output.path), ".ragopt-report-backup-*")
+		if err != nil {
+			rollbackOutputs(outputs)
+			return errors.Wrap(err, "reserve output backup")
+		}
+		backupPath := placeholder.Name()
+		if err := placeholder.Close(); err != nil {
+			_ = os.Remove(backupPath)
+			rollbackOutputs(outputs)
+			return errors.Wrap(err, "close output backup placeholder")
+		}
+		if err := os.Remove(backupPath); err != nil {
+			rollbackOutputs(outputs)
+			return errors.Wrap(err, "remove output backup placeholder")
+		}
+		if err := os.Rename(output.path, backupPath); err != nil {
+			rollbackOutputs(outputs)
+			return errors.Wrap(err, "backup existing output")
+		}
+		output.backup = backupPath
 	}
-	if err := os.Rename(temporaryPath, absolute); err != nil {
-		return errors.Wrap(err, "publish output")
+	for _, output := range outputs {
+		if err := ctx.Err(); err != nil {
+			rollbackOutputs(outputs)
+			return err
+		}
+		if err := os.Rename(output.temporary, output.path); err != nil {
+			rollbackOutputs(outputs)
+			return errors.Wrap(err, "publish staged output")
+		}
+		output.temporary = ""
+		output.published = true
 	}
-	directoryHandle, err := os.Open(directory)
+	for _, directory := range outputDirectories(outputs) {
+		if err := syncDirectory(directory); err != nil {
+			rollbackOutputs(outputs)
+			return err
+		}
+	}
+	for _, output := range outputs {
+		if output.backup != "" {
+			if err := os.Remove(output.backup); err != nil {
+				return errors.Wrap(err, "remove committed output backup")
+			}
+			output.backup = ""
+		}
+	}
+	for _, directory := range outputDirectories(outputs) {
+		if err := syncDirectory(directory); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func rollbackOutputs(outputs []*stagedOutput) {
+	for _, output := range outputs {
+		if output.published {
+			_ = os.Remove(output.path)
+			output.published = false
+		}
+	}
+	for _, output := range outputs {
+		if output.backup != "" {
+			_ = os.Rename(output.backup, output.path)
+			output.backup = ""
+		}
+	}
+	for _, directory := range outputDirectories(outputs) {
+		_ = syncDirectory(directory)
+	}
+}
+
+func cleanupStaged(outputs []*stagedOutput) {
+	for _, output := range outputs {
+		if output.temporary != "" {
+			_ = os.Remove(output.temporary)
+			output.temporary = ""
+		}
+	}
+}
+
+func outputDirectories(outputs []*stagedOutput) []string {
+	seen := make(map[string]struct{}, len(outputs))
+	result := make([]string, 0, len(outputs))
+	for _, output := range outputs {
+		directory := filepath.Dir(output.path)
+		if _, exists := seen[directory]; exists {
+			continue
+		}
+		seen[directory] = struct{}{}
+		result = append(result, directory)
+	}
+	return result
+}
+
+func syncDirectory(directory string) error {
+	handle, err := os.Open(directory)
 	if err != nil {
 		return errors.Wrap(err, "open output directory")
 	}
-	if err := directoryHandle.Sync(); err != nil {
-		_ = directoryHandle.Close()
+	if err := handle.Sync(); err != nil {
+		_ = handle.Close()
 		return errors.Wrap(err, "sync output directory")
 	}
-	return errors.Wrap(directoryHandle.Close(), "close output directory")
+	return errors.Wrap(handle.Close(), "close output directory")
 }

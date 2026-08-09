@@ -29,6 +29,9 @@ func (run *Run) CopyInput(ctx context.Context, role, source string) (InputRef, e
 		return InputRef{}, errors.Wrap(err, "read input")
 	}
 	relative := filepath.Join("inputs", name+filepath.Ext(absoluteSource))
+	if filepath.Clean(relative) == filepath.Join("inputs", "manifest.json") {
+		return InputRef{}, errors.Errorf("input role %q with extension %q collides with reserved input manifest path", role, filepath.Ext(absoluteSource))
+	}
 	pendingRelative := filepath.Join("inputs", ".pending-"+filepath.Base(relative))
 
 	run.mu.Lock()

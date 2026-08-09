@@ -127,6 +127,33 @@ func TestBuildRejectsComparisonAndDecisionNotBackedByRun(t *testing.T) {
 	}
 }
 
+func TestBuildUsesManifestBoundConfigForPromotionFields(t *testing.T) {
+	run, comparison, policy, decision := reportFixture()
+	run.Config.APIVersion = eval.RunAPIVersion
+	run.Config.InputDigests = map[string]string{"suite": reportDigest('s')}
+	durable := run.Config
+	directory := t.TempDir()
+	data, err := json.Marshal(durable)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(directory, "config.json"), data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	digest := sha256.Sum256(data)
+	run.Directory = directory
+	run.Manifest.ConfigDigest = "sha256:" + hex.EncodeToString(digest[:])
+	run.Config.ChangedAsset = "mutated-in-memory"
+	run.Config.Mutation.Hypothesis = "fabricated hypothesis"
+	document, err := Build(t.Context(), run, comparison, policy, decision)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if document.Plan.ChangedAsset != durable.ChangedAsset || document.Plan.Mutation.Hypothesis != durable.Mutation.Hypothesis {
+		t.Fatalf("promotion plan trusted mutable config: %#v", document.Plan)
+	}
+}
+
 func TestWriteRejectsSameResolvedOutputPath(t *testing.T) {
 	run, comparison, policy, decision := reportFixture()
 	document, err := Build(t.Context(), run, comparison, policy, decision)
@@ -137,6 +164,63 @@ func TestWriteRejectsSameResolvedOutputPath(t *testing.T) {
 	t.Chdir(directory)
 	if err := Write(t.Context(), document, "review.out", filepath.Join(directory, "review.out")); err == nil {
 		t.Fatal("expected relative and absolute aliases to be rejected")
+	}
+}
+
+func TestWriteDoesNotPublishEitherOutputWhenOneDestinationIsInvalid(t *testing.T) {
+	directory := t.TempDir()
+	markdownPath := filepath.Join(directory, "review.md")
+	planPath := filepath.Join(directory, "plan.json")
+	if err := os.WriteFile(markdownPath, []byte("old markdown"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(planPath, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	err := Write(t.Context(), &Document{Markdown: "new markdown"}, markdownPath, planPath)
+	if err == nil {
+		t.Fatal("expected invalid plan destination to reject transaction")
+	}
+	data, readErr := os.ReadFile(markdownPath)
+	if readErr != nil {
+		t.Fatal(readErr)
+	}
+	if string(data) != "old markdown" {
+		t.Fatalf("markdown was partially published: %q", data)
+	}
+}
+
+func TestPublishOutputsRollsBackFirstOutputWhenSecondCommitFails(t *testing.T) {
+	directory := t.TempDir()
+	markdownPath := filepath.Join(directory, "review.md")
+	planPath := filepath.Join(directory, "plan.json")
+	if err := os.WriteFile(markdownPath, []byte("old markdown"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(planPath, []byte("old plan"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	outputs := []*stagedOutput{{path: markdownPath, data: []byte("new markdown")}, {path: planPath, data: []byte("new plan")}}
+	for _, output := range outputs {
+		if err := output.stage(t.Context()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.Remove(outputs[1].temporary); err != nil {
+		t.Fatal(err)
+	}
+	if err := publishOutputs(t.Context(), outputs); err == nil {
+		t.Fatal("expected second publication to fail")
+	}
+	cleanupStaged(outputs)
+	for path, want := range map[string]string{markdownPath: "old markdown", planPath: "old plan"} {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(data) != want {
+			t.Fatalf("rollback for %s = %q, want %q", path, data, want)
+		}
 	}
 }
 

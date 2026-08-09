@@ -3,6 +3,7 @@ package review
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -19,6 +20,34 @@ func TestArtifactsAreDeterministicAndBlinded(t *testing.T) {
 	require.Equal(t, keys, againKeys)
 	require.NotContains(t, string(queue[0].Payload), "vector")
 	require.Equal(t, "vector", keys[0].Variant)
+}
+
+func TestBuildArtifactsValidatesProtocolAndOwnsPayload(t *testing.T) {
+	valid := Protocol{SchemaVersion: "test/v1", Dimensions: []Dimension{{Name: "quality", Min: 0, Max: 3}}}
+	for name, protocol := range map[string]Protocol{
+		"empty name":      {SchemaVersion: "test/v1", Dimensions: []Dimension{{Name: "", Min: 0, Max: 3}}},
+		"duplicate name":  {SchemaVersion: "test/v1", Dimensions: []Dimension{{Name: "quality"}, {Name: "quality"}}},
+		"inverted bounds": {SchemaVersion: "test/v1", Dimensions: []Dimension{{Name: "quality", Min: 4, Max: 3}}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, _, err := BuildArtifacts(protocol, []Candidate{{SubjectID: "q1", Variant: "a", Payload: []byte(`{}`)}})
+			require.Error(t, err)
+		})
+	}
+	for name, candidate := range map[string]Candidate{
+		"subject whitespace": {SubjectID: " q1", Variant: "a", Payload: []byte(`{}`)},
+		"variant whitespace": {SubjectID: "q1", Variant: "a ", Payload: []byte(`{}`)},
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, _, err := BuildArtifacts(valid, []Candidate{candidate})
+			require.ErrorContains(t, err, "surrounding whitespace")
+		})
+	}
+	payload := []byte(`{"answer":"original"}`)
+	queue, _, err := BuildArtifacts(valid, []Candidate{{SubjectID: "q1", Variant: "a", Payload: payload}})
+	require.NoError(t, err)
+	payload[11] = 'X'
+	require.JSONEq(t, `{"answer":"original"}`, string(queue[0].Payload))
 }
 
 func TestLoadAnnotationsValidatesKnownIDsRangesAndDuplicates(t *testing.T) {
@@ -58,6 +87,20 @@ func TestLoadAnnotationsRejectsReviewerAliasesAndUndeclaredScores(t *testing.T) 
 			require.Error(t, err)
 		})
 	}
+}
+
+func TestLoadAnnotationsAcceptsLargeNotesAndRejectsInvalidDimensions(t *testing.T) {
+	keys := []KeyEntry{{ReviewID: "r1", SubjectID: "q1", Variant: "v1"}}
+	dimensions := []Dimension{{Name: "quality", Min: 0, Max: 3}}
+	path := filepath.Join(t.TempDir(), "annotations.jsonl")
+	notes := strings.Repeat("n", 128*1024)
+	line := `{"review_id":"r1","reviewer":"alice","scores":{"quality":3},"notes":"` + notes + `"}` + "\n"
+	require.NoError(t, os.WriteFile(path, []byte(line), 0o600))
+	annotations, err := LoadAnnotations(path, keys, dimensions)
+	require.NoError(t, err)
+	require.Equal(t, notes, annotations[0].Notes)
+	_, err = LoadAnnotations(path, keys, []Dimension{{Name: "quality"}, {Name: "quality"}})
+	require.ErrorContains(t, err, "duplicate")
 }
 
 func TestAggregatePairsVariantsAndReviewerOverlap(t *testing.T) {

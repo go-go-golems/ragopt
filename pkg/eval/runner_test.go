@@ -445,6 +445,48 @@ func TestNativeArtifactCannotHardLinkProtectedRunEvidence(t *testing.T) {
 	}
 }
 
+func TestNativeArtifactHardLinkedOutsideRunBecomesOwnedCopy(t *testing.T) {
+	fixture := newEvaluationFixture(t)
+	external := filepath.Join(t.TempDir(), "external.json")
+	writeFile(t, external, []byte(`{"external":true}`))
+	control := &scriptControl{}
+	request := fixture.request(t.TempDir(), &scriptedArm{name: "incumbent", control: control}, &externalHardLinkArm{name: "challenger", source: external})
+	request.Repeats = 1
+	result, err := Run(t.Context(), request)
+	mustNoError(t, err)
+	cells := readCells(t, result.RunDirectory)
+	var artifact ArtifactRef
+	for _, cell := range cells {
+		if cell.Arm == "challenger" {
+			artifact = cell.Outcome.NativeArtifact
+			break
+		}
+	}
+	externalInfo, err := os.Stat(external)
+	mustNoError(t, err)
+	artifactInfo, err := os.Stat(filepath.Join(result.RunDirectory, artifact.Path))
+	mustNoError(t, err)
+	if os.SameFile(externalInfo, artifactInfo) {
+		t.Fatal("native artifact retained external hard-link identity")
+	}
+	writeFile(t, external, []byte(`{"mutated":true}`))
+	_, err = LoadArtifactRun(t.Context(), result.RunDirectory)
+	mustNoError(t, err)
+}
+
+func TestEvidenceSnapshotDoesNotGrowWithCommittedResults(t *testing.T) {
+	run := mustCreateEvidenceRun(t)
+	before, err := snapshotRunEvidence(run)
+	mustNoError(t, err)
+	mustNoError(t, run.WriteBytes(t.Context(), "native/old.json", []byte(`{}`)))
+	mustNoError(t, run.AppendJSONL(t.Context(), "results/cells.jsonl", map[string]string{"cell": "old"}))
+	after, err := snapshotRunEvidence(run)
+	mustNoError(t, err)
+	if !reflect.DeepEqual(before, after) {
+		t.Fatalf("bounded evidence snapshot grew with results: before=%v after=%v", before, after)
+	}
+}
+
 func TestResumeClearsInterruptedNativeDirectory(t *testing.T) {
 	fixture := newEvaluationFixture(t)
 	ctx, cancel := context.WithCancel(t.Context())
@@ -623,6 +665,24 @@ func (arm *hardLinkArtifactArm) Run(_ context.Context, request Request) (Outcome
 	}, nil
 }
 
+type externalHardLinkArm struct {
+	name   string
+	source string
+}
+
+func (arm *externalHardLinkArm) Name() string { return arm.name }
+func (arm *externalHardLinkArm) Run(_ context.Context, request Request) (Outcome, error) {
+	artifactPath := filepath.Join(request.NativeDirectory, "result.json")
+	if err := os.Link(arm.source, artifactPath); err != nil {
+		return Outcome{}, err
+	}
+	relative, err := filepath.Rel(request.RunDirectory, artifactPath)
+	if err != nil {
+		return Outcome{}, err
+	}
+	return Outcome{Completed: true, ContractValid: true, Metrics: map[string]float64{"quality": 0.8}, NativeArtifact: ArtifactRef{Path: relative}}, nil
+}
+
 type cancelingSuccessArm struct {
 	delegate Arm
 	cancel   context.CancelFunc
@@ -798,6 +858,17 @@ func writeCandidateFixture(t *testing.T, root string) *candidate.Candidate {
 	loaded, err := candidate.LoadCandidate(t.Context(), root, "candidate.yaml")
 	mustNoError(t, err)
 	return loaded
+}
+
+func mustCreateEvidenceRun(t *testing.T) *runstore.Run {
+	t.Helper()
+	run, err := runstore.Create(t.Context(), runstore.Options{Root: t.TempDir(), Name: "evidence"}, map[string]string{"config": "fixed"})
+	mustNoError(t, err)
+	source := filepath.Join(t.TempDir(), "suite.json")
+	writeFile(t, source, []byte(`{}`))
+	_, err = run.CopyInput(t.Context(), "suite", source)
+	mustNoError(t, err)
+	return run
 }
 
 func writeYAML(t *testing.T, path string, value any) {
