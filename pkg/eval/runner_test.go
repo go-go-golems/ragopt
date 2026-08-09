@@ -128,6 +128,45 @@ func TestArmErrorRecordsFailedCellAndContinues(t *testing.T) {
 	}
 }
 
+func TestDurableSnapshotReloadsAllMutableRunEvidence(t *testing.T) {
+	fixture := newEvaluationFixture(t)
+	control := &scriptControl{}
+	request := fixture.request(t.TempDir(), &scriptedArm{name: "incumbent", control: control}, &scriptedArm{name: "challenger", control: control})
+	request.Repeats = 1
+	result, err := Run(t.Context(), request)
+	mustNoError(t, err)
+	loaded, err := LoadArtifactRun(t.Context(), result.RunDirectory)
+	mustNoError(t, err)
+	wantRunID := loaded.Manifest.RunID
+	wantMetric := loaded.Cells[0].Outcome.Metrics["quality"]
+	wantGroup := loaded.Suite.Suite.Cases[0].Groups[0]
+	loaded.Manifest.RunID = "mutated"
+	loaded.Status.State = runstore.StateFailed
+	loaded.Cells[0].Outcome.Metrics["quality"] = -100
+	loaded.Suite.Suite.Cases[0].Groups[0] = "mutated"
+	durable, err := loaded.DurableSnapshot(t.Context())
+	mustNoError(t, err)
+	if durable.Manifest.RunID != wantRunID || durable.Status.State != runstore.StateComplete || durable.Cells[0].Outcome.Metrics["quality"] != wantMetric || durable.Suite.Suite.Cases[0].Groups[0] != wantGroup {
+		t.Fatalf("durable snapshot trusted mutable fields: %#v", durable)
+	}
+}
+
+func TestFinalAuditCancellationLeavesRunActive(t *testing.T) {
+	run := mustCreateEvidenceRun(t)
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	result := &RunResult{RunDirectory: run.Dir(), RunID: run.Manifest().RunID}
+	_, err := finalizeRun(ctx, run, result)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected cancellation, got %v", err)
+	}
+	reader, openErr := runstore.Open(run.Dir())
+	mustNoError(t, openErr)
+	if reader.Status().State != runstore.StateActive {
+		t.Fatalf("canceled final audit made run terminal: %q", reader.Status().State)
+	}
+}
+
 func TestInvalidOutcomeIsCustodyFailure(t *testing.T) {
 	fixture := newEvaluationFixture(t)
 	control := &scriptControl{invalidArtifactKey: "incumbent/cmp-1/0"}

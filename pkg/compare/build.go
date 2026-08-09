@@ -24,13 +24,18 @@ func Build(ctx context.Context, run *eval.ArtifactRun) (*Report, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	if run == nil || run.Suite == nil {
-		return nil, errors.New("evaluation artifact run and suite are required")
+	if run == nil {
+		return nil, errors.New("evaluation artifact run is required")
 	}
-	config, err := run.DurableConfig(ctx)
+	durable, err := run.DurableSnapshot(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "load durable evaluation config")
+		return nil, errors.Wrap(err, "load durable evaluation evidence")
 	}
+	run = durable
+	if run.Suite == nil {
+		return nil, errors.New("evaluation artifact suite is required")
+	}
+	config := run.Config
 	index := make(map[coordinate]eval.Cell, len(run.Cells))
 	validCases := make(map[string]struct{}, len(run.Suite.Suite.Cases))
 	for _, caseValue := range run.Suite.Suite.Cases {

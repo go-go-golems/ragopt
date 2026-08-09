@@ -116,6 +116,10 @@ func ValidateDimensions(dimensions []Dimension) error {
 		if dimension.Min > dimension.Max {
 			return errors.Errorf("review dimension %q has minimum %d greater than maximum %d", dimension.Name, dimension.Min, dimension.Max)
 		}
+		maxInt := int(^uint(0) >> 1)
+		if uint(dimension.Max)-uint(dimension.Min) > uint(maxInt) {
+			return errors.Errorf("review dimension %q range is too wide for disagreement arithmetic", dimension.Name)
+		}
 	}
 	return nil
 }
@@ -139,6 +143,18 @@ func KnownIDs(keys []KeyEntry) map[string]struct{} {
 	}
 	return known
 }
+
+func ValidateKeys(keys []KeyEntry) error {
+	seen := make(map[string]struct{}, len(keys))
+	for _, key := range keys {
+		if _, exists := seen[key.ReviewID]; exists {
+			return errors.Errorf("duplicate unblinding key review ID %q", key.ReviewID)
+		}
+		seen[key.ReviewID] = struct{}{}
+	}
+	return nil
+}
+
 func ValidateAnnotation(annotation Annotation, known map[string]struct{}, dimensions []Dimension) error {
 	if err := ValidateDimensions(dimensions); err != nil {
 		return err
@@ -174,6 +190,9 @@ func ValidateAnnotation(annotation Annotation, known map[string]struct{}, dimens
 
 func LoadAnnotations(path string, keys []KeyEntry, dimensions []Dimension) ([]Annotation, error) {
 	if err := ValidateDimensions(dimensions); err != nil {
+		return nil, err
+	}
+	if err := ValidateKeys(keys); err != nil {
 		return nil, err
 	}
 	if strings.TrimSpace(path) == "" {
