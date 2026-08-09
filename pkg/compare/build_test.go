@@ -98,6 +98,16 @@ func TestBuildRejectsNonFiniteDerivedArithmetic(t *testing.T) {
 	})
 }
 
+func TestBuildRejectsTokenTotalOverflow(t *testing.T) {
+	run := comparisonFixture()
+	run.Cells[1].Outcome.InputTokens = math.MaxInt
+	run.Cells[1].Outcome.OutputTokens = math.MaxInt
+	_, err := Build(t.Context(), run)
+	if err == nil || !strings.Contains(err.Error(), "token total") {
+		t.Fatalf("expected token total overflow rejection, got %v", err)
+	}
+}
+
 func comparisonFixture() *eval.ArtifactRun {
 	config := eval.RunConfig{
 		APIVersion: eval.RunAPIVersion, SuiteDigest: digest('s'), PolicyDigest: digest('p'),

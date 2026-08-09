@@ -144,10 +144,22 @@ func buildPair(key PairKey, groups []string, incumbent, candidateCell eval.Cell)
 			})
 		}
 	}
+	candidateTokens, err := checkedAddInt(candidateCell.Outcome.InputTokens, candidateCell.Outcome.OutputTokens)
+	if err != nil {
+		return Pair{}, errors.Wrapf(err, "candidate token total for %q/%d", key.CaseID, key.RepeatIndex)
+	}
+	incumbentTokens, err := checkedAddInt(incumbent.Outcome.InputTokens, incumbent.Outcome.OutputTokens)
+	if err != nil {
+		return Pair{}, errors.Wrapf(err, "incumbent token total for %q/%d", key.CaseID, key.RepeatIndex)
+	}
+	tokenDelta, err := checkedSubInt(candidateTokens, incumbentTokens)
+	if err != nil {
+		return Pair{}, errors.Wrapf(err, "token delta for %q/%d", key.CaseID, key.RepeatIndex)
+	}
 	pair.Costs = CostDelta{
 		ProviderCalls: candidateCell.Outcome.ProviderCalls - incumbent.Outcome.ProviderCalls,
 		ToolCalls:     candidateCell.Outcome.ToolCalls - incumbent.Outcome.ToolCalls,
-		TotalTokens:   (candidateCell.Outcome.InputTokens + candidateCell.Outcome.OutputTokens) - (incumbent.Outcome.InputTokens + incumbent.Outcome.OutputTokens),
+		TotalTokens:   tokenDelta,
 		DurationNanos: int64(candidateCell.Outcome.Duration - incumbent.Outcome.Duration),
 	}
 	return pair, nil
@@ -192,10 +204,23 @@ func aggregate(report *Report) ([]MetricAggregate, []GroupAggregate, error) {
 			accumulator := groups[group]
 			accumulator.aggregate.CompletePairs++
 			addOutcomeCounts(&accumulator.aggregate, pair)
-			accumulator.provider += int64(pair.Costs.ProviderCalls)
-			accumulator.tool += int64(pair.Costs.ToolCalls)
-			accumulator.tokens += int64(pair.Costs.TotalTokens)
-			accumulator.duration += pair.Costs.DurationNanos
+			var err error
+			accumulator.provider, err = checkedAddInt64(accumulator.provider, int64(pair.Costs.ProviderCalls))
+			if err != nil {
+				return nil, nil, errors.Wrapf(err, "provider call aggregate for group %q", group)
+			}
+			accumulator.tool, err = checkedAddInt64(accumulator.tool, int64(pair.Costs.ToolCalls))
+			if err != nil {
+				return nil, nil, errors.Wrapf(err, "tool call aggregate for group %q", group)
+			}
+			accumulator.tokens, err = checkedAddInt64(accumulator.tokens, int64(pair.Costs.TotalTokens))
+			if err != nil {
+				return nil, nil, errors.Wrapf(err, "token aggregate for group %q", group)
+			}
+			accumulator.duration, err = checkedAddInt64(accumulator.duration, pair.Costs.DurationNanos)
+			if err != nil {
+				return nil, nil, errors.Wrapf(err, "duration aggregate for group %q", group)
+			}
 			for _, delta := range pair.Deltas {
 				key := strings.Join([]string{group, delta.Metric}, "\x00")
 				metric := metrics[key]
@@ -262,6 +287,27 @@ func aggregate(report *Report) ([]MetricAggregate, []GroupAggregate, error) {
 }
 
 func finite(value float64) bool { return !math.IsNaN(value) && !math.IsInf(value, 0) }
+
+func checkedAddInt(left, right int) (int, error) {
+	if right > 0 && left > math.MaxInt-right || right < 0 && left < math.MinInt-right {
+		return 0, errors.New("integer addition overflows")
+	}
+	return left + right, nil
+}
+
+func checkedSubInt(left, right int) (int, error) {
+	if right > 0 && left < math.MinInt+right || right < 0 && left > math.MaxInt+right {
+		return 0, errors.New("integer subtraction overflows")
+	}
+	return left - right, nil
+}
+
+func checkedAddInt64(left, right int64) (int64, error) {
+	if right > 0 && left > math.MaxInt64-right || right < 0 && left < math.MinInt64-right {
+		return 0, errors.New("integer addition overflows")
+	}
+	return left + right, nil
+}
 
 func addOutcomeCounts(aggregate *GroupAggregate, pair Pair) {
 	if pair.Incumbent.Outcome.Completed {

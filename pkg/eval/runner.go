@@ -442,13 +442,13 @@ func syncEvidenceDirectory(directory string) error {
 func nativeCellPath(armName, caseID string, repeat int) string {
 	return filepath.Join(
 		"native",
-		nativeIdentityComponent("arm", armName),
-		nativeIdentityComponent("case", caseID),
+		identityComponent("arm", armName),
+		identityComponent("case", caseID),
 		fmt.Sprintf("%04d", repeat),
 	)
 }
 
-func nativeIdentityComponent(kind, identity string) string {
+func identityComponent(kind, identity string) string {
 	digest := sha256.Sum256([]byte(identity))
 	return kind + "-" + hex.EncodeToString(digest[:])
 }
@@ -558,7 +558,11 @@ func resolveNativeArtifact(runDirectory, nativeDirectory, relative string) (stri
 	if err != nil {
 		return "", errors.Wrap(err, "resolve native artifact")
 	}
-	relativeToNative, err := filepath.Rel(nativeDirectory, resolved)
+	resolvedNativeDirectory, err := filepath.EvalSymlinks(nativeDirectory)
+	if err != nil {
+		return "", errors.Wrap(err, "resolve native artifact directory")
+	}
+	relativeToNative, err := filepath.Rel(resolvedNativeDirectory, resolved)
 	if err != nil {
 		return "", errors.Wrap(err, "compare native artifact directory")
 	}

@@ -27,7 +27,11 @@ func Write(ctx context.Context, document *Document, markdownPath, planPath strin
 	if err != nil {
 		return errors.Wrap(err, "resolve plan output path")
 	}
-	if markdownAbsolute == planAbsolute {
+	alias, err := destinationsAlias(markdownAbsolute, planAbsolute)
+	if err != nil {
+		return errors.Wrap(err, "compare report output paths")
+	}
+	if alias {
 		return errors.New("markdown and plan output paths must differ")
 	}
 	plan, err := json.MarshalIndent(document.Plan, "", "  ")
@@ -50,6 +54,89 @@ func Write(ctx context.Context, document *Document, markdownPath, planPath strin
 		return errors.Wrap(err, "publish report outputs")
 	}
 	return nil
+}
+
+func destinationsAlias(first, second string) (bool, error) {
+	if first == second {
+		return true, nil
+	}
+	firstInfo, firstErr := os.Stat(first)
+	secondInfo, secondErr := os.Stat(second)
+	if firstErr == nil && secondErr == nil {
+		return os.SameFile(firstInfo, secondInfo), nil
+	}
+	if firstErr != nil && !os.IsNotExist(firstErr) {
+		return false, firstErr
+	}
+	if secondErr != nil && !os.IsNotExist(secondErr) {
+		return false, secondErr
+	}
+	if !strings.EqualFold(first, second) {
+		return false, nil
+	}
+	firstAncestor, firstAncestorInfo, err := existingAncestor(first)
+	if err != nil {
+		return false, err
+	}
+	_, secondAncestorInfo, err := existingAncestor(second)
+	if err != nil {
+		return false, err
+	}
+	if !os.SameFile(firstAncestorInfo, secondAncestorInfo) {
+		return false, nil
+	}
+	return filesystemCaseInsensitive(firstAncestor)
+}
+
+func existingAncestor(path string) (string, os.FileInfo, error) {
+	current := filepath.Clean(path)
+	for {
+		info, err := os.Stat(current)
+		if err == nil {
+			if !info.IsDir() {
+				current = filepath.Dir(current)
+				continue
+			}
+			return current, info, nil
+		}
+		if !os.IsNotExist(err) {
+			return "", nil, err
+		}
+		parent := filepath.Dir(current)
+		if parent == current {
+			return "", nil, err
+		}
+		current = parent
+	}
+}
+
+// filesystemCaseInsensitive probes the target filesystem because Go exposes no
+// portable mount-level case-sensitivity query. The temporary file is removed
+// before Write stages either report output.
+func filesystemCaseInsensitive(directory string) (bool, error) {
+	probe, err := os.CreateTemp(directory, ".ragopt-case-probe-a-")
+	if err != nil {
+		return false, errors.Wrap(err, "create case-sensitivity probe")
+	}
+	probePath := probe.Name()
+	if err := probe.Close(); err != nil {
+		_ = os.Remove(probePath)
+		return false, errors.Wrap(err, "close case-sensitivity probe")
+	}
+	defer func() { _ = os.Remove(probePath) }()
+	alternate := filepath.Join(directory, strings.ToUpper(filepath.Base(probePath)))
+	alternateInfo, err := os.Stat(alternate)
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, errors.Wrap(err, "inspect case-sensitivity probe")
+	}
+	probeInfo, err := os.Stat(probePath)
+	if err != nil {
+		return false, errors.Wrap(err, "inspect original case-sensitivity probe")
+	}
+	return os.SameFile(probeInfo, alternateInfo), nil
 }
 
 // ValidateOutputsOutsideRun rejects report destinations that would overwrite

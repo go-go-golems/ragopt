@@ -345,6 +345,16 @@ func TestAssetRoleEncodingIsInjective(t *testing.T) {
 	}
 }
 
+func TestAssetRoleStaysWithinCopiedInputFilenameLimit(t *testing.T) {
+	role := assetRole("candidate", candidate.AssetRef{
+		Name: strings.Repeat("a", 128), SHA256: byteDigest([]byte("asset")),
+	}, false)
+	filename := ".pending-" + role + ".json"
+	if len(filename) > 255 {
+		t.Fatalf("copied-input filename has %d bytes: %q", len(filename), filename)
+	}
+}
+
 func TestArmCannotMutateBoundInputs(t *testing.T) {
 	fixture := newEvaluationFixture(t)
 	request := fixture.request(t.TempDir(), &mutatingInputArm{name: "incumbent"}, &scriptedArm{name: "challenger", control: &scriptControl{}})
@@ -423,6 +433,24 @@ func TestNativeCellPathComponentsStayWithinFilesystemLimits(t *testing.T) {
 		if len(component) > 255 {
 			t.Fatalf("native path component has %d bytes: %q", len(component), component)
 		}
+	}
+}
+
+func TestResolveNativeArtifactAcceptsSymlinkedRunRoot(t *testing.T) {
+	realRoot := t.TempDir()
+	nativeDirectory := filepath.Join(realRoot, "native", "arm", "case", "0000")
+	mustNoError(t, os.MkdirAll(nativeDirectory, 0o700))
+	artifact := filepath.Join(nativeDirectory, "artifact.json")
+	writeFile(t, artifact, []byte(`{"ok":true}`))
+	linkedRoot := filepath.Join(t.TempDir(), "run-link")
+	if err := os.Symlink(realRoot, linkedRoot); err != nil {
+		t.Skipf("symlink unavailable: %v", err)
+	}
+	relative := filepath.Join("native", "arm", "case", "0000", "artifact.json")
+	resolved, err := resolveNativeArtifact(linkedRoot, filepath.Join(linkedRoot, "native", "arm", "case", "0000"), relative)
+	mustNoError(t, err)
+	if resolved != artifact {
+		t.Fatalf("resolved path = %q, want %q", resolved, artifact)
 	}
 }
 

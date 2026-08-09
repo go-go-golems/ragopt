@@ -2,7 +2,6 @@ package eval
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -239,7 +238,7 @@ func assetRole(side string, ref candidate.AssetRef, locked bool) string {
 	if locked {
 		class = "locked"
 	}
-	name := hex.EncodeToString([]byte(ref.Name))
+	name := identityComponent("asset", ref.Name)
 	digestSuffix := strings.TrimPrefix(ref.SHA256, "sha256:")
 	if len(digestSuffix) > 12 {
 		digestSuffix = digestSuffix[:12]
