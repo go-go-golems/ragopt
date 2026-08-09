@@ -1,0 +1,34 @@
+almanach_studio_version: 1
+theme: brutalist
+paperWidth: 384
+bodyScale: 1
+feedLines: 8
+blocks:
+  - id: head
+    type: banner
+    data: { text: "RAGOPT-001 / STEP 27", right: "FROZEN", pad: "m" }
+  - id: gap1
+    type: space
+    data: { size: "s" }
+  - id: title
+    type: text
+    data: { text: "CANDIDATE VALID. EXPERIMENT NOT RUN.", preset: h1, lines: 4 }
+  - id: rule1
+    type: rule
+    data: { weight: heavy }
+  - id: facts
+    type: kv
+    data:
+      items:
+        - ["GEC COMMIT", "7599193"]
+        - ["MUTATIONS", "1 TEXT ASSET"]
+        - ["FEEDBACK", "6 PAIRED CELLS"]
+        - ["VALIDATION", "LOCKED / NOT RUN"]
+        - ["BUDGET", "<500K TOKENS / $1"]
+        - ["PROVIDER CALLS", "0"]
+  - id: result
+    type: banner
+    data: { text: "NEXT / PRODUCT ADAPTER", pad: "m" }
+  - id: note
+    type: text
+    data: { text: "Custody is real. Exercise is pending. Adapter source digests must enter the lock before any provider-backed cell.", preset: body }

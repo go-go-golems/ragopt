@@ -1,0 +1,40 @@
+almanach_studio_version: 1
+theme: brutalist
+paperWidth: 384
+bodyScale: 1
+feedLines: 8
+blocks:
+  - id: head
+    type: banner
+    data: { text: "RAGOPT-001 / STEP 20", right: "PROOF", pad: "m" }
+  - id: gap1
+    type: space
+    data: { size: "s" }
+  - id: title
+    type: text
+    data: { text: "FRESH-ROOT RUN REPRODUCED", preset: h1, lines: 3 }
+  - id: rule1
+    type: rule
+    data: { weight: heavy }
+  - id: facts
+    type: kv
+    data:
+      items:
+        - ["CELLS", "6 / 6"]
+        - ["ANSWER", "22 / 24"]
+        - ["SEARCH", "17 / 18"]
+        - ["JUDGE", "8 / 12"]
+        - ["TOKENS", "108,548"]
+        - ["VALIDATION", "NOT RUN"]
+  - id: result
+    type: banner
+    data: { text: "HARNESS PASS / I5 REJECT", pad: "m" }
+  - id: reason
+    type: text
+    data:
+      text: "Identities and copied inputs match. Pairing is complete. Candidate contract validity is 2/3 and faithfulness regressed."
+      preset: body
+  - id: next
+    type: text
+    data: { text: "NEXT: DOCUMENT, THEN GEC P0 FIXES", preset: h2, lines: 2 }
+

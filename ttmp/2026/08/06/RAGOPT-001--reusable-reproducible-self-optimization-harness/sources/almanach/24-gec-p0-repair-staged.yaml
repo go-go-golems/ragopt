@@ -1,0 +1,38 @@
+almanach_studio_version: 1
+theme: brutalist
+paperWidth: 384
+bodyScale: 1
+feedLines: 8
+blocks:
+  - id: head
+    type: banner
+    data: { text: "RAGOPT-001 / STEP 24", right: "GEC P0", pad: "m" }
+  - id: gap1
+    type: space
+    data: { size: "s" }
+  - id: title
+    type: text
+    data: { text: "SAFETY FIXED. COMMIT WAITING.", preset: h1, lines: 3 }
+  - id: rule1
+    type: rule
+    data: { weight: heavy }
+  - id: done
+    type: checks
+    data:
+      items:
+        - "auth before fusion"
+        - "spy reranker clean"
+        - "timeline projection idempotent"
+        - "judge schema strict"
+        - "failures stay in denominator"
+        - "affected tests + build pass"
+      columns: 1
+  - id: blocked
+    type: banner
+    data: { text: "HOOK: PARALLEL LINT", pad: "m" }
+  - id: note
+    type: text
+    data: { text: "Two commit attempts stopped. No bypass. Files remain staged on isolated branch. Main worktree untouched.", preset: body }
+  - id: next
+    type: text
+    data: { text: "NEXT: RETRY COMMIT AFTER LINT CLEARS", preset: h2, lines: 2 }

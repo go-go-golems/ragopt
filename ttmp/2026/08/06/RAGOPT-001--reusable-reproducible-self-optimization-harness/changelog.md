@@ -1,0 +1,346 @@
+# Changelog
+
+## 2026-08-06 - First GEC production-loop feedback proof
+
+Executed the frozen GEC source-role candidate through six production-shaped
+Admin Chat feedback cells. All cells, identities, native links, and budgets
+were valid, proving the RAGOPT integration path; the candidate itself was
+rejected after relevance and source-role match decreased and one answer fell
+below the 0.8 faithfulness floor. Validation remained closed. Recorded the
+measured product integration friction without adding a generic adapter API.
+
+### Related Files
+
+- ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/09-first-gec-feedback-proof-and-source-role-candidate-rejection.md — Sanitized identities, budgets, routes, metrics, gate decision, and repeat protocol
+- ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Exact execution narrative and review instructions
+- ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/tasks.md — Phase 5 GEC integration and friction checkpoints
+
+## 2026-08-06
+
+- Initial workspace created
+
+
+## 2026-08-06
+
+Initialized ragopt from the committed Go template, validated the empty scaffold, audited proven RAG experiment mechanisms, and created the phased implementation ledger.
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/ragopt/go.mod — Normalized project module baseline
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/tasks.md — Canonical phased implementation ledger
+
+## 2026-08-06
+
+Completed the intern-facing evidence-gated optimization harness design: evidence matrix, scope, schemas, APIs, algorithms, diagrams, integration boundaries, tests, decisions, and phase exit criteria.
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/design-doc/01-ragopt-intern-guide-to-a-reusable-evidence-gated-optimization-harness.md — Primary architecture and implementation guide
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Chronological evidence and scope decisions
+
+## 2026-08-06
+
+Validated the complete ticket and delivered the default-layout four-document design bundle to reMarkable at /ai/2026/08/06/RAGOPT-001.
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Validation and reMarkable delivery evidence
+
+## 2026-08-06 - Phase 1 immutable run store
+
+Implemented and exercised ragopt-run/v1 creation, copied inputs, atomic artifacts, synced JSONL, terminal states, strict read validation, and interruption recovery (commit 9f1ccb4).
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/ragopt/pkg/runstore/read.go — Strict run integrity validation
+- /home/manuel/code/wesen/go-go-golems/ragopt/pkg/runstore/run.go — Phase 1 lifecycle checkpoint
+- /home/manuel/code/wesen/go-go-golems/ragopt/pkg/runstore/run_test.go — Recovery and invariant tests
+
+## 2026-08-06 - Phase 2 snapshot and candidate validation
+
+Implemented and exercised strict ragopt-snapshot/v1 identity, ragopt-candidate/v1 exactly-one-mutation validation, safe bundle resolution, and the narrow Glazed candidate validate command (commit d2329dd).
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/ragopt/cmd/ragopt/commands/candidate/validate.go — Artifact CLI checkpoint
+- /home/manuel/code/wesen/go-go-golems/ragopt/pkg/candidate/candidate.go — Phase 2 validation checkpoint
+- /home/manuel/code/wesen/go-go-golems/ragopt/pkg/candidate/candidate_test.go — Mutation and corruption fixtures
+
+## 2026-08-06 - Phase 3 resumable paired evaluation
+
+Implemented and exercised ragopt-suite/v1, explicit incumbent/challenger arms, complete immutable input binding, synced ragopt-cell/v1 results, native artifact custody, failed-cell retention, and exact active-run resume (commit 0802670).
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/ragopt/pkg/eval/resume.go — Resume and corruption semantics
+- /home/manuel/code/wesen/go-go-golems/ragopt/pkg/eval/runner.go — Paired runner checkpoint
+- /home/manuel/code/wesen/go-go-golems/ragopt/pkg/eval/runner_test.go — Interruption and equivalence proof
+
+## 2026-08-06 - Phase 4 paired decisions and promotion reports
+
+Implemented and exercised strict artifact loading, exact incumbent/candidate joins, transparent denominators, ragopt-gate-policy/v1 lexicographic decisions, deterministic Markdown reviews, non-applying promotion plans, and Glazed compare/report commands (commit 7fc1a98).
+
+### Related Files
+
+- cmd/ragopt/commands/report/report.go — Explicit non-applying report CLI
+- pkg/compare/build.go — Exact pairing and aggregate accounting
+- pkg/gate/evaluate.go — Lexicographic gate decision checkpoint
+- pkg/report/render.go — Deterministic promotion review
+
+## 2026-08-06 - Implementation bundle re-delivery and Phase 5 boundary
+
+Replaced the earlier reMarkable design PDF with the expanded eight-document default-layout implementation bundle. Scoped the existing RAG-TTC per-query tool-loop, judge, and human-authored combined-comparison search-description seam; product integration awaits publication of the local ragopt commits.
+
+### Related Files
+
+- ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Upload evidence and RAG-TTC dependency boundary
+
+## 2026-08-06 - Phase 5 RAG-TTC proof-cycle inputs
+
+Selected and strictly validated the human-authored I5 combined-comparison search-description candidate, 3-case feedback suite, disjoint 7-case validation suite, RAG-TTC gate policy, and locked model/corpus/index/judge/prompt/safety/evaluator identities. Committed the product-owned assets and drift tests in RAG-TTC as a6cfd93.
+
+### Related Files
+
+- abs:///home/manuel/workspaces/2026-06-30/benchmark-cpu-inference/rag-ttc/configs/ragopt/i5-combined-comparison-v1/candidate.yaml — Validated one-mutation product candidate
+- abs:///home/manuel/workspaces/2026-06-30/benchmark-cpu-inference/rag-ttc/internal/ragoptassets/assets_test.go — Product asset and suite drift tests
+
+## 2026-08-06 - Product-owned RAG-TTC adapter
+
+Published ragopt main, pinned the portable module revision in RAG-TTC, and implemented the bounded native I5 proof-cycle command. The adapter executes the existing chat runtime and judge, preserves complete per-cell sessions, locks runtime/source/index/profile identities, supports exact active-run resume, and introduces no generic plugin or subprocess protocol. RAG-TTC commit: `56432fd`.
+
+### Related Files
+
+- abs:///home/manuel/workspaces/2026-06-30/benchmark-cpu-inference/rag-ttc/cmd/rag-ttc/cmds/chat/tooleval/ragopt.go — Product-owned execution and native artifact adapter
+- abs:///home/manuel/workspaces/2026-06-30/benchmark-cpu-inference/rag-ttc/cmd/rag-ttc/cmds/chat/tooleval/ragopt_test.go — Locked environment and arm-binding tests
+- ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Publication, implementation, failure, and validation trail
+
+## 2026-08-06 - Feedback proof run awaiting explicit provider approval
+
+Verified the exact six-cell feedback command and tmux run procedure. The live start was rejected before execution because it would export evaluation questions and retrieved evidence to external answer/judge providers and may incur spend. No provider calls or run artifacts were created.
+
+Refreshed the eight-document reMarkable bundle at `/ai/2026/08/06/RAGOPT-001`; the dry run explicitly confirmed `layout=default` before replacement.
+
+## 2026-08-06 - First live feedback run rejected; budget bias corrected
+
+Completed and retained the first six-cell feedback run, then rejected it after native evidence showed that a one-embedding budget biased execution toward the combined-query candidate. RAG-TTC commit `90485d8` locks sufficient 3/4/2 per-cell budgets and excludes judge overhead from product cost accounting. Focused tests and strict one-mutation validation pass; a fresh proof run is required.
+
+## 2026-08-06 - Corrected RAG-TTC feedback proof formally rejected
+
+Ran the corrected I5 candidate in an isolated worktree: 6/6 cells and all native artifact links validated, but only one candidate answer was contract-valid and the incumbent had one real iteration-ceiling failure. `ragopt compare` returned `fail`; the non-applying report says not to promote. Validation was intentionally skipped after feedback hard-gate failure.
+
+### Related Files
+
+- ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/06-first-rag-ttc-i5-feedback-proof-rejection-report.md — Identities, six cell outcomes, gates, commands, and decision
+- ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Isolated setup, failures, commands, and lessons
+
+Replaced the reMarkable bundle with the nine-document default-layout edition containing the formal rejection report.
+
+## 2026-08-06
+
+Step 15: clarified the product-proof boundary, recorded reproducible rejection as valid harness evidence, and preserved the feedback-before-validation spending gate; the fresh provider rerun awaits explicit approval (commit `15f5757`).
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/tasks.md — Phase 5 scope and task semantics
+
+## 2026-08-06
+
+Step 16: designed the shared production-refresh control plane for CoinVault/GEC, TTC Garden, and RAG-TTC Admin; added post-v0.1 implementation tasks and uploaded the standalone default-layout design to reMarkable (commit 8eaa35f).
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/design-doc/02-production-index-build-scheduling-resumability-and-ragopt-integration.md — Shared lifecycle, APIs, AWS/River decisions, product adapters, and implementation phases
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/tasks.md — Post-v0.1 shared refresh and product deployment ledger
+
+## 2026-08-06
+
+Step 17: completed no-provider readiness checks for the second RAG-TTC proof, distinguished policy/suite byte and semantic identities, and recorded the pre-v0.1 schema cleanup (commit 029c076); the six-cell provider run still awaits explicit approval.
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/06-first-rag-ttc-i5-feedback-proof-rejection-report.md — Corrected first-run policy and suite identity layers
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/07-rag-ttc-i5-fresh-root-reproducibility-protocol.md — Authoritative task 67 identities, readiness evidence, and comparison criteria
+
+## 2026-08-06
+
+Step 18: froze the six-cell provider consent envelope, including exact questions, payload classes, cache behavior, provider identities, 18/24/12 operation ceilings, local retention, and the validation exclusion (commit c71db2c); no provider run was launched.
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/07-rag-ttc-i5-fresh-root-reproducibility-protocol.md — Auditable external execution authorization scope for task 67
+
+## 2026-08-06
+
+Step 19: recorded task 67 as externally blocked after three consecutive continuations without the explicitly bounded six-cell provider authorization; no second run, provider call, or validation cell exists (commit ed2f4a9).
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/index.md — Current blocker and exact resume condition
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Strict blocker audit and preserved execution boundary
+
+## 2026-08-06
+
+Steps 20–23: ran the authorized six-cell RAG-TTC I5 feedback proof from a fresh root, verified frozen identities and complete artifact custody, reproduced the `fail` decision within 22/17/8 answer/search/judge calls and 108,548 provider tokens, and kept validation closed. Checked task 67, added the formal reproducibility report, and printed the RAGOPT brutalist mission board plus per-diary closing tickets.
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/08-second-rag-ttc-i5-fresh-root-proof-and-reproducibility-decision.md — Fresh-root identities, cells, custody, budgets, stochastic interpretation, and phase decision
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/sources/almanach/21-ragopt-mission-board.yaml — Reprintable physical project mission board
+
+## 2026-08-06
+
+Steps 24–25: implemented and committed the first GEC Phase 5 prerequisite on isolated branch `codex/ragopt-phase5-gec` (`69c1391`). Retrieval now authorizes channel candidates before fusion and external reranking; answer timeline projection is idempotent; strict judge failures remain visible; summaries expose complete denominators. Product-wide tests and CoinVault build pass, and all 120 historical verdict cache entries satisfy the strict response schema. Task 69 is complete; candidate freezing is next.
+
+### Related Files
+
+- /tmp/gec-ragopt-phase5/internal/knowledge/service.go — Pre-fusion and pre-reranker authorization boundary
+- /tmp/gec-ragopt-phase5/internal/knowledge/judge.go — Idempotent answer projection and strict judge response semantics
+- /tmp/gec-ragopt-phase5/cmd/coinvault/cmds/knowledge.go — Failure-visible judge populations and metric denominators
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Full failures, commands, tests, cache audit, and review guidance
+
+## 2026-08-06
+
+Step 27: froze and validated the one-mutation GEC source-role-routing candidate contract (GEC commit 7599193); product adapter and provider execution remain pending.
+
+### Related Files
+
+- /tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/candidate.yaml — Declares the human-authored source-role routing hypothesis and exactly one mutable asset.
+- /tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/shared/runtime-contract.yaml — Locks the live runtime, model roles, cache policy, feedback gate, and provider ceilings.
+- /tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/shared/source-lock.yaml — Pins current source semantics and explicitly requires future adapter digests before provider execution.
+
+
+## 2026-08-06
+
+Step 28: traced TTC and GEC to the shared Geppetto toolloop and replaced GEC default ambiguity with an explicit production-faithful loop contract (GEC commit 401f4e5).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-30/benchmark-cpu-inference/rag-ttc/pkg/rag/toolanswer/service.go — Shows TTC using the same Geppetto loop with explicit product policy and provider budget wrapper.
+- /tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/shared/runtime-contract.yaml — Locks the exact Geppetto v0.13.7 loop and tool defaults used by GEC production composition.
+- /tmp/gec-ragopt-phase5/internal/webchat/runtime.go — Shows GEC building the shared Geppetto enginebuilder runner with inherited defaults.
+
+
+## 2026-08-06
+
+Step 29: added and verified the strict GEC knowledge-description seam in the existing Geppetto-backed local chat composition (GEC commit b2256f2); focused tests and full lint pass.
+
+### Related Files
+
+- /tmp/gec-ragopt-phase5/internal/knowledge/description.go — Strict complete-replacement description asset loader for evaluated candidates.
+- /tmp/gec-ragopt-phase5/internal/knowledge/tool.go — Applies the description before both catalog metadata and Geppetto registration are derived.
+- /tmp/gec-ragopt-phase5/internal/webchat/localwebchat/local_runner.go — Opens the real bundle and registers knowledge_search in the production-shaped local session runtime.
+
+## 2026-08-06
+
+Steps 30–32: added real production provider accounting and the resumable GEC
+adapter, committed a zero-provider preflight (`82c1659`), made the candidate
+contracts and source lock truthful, repaired malformed description YAML, and
+froze the executable one-mutation candidate (`e2d1997`). RAGOPT validation and
+the product preflight both pass for six feedback cells with zero provider
+calls; validation remains unrun.
+
+### Related Files
+
+- /tmp/gec-ragopt-phase5/cmd/coinvault/cmds/knowledge_ragopt.go — Product-owned adapter, budgets, source/runtime validation, resume custody, and provider-free preflight.
+- /tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/shared/source-lock.yaml — Exact GEC and RAGOPT revisions plus semantic source hashes.
+- /tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/parent/snapshot.yaml — Frozen incumbent identity.
+- /tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/candidate/snapshot.yaml — Frozen challenger identity.
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Full implementation, failure, preflight, and review evidence.
+
+## 2026-08-06
+
+Step 33: attempted to launch the first bounded six-cell GEC feedback proof,
+but stopped before tmux, run artifacts, database access, or provider calls
+because budget authorization did not explicitly authorize sending possible
+database-derived GEC tool results to the external answer and judge providers.
+The frozen candidate remains unchanged and validation remains unrun.
+
+### Related Files
+
+- /tmp/gec-ragopt-phase5/application-profiles.yaml — Shows the production Admin Chat profile and its SQL plus knowledge tools.
+- /tmp/gec-ragopt-phase5/internal/coinvaulttools/catalog/registry.go — Registers the product tools whose outputs can enter provider context.
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Exact launch envelope, rejection, zero-call evidence, and resume condition.
+
+## 2026-08-06
+
+Step 34: audited the production Admin Chat SQL disclosure surface without
+reading application rows or contacting providers. The tool is SELECT-only and
+resource-bounded, but has no business-table allowlist; `gec_dev` includes
+customer, address, order, payment, cart, employee, OAuth, and operational-log
+domains. External provider consent must cover that broader possibility.
+
+### Related Files
+
+- /tmp/gec-ragopt-phase5/internal/coinvaulttools/catalog/catalog.go — Connects the production SQL tool to the database and application policy.
+- /tmp/gec-ragopt-phase5/internal/sqltool/validate.go — Enforces statement-shape and schema restrictions but no business-table allowlist.
+- /tmp/gec-ragopt-phase5/internal/sqltool/types.go — Defines row, byte, timeout, and disallowed-system-schema defaults.
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Detailed data-flow audit and revised consent scope.
+
+## 2026-08-06
+
+Step 35: formally closed the three-turn blocked audit for missing approval to
+send the current Admin Chat SQL tool's possible customer/order/payment and
+operational outputs to external answer and judge providers. All frozen inputs
+remain ready; no run, application-row read, provider call, or validation cell
+exists. Resume requires approval of the current surface or an explicit
+sanitized/allowlisted replacement followed by refreezing.
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Three-turn blocked audit, preserved state, and exact resume choices.
+- /tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/candidate.yaml — Frozen candidate that remains ready but unexecuted.
+
+## 2026-08-06
+
+Step 36: received explicit user approval for the previously disclosed
+six-cell GEC feedback data flow, including possible sensitive SQL results sent
+to the configured OpenAI answer and judge providers under the frozen
+24/18/12/500000 ceilings. The goal is active again; validation remains
+unauthorized and unrun.
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/ragopt/ttmp/2026/08/06/RAGOPT-001--reusable-reproducible-self-optimization-harness/reference/01-implementation-diary.md — Exact approval scope and launch constraints.
+- /tmp/gec-ragopt-phase5/configs/ragopt/source-role-routing-v1/candidate.yaml — Approved frozen feedback candidate.
+
+## 2026-08-07
+
+Steps 39–40 traced the first GEC proof from corpus construction through the
+promotion gate, separated comparison coverage from route-metric and contract
+defects, and registered a bounded follow-up investigation of Nomic's required
+`search_document:` and `search_query:` retrieval prefixes. The prefix candidate
+must rebuild both sides of the vector space, keep BM25 unchanged, and pass
+frozen retrieval and document-coverage gates before chatbot/provider spending.
+
+### Related Files
+
+- design-doc/03-nomic-retrieval-prefix-optimization-investigation.md — Prefix hypothesis, identity contract, evaluation sequence, pseudocode, and authoritative resources.
+- tasks.md — Product-owned GEC prefix investigation checklist under Phase 5.
+- reference/01-implementation-diary.md — Evidence trace and exact documentation actions.
+
+## 2026-08-07
+
+Step 41 added the intern-facing end-to-end GEC CoinVault investigation and
+pragmatic recovery guide. It reconstructs the corpus, bundle, hybrid retrieval,
+tool loop, evidence and answer contracts, judge, RAGOPT boundary, and every
+feedback case; separates proven failures from hypotheses; and adds product-owned
+measurement, suite, retrieval, grounding, and proof tasks to the ticket ledger.
+No product code, provider run, SQL read, or validation run was performed.
+
+### Related Files
+
+- reference/10-gec-coinvault-rag-end-to-end-failure-investigation-and-pragmatic-recovery-guide.md — Complete system investigation and recovery design.
+- tasks.md — Trackable GEC recovery phases A–E.
+- reference/01-implementation-diary.md — Investigation authorship, evidence boundaries, and review instructions.
+
+## 2026-08-07
+
+Step 42 validated and committed the full investigation as `de2a855`, confirmed
+remarquee's default non-editor layout in a dry run, and uploaded
+`RAGOPT 001 GEC End to End Failure Investigation.pdf` to
+`/ai/2026/08/07/RAGOPT-001`. No raw GEC artifacts were committed.
+
+### Related Files
+
+- reference/10-gec-coinvault-rag-end-to-end-failure-investigation-and-pragmatic-recovery-guide.md — Delivered source report.
+- reference/01-implementation-diary.md — Validation, commit, and upload receipt.

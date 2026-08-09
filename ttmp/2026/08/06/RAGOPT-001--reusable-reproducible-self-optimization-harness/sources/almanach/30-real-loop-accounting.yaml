@@ -1,0 +1,100 @@
+almanach_studio_version: 1
+theme: brutalist
+paperWidth: 384
+bodyScale: 1
+feedLines: 8
+blocks:
+- id: head
+  type: row
+  data:
+    cols:
+    - w: 1fr
+      text: RAGOPT-001
+      preset: micro
+    - w: 1fr
+      text: STEP 30
+      preset: micro
+      align: right
+- id: r1
+  type: rule
+  data:
+    weight: heavy
+- id: gap1
+  type: space
+  data:
+    size: s
+- id: title
+  type: text
+  data:
+    text: REAL LOOP CALLS ARE NOW COUNTABLE
+    preset: h1
+    lines: 3
+- id: gap2
+  type: space
+  data:
+    size: s
+- id: summary
+  type: text
+  data:
+    text: GEC now projects completed Geppetto provider calls and token usage through its existing Pinocchio/sessionstream
+      path. No second loop. No provider run.
+    preset: body
+- id: gap3
+  type: space
+  data:
+    size: m
+- id: did
+  type: list
+  data:
+    marker: —
+    lines: 2
+    items:
+    - Added typed provider lifecycle and usage fields to local chat events.
+    - Exposed accounting in structured Glazed chat rows.
+    - Focused tests and the complete repository hook passed.
+- id: gap4
+  type: space
+  data:
+    size: s
+- id: tricky
+  type: list
+  data:
+    marker: '!'
+    lines: 2
+    items:
+    - The managed Go cache was read-only; a task cache under /tmp passed.
+    - The full Dagger lint hook took 190 seconds; the original session was polled to completion.
+- id: r2
+  type: rule
+  data:
+    weight: hair
+- id: facts
+  type: kv
+  data:
+    items:
+    - - COMMIT
+      - e0f8f2d
+    - - NEXT
+      - Build the product-owned GEC RAGOPT arm and native artifact.
+    - - PROVIDER CALLS
+      - '0'
+    - - LOOP POLICY
+      - UNCHANGED
+- id: r3
+  type: rule
+  data:
+    weight: hair
+- id: decide
+  type: row
+  data:
+    cols:
+    - w: 1fr
+      text: SCAN FOR COMMIT
+      preset: caption
+    - w: 120
+      blocks:
+      - id: qr
+        type: qr
+        data:
+          value: https://github.com/go-go-golems/gec-rag/commit/e0f8f2d
+          size: 110
