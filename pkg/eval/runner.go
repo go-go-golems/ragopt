@@ -81,7 +81,7 @@ func Run(ctx context.Context, request RunRequest) (*RunResult, error) {
 	if err != nil {
 		return bindingFailure(ctx, run, result, err)
 	}
-	return execute(ctx, run, prepared, incumbentView, challengerView, nil, result)
+	return execute(ctx, run, prepared, incumbentView, challengerView, nil, "", result)
 }
 
 // Resume explicitly reopens an active run after validating the complete run
@@ -96,14 +96,11 @@ func Resume(ctx context.Context, runDirectory string, request RunRequest) (*RunR
 		return nil, errors.Wrap(err, "resume paired evaluation run")
 	}
 	result := newRunResult(run, prepared, true)
-	if err := verifyBoundInputs(run, prepared.config.InputDigests); err != nil {
-		return failRun(ctx, run, result, errors.Wrap(err, "validate resumed immutable inputs"))
-	}
-	incumbentView, challengerView, err := viewsFromInputs(run, prepared.candidate)
+	incumbentView, challengerView, err := bindInputs(ctx, run, prepared)
 	if err != nil {
-		return failRun(ctx, run, result, errors.Wrap(err, "restore immutable candidate views"))
+		return bindingFailure(ctx, run, result, errors.Wrap(err, "complete resumed immutable inputs"))
 	}
-	completed, err := loadCompletedCells(run, prepared, incumbentView, challengerView)
+	completed, chainDigest, err := loadCompletedCells(run, prepared, incumbentView, challengerView)
 	if err != nil {
 		return failRun(ctx, run, result, errors.Wrap(err, "load completed result cells"))
 	}
@@ -113,7 +110,7 @@ func Resume(ctx context.Context, runDirectory string, request RunRequest) (*RunR
 			result.Failures++
 		}
 	}
-	return execute(ctx, run, prepared, incumbentView, challengerView, completed, result)
+	return execute(ctx, run, prepared, incumbentView, challengerView, completed, chainDigest, result)
 }
 
 func prepareRequest(ctx context.Context, request RunRequest) (*preparedRequest, error) {
@@ -228,6 +225,7 @@ func execute(
 	incumbentView CandidateView,
 	challengerView CandidateView,
 	completed map[string]Cell,
+	chainDigest string,
 	result *RunResult,
 ) (*RunResult, error) {
 	if completed == nil {
@@ -242,7 +240,7 @@ func execute(
 		if _, exists := completed[key]; exists {
 			continue
 		}
-		cell, err := executeCell(ctx, run, prepared, item)
+		cell, err := executeCell(ctx, run, prepared, item, chainDigest)
 		if err != nil {
 			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 				return result, err
@@ -258,6 +256,7 @@ func execute(
 			}
 			return failRun(ctx, run, result, errors.Wrap(err, "append result cell"))
 		}
+		chainDigest = cell.Digest
 		completed[key] = cell
 		result.Completed++
 		if cell.Outcome.Failure != nil {
@@ -312,7 +311,7 @@ func buildSchedule(prepared *preparedRequest, incumbentView, challengerView Cand
 	return result
 }
 
-func executeCell(ctx context.Context, run *runstore.Run, prepared *preparedRequest, item scheduledCell) (Cell, error) {
+func executeCell(ctx context.Context, run *runstore.Run, prepared *preparedRequest, item scheduledCell, chainDigest string) (Cell, error) {
 	nativeRelative := nativeCellPath(item.armName, item.caseValue.ID, item.repeat)
 	nativeDirectory, err := run.Path(nativeRelative)
 	if err != nil {
@@ -324,11 +323,12 @@ func executeCell(ctx context.Context, run *runstore.Run, prepared *preparedReque
 	if err := os.MkdirAll(nativeDirectory, 0o700); err != nil {
 		return Cell{}, errors.Wrap(err, "create native artifact directory")
 	}
-	protected, err := snapshotRunEvidence(run)
+	protected, err := snapshotRunEvidence(run, chainDigest)
 	if err != nil {
 		return Cell{}, errors.Wrap(err, "snapshot run evidence before arm")
 	}
-	startedAt := time.Now().UTC()
+	started := time.Now()
+	startedAt := started.UTC()
 	outcome, armErr := item.arm.Run(ctx, Request{
 		RunDirectory:    run.Dir(),
 		NativeDirectory: nativeDirectory,
@@ -336,7 +336,9 @@ func executeCell(ctx context.Context, run *runstore.Run, prepared *preparedReque
 		RepeatIndex:     item.repeat,
 		Candidate:       cloneView(item.view),
 	})
-	finishedAt := time.Now().UTC()
+	finished := time.Now()
+	finishedAt := finished.UTC()
+	duration := finished.Sub(started)
 	if err := verifyRunEvidence(run, protected); err != nil {
 		return Cell{}, errors.Wrap(err, "arm mutated run-owned evidence")
 	}
@@ -347,7 +349,7 @@ func executeCell(ctx context.Context, run *runstore.Run, prepared *preparedReque
 		if errors.Is(armErr, context.Canceled) || errors.Is(armErr, context.DeadlineExceeded) {
 			return Cell{}, armErr
 		}
-		outcome, err = recordArmFailure(ctx, run, nativeRelative, armErr, finishedAt.Sub(startedAt))
+		outcome, err = recordArmFailure(ctx, run, nativeRelative, armErr, duration)
 		if err != nil {
 			return Cell{}, err
 		}
@@ -355,7 +357,7 @@ func executeCell(ctx context.Context, run *runstore.Run, prepared *preparedReque
 			return Cell{}, errors.Wrap(err, "validate recorded arm failure")
 		}
 	} else {
-		outcome.Duration = finishedAt.Sub(startedAt)
+		outcome.Duration = duration
 		if err := validateOutcome(run.Dir(), nativeDirectory, &outcome); err != nil {
 			return Cell{}, errors.Wrap(err, "validate arm outcome")
 		}
@@ -363,7 +365,7 @@ func executeCell(ctx context.Context, run *runstore.Run, prepared *preparedReque
 	if err := ownNativeArtifact(run.Dir(), nativeDirectory, &outcome); err != nil {
 		return Cell{}, errors.Wrap(err, "take custody of native artifact")
 	}
-	return Cell{
+	cell := Cell{
 		APIVersion:     CellAPIVersion,
 		RunID:          run.Manifest().RunID,
 		CaseID:         item.caseValue.ID,
@@ -376,14 +378,18 @@ func executeCell(ctx context.Context, run *runstore.Run, prepared *preparedReque
 		StartedAt:      startedAt,
 		FinishedAt:     finishedAt,
 		Outcome:        outcome,
-	}, nil
+	}
+	if err := sealCell(&cell, chainDigest); err != nil {
+		return Cell{}, err
+	}
+	return cell, nil
 }
 
 // ownNativeArtifact replaces an arm-controlled inode with a synced,
 // run-owned copy before the cell commit. This safely breaks hard links to
 // files outside the run and establishes the artifact durability boundary.
 func ownNativeArtifact(runDirectory, nativeDirectory string, outcome *Outcome) error {
-	path, err := resolveNativeArtifact(runDirectory, nativeDirectory, outcome.NativeArtifact.Path)
+	path, _, err := resolveNativeArtifactPath(runDirectory, nativeDirectory, outcome.NativeArtifact.Path)
 	if err != nil {
 		return err
 	}
@@ -551,46 +557,54 @@ func validateStoredOutcome(runDirectory, nativeDirectory string, outcome *Outcom
 }
 
 func resolveNativeArtifact(runDirectory, nativeDirectory, relative string) (string, error) {
-	if filepath.IsAbs(relative) || filepath.Clean(relative) != relative {
-		return "", errors.New("native artifact path must be canonical and run-relative")
-	}
-	path := filepath.Join(runDirectory, relative)
-	resolved, err := filepath.EvalSymlinks(path)
+	resolved, info, err := resolveNativeArtifactPath(runDirectory, nativeDirectory, relative)
 	if err != nil {
-		return "", errors.Wrap(err, "resolve native artifact")
+		return "", err
 	}
-	resolvedNativeDirectory, err := filepath.EvalSymlinks(nativeDirectory)
-	if err != nil {
-		return "", errors.Wrap(err, "resolve native artifact directory")
-	}
-	relativeToNative, err := filepath.Rel(resolvedNativeDirectory, resolved)
-	if err != nil {
-		return "", errors.Wrap(err, "compare native artifact directory")
-	}
-	if relativeToNative == ".." || strings.HasPrefix(relativeToNative, ".."+string(filepath.Separator)) {
-		return "", errors.New("native artifact is outside its assigned cell directory")
-	}
-	info, err := os.Stat(resolved)
-	if err != nil {
-		return "", errors.Wrap(err, "stat native artifact")
-	}
-	if !info.Mode().IsRegular() {
-		return "", errors.New("native artifact is not a regular file")
-	}
-	if err := rejectExternalArtifactAlias(runDirectory, nativeDirectory, info); err != nil {
+	if err := rejectExternalArtifactAlias(runDirectory, info); err != nil {
 		return "", err
 	}
 	return resolved, nil
 }
 
-func rejectExternalArtifactAlias(runDirectory, nativeDirectory string, artifactInfo os.FileInfo) error {
+func resolveNativeArtifactPath(runDirectory, nativeDirectory, relative string) (string, os.FileInfo, error) {
+	if filepath.IsAbs(relative) || filepath.Clean(relative) != relative {
+		return "", nil, errors.New("native artifact path must be canonical and run-relative")
+	}
+	path := filepath.Join(runDirectory, relative)
+	resolved, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		return "", nil, errors.Wrap(err, "resolve native artifact")
+	}
+	resolvedNativeDirectory, err := filepath.EvalSymlinks(nativeDirectory)
+	if err != nil {
+		return "", nil, errors.Wrap(err, "resolve native artifact directory")
+	}
+	relativeToNative, err := filepath.Rel(resolvedNativeDirectory, resolved)
+	if err != nil {
+		return "", nil, errors.Wrap(err, "compare native artifact directory")
+	}
+	if relativeToNative == ".." || strings.HasPrefix(relativeToNative, ".."+string(filepath.Separator)) {
+		return "", nil, errors.New("native artifact is outside its assigned cell directory")
+	}
+	info, err := os.Stat(resolved)
+	if err != nil {
+		return "", nil, errors.Wrap(err, "stat native artifact")
+	}
+	if !info.Mode().IsRegular() {
+		return "", nil, errors.New("native artifact is not a regular file")
+	}
+	return resolved, info, nil
+}
+
+func rejectExternalArtifactAlias(runDirectory string, artifactInfo os.FileInfo) error {
 	runDirectory = filepath.Clean(runDirectory)
-	nativeDirectory = filepath.Clean(nativeDirectory)
+	nativeRoot := filepath.Join(runDirectory, "native")
 	err := filepath.WalkDir(runDirectory, func(path string, entry os.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
 		}
-		if filepath.Clean(path) == nativeDirectory && entry.IsDir() {
+		if filepath.Clean(path) == nativeRoot && entry.IsDir() {
 			return filepath.SkipDir
 		}
 		if entry.IsDir() {

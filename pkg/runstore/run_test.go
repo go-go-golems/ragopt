@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestRunLifecycleAndReader(t *testing.T) {
@@ -63,6 +64,17 @@ func TestRunLifecycleAndReader(t *testing.T) {
 	}
 	if err := run.Complete(t.Context(), Summary{}); err == nil {
 		t.Fatal("expected duplicate completion rejection")
+	}
+}
+
+func TestClampFinishTimePreventsClockRollback(t *testing.T) {
+	started := time.Unix(100, 0).UTC()
+	if got := clampFinishTime(started, started.Add(-time.Hour)); !got.Equal(started) {
+		t.Fatalf("clamped finish = %s, want %s", got, started)
+	}
+	finished := started.Add(time.Hour)
+	if got := clampFinishTime(started, finished); !got.Equal(finished) {
+		t.Fatalf("forward finish = %s, want %s", got, finished)
 	}
 }
 
@@ -185,6 +197,28 @@ func TestResumeRecoversPendingInputTransactions(t *testing.T) {
 			t.Fatalf("uncommitted pending input remains: %v", err)
 		}
 	})
+}
+
+func TestResumeRejectsSymlinkedInputDirectoryBeforeRecovery(t *testing.T) {
+	config := map[string]any{"x": 1}
+	run := mustCreateRun(t, config)
+	inputs := filepath.Join(run.Dir(), "inputs")
+	mustNoError(t, os.Rename(inputs, filepath.Join(run.Dir(), "inputs-owned")))
+	external := t.TempDir()
+	pending := filepath.Join(external, ".pending-suite.json")
+	mustWriteFile(t, pending, []byte("external"))
+	if err := os.Symlink(external, inputs); err != nil {
+		t.Skipf("symlink unavailable: %v", err)
+	}
+	_, err := Resume(t.Context(), run.Dir(), config)
+	if err == nil || !strings.Contains(err.Error(), "input directory is not a real directory") {
+		t.Fatalf("expected symlinked input directory rejection, got %v", err)
+	}
+	data, readErr := os.ReadFile(pending)
+	mustNoError(t, readErr)
+	if string(data) != "external" {
+		t.Fatalf("external pending input changed: %q", data)
+	}
 }
 
 func TestCreateRetainsAbsoluteRunDirectory(t *testing.T) {

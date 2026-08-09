@@ -240,6 +240,13 @@ func readInputs(root string) ([]InputRef, error) {
 // without that manifest entry, the pending bytes were never committed.
 func recoverPendingInputs(root string) error {
 	directory := filepath.Join(root, "inputs")
+	info, err := os.Lstat(directory)
+	if err != nil {
+		return err
+	}
+	if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
+		return errors.New("input directory is not a real directory")
+	}
 	entries, err := os.ReadDir(directory)
 	if err != nil {
 		return err

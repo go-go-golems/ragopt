@@ -80,6 +80,8 @@ type Cell struct {
 	StartedAt      time.Time `json:"started_at"`
 	FinishedAt     time.Time `json:"finished_at"`
 	Outcome        Outcome   `json:"outcome"`
+	PreviousDigest string    `json:"previous_digest,omitempty"`
+	Digest         string    `json:"digest"`
 }
 
 // ResolvedAsset is an immutable copied run input exposed to an arm.
